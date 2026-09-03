@@ -1,0 +1,30 @@
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# Rust / Tauri
+/target/
+src-tauri/target/
+src-tauri/gen/
+Cargo.lock.bak
+
+# Claude Code local settings
+.claude/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Local reference data downloaded at runtime
+src-tauri/resources/cty.dat.downloaded

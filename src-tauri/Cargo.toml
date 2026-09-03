@@ -1,0 +1,31 @@
+[package]
+name = "dx-cluster-desktop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Multiplatform desktop client for ham radio DX clusters (Telnet)"
+
+[lib]
+name = "dx_cluster_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+dxcluster-core = { path = "../crates/dxcluster-core" }
+tauri = { version = "2", features = [] }
+tauri-plugin-log = "2"
+tauri-plugin-store = "2"
+tauri-plugin-notification = "2"
+serde = { workspace = true }
+log = { workspace = true }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-single-instance = "2"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
