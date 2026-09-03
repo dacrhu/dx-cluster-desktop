@@ -20,6 +20,9 @@ thiserror = { workspace = true }
 chrono = { workspace = true }
 rusqlite = { workspace = true }
 log = { workspace = true }
+rumqttc = { workspace = true }
+socket2 = { workspace = true }
+if-addrs = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }

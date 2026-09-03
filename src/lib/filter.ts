@@ -38,6 +38,8 @@ export function conditionsMatch(spot: EnrichedSpot, f: SpotFilter): boolean {
     return false;
 
   if (f.dx_continents.length && !eqAny(spot.dx?.continent, f.dx_continents)) return false;
+  if (f.spotter_continents?.length && !eqAny(spot.by?.continent, f.spotter_continents))
+    return false;
 
   return true;
 }
@@ -47,8 +49,9 @@ export function conditionsMatch(spot: EnrichedSpot, f: SpotFilter): boolean {
  * must match at least one; then any matching `reject` rule drops it.
  */
 export function spotPasses(spot: EnrichedSpot, filters: SpotFilter[]): boolean {
-  const accepts = filters.filter((f) => f.action === "accept");
-  const rejects = filters.filter((f) => f.action === "reject");
+  const active = filters.filter((f) => f.enabled !== false);
+  const accepts = active.filter((f) => f.action === "accept");
+  const rejects = active.filter((f) => f.action === "reject");
 
   if (accepts.length && !accepts.some((f) => conditionsMatch(spot, f))) return false;
   if (rejects.some((f) => conditionsMatch(spot, f))) return false;

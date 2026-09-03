@@ -1,0 +1,65 @@
+name: Refresh bundled data
+
+# Weekly pull of the reference data files into the repo, so the app's bundled
+# fallbacks stay current and clients fetch them from GitHub's CDN rather than
+# hammering the upstream servers.
+#
+# Repo variables (Settings → Secrets and variables → Actions → Variables):
+#   PRESETS_SOURCE_URL  – canonical DXCLUSTERS.DAT (from https://dxcluster.info/)
+#   CTY_SOURCE_URL      – optional override; defaults to country-files.com
+
+on:
+  schedule:
+    - cron: "17 4 * * 1" # Mondays 04:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-update
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download cluster node list
+        run: |
+          set -euo pipefail
+          url="${{ vars.PRESETS_SOURCE_URL }}"
+          if [ -z "$url" ]; then
+            echo "::error::repo variable PRESETS_SOURCE_URL is not set"
+            exit 1
+          fi
+          curl -fsSL --retry 3 --max-time 60 "$url" -o /tmp/dxclusters.dat
+          nodes=$(grep -c '^"[^"]*","[^"]*","[0-9]' /tmp/dxclusters.dat || true)
+          echo "parsed $nodes node lines"
+          test "$nodes" -ge 100
+          grep -q '^"VERSION"' /tmp/dxclusters.dat
+          mv /tmp/dxclusters.dat src-tauri/resources/dxclusters.dat
+
+      - name: Download cty.dat
+        run: |
+          set -euo pipefail
+          url="${{ vars.CTY_SOURCE_URL || 'https://www.country-files.com/cty/cty.dat' }}"
+          curl -fsSL --retry 3 --max-time 60 "$url" -o /tmp/cty.dat
+          # A plausible country file has hundreds of entity header lines.
+          ents=$(grep -c ': *[0-9]\+: *[0-9]\+: *[A-Z][A-Z]:' /tmp/cty.dat || true)
+          echo "parsed $ents entity lines"
+          test "$ents" -ge 200
+          mv /tmp/cty.dat src-tauri/resources/cty.dat
+
+      - name: Commit if changed
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- src-tauri/resources/; then
+            echo "no change"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: refresh bundled data [skip ci]" -- src-tauri/resources/
+          git push

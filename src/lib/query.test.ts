@@ -69,6 +69,23 @@ describe("compileQuery", () => {
     expect(match("mode:ssb", spot())).toBe(true);
   });
 
+  it("mode: matches the category and the specific sub-mode", () => {
+    const sstv = spot({ mode: "DIGI", comment: "SSTV Scottie 1" });
+    expect(match("mode:sstv", sstv)).toBe(true);
+    expect(match("mode:digi", sstv)).toBe(true);
+    expect(match("mode:ft8", sstv)).toBe(false);
+    expect(match("mode:cw", sstv)).toBe(false);
+
+    const ft8 = spot({ mode: "DIGI", comment: "FT8  -12 dB" });
+    expect(match("mode:ft8", ft8)).toBe(true);
+    expect(match("mode:ft", ft8)).toBe(true); // legacy alias -> DIGI
+    expect(match("mode:sstv,ft8", ft8)).toBe(true); // or-list
+
+    // whole-word token only — no match on a substring inside another word
+    const cw = spot({ mode: "CW", comment: "left the key down" });
+    expect(match("mode:ft", cw)).toBe(false);
+  });
+
   it("comma values inside a field are ORed", () => {
     expect(match("band:40m,20m", spot())).toBe(true);
     expect(match("cq:5,14", spot())).toBe(true);
@@ -100,10 +117,32 @@ describe("compileQuery", () => {
     expect(match("-skimmer", spot({ is_skimmer: true }))).toBe(false);
   });
 
+  it("grey flag tests the DX position against the live terminator", () => {
+    // A spot with no position can never be in the grey line.
+    expect(match("grey", spot({ grid: null, dx: null }))).toBe(false);
+    // With a position it resolves to a boolean without throwing.
+    expect(typeof match("grey", spot({ grid: "JN49" }))).toBe("boolean");
+    expect(typeof match("-grey", spot({ grid: "JN49" }))).toBe("boolean");
+  });
+
   it("bycq / bycont scope the spotter", () => {
     expect(match("bycq:5", spot())).toBe(true);
     expect(match("bycont:NA", spot())).toBe(true);
     expect(match("cont:NA", spot())).toBe(false);
+  });
+
+  it("re: is a regex over call / spotter / comment", () => {
+    expect(match("re:/MM$", spot({ dx_call: "HA5XYZ/MM" }))).toBe(true);
+    expect(match("re:/MM$", spot({ dx_call: "HA5XYZ" }))).toBe(false);
+    expect(match("re:/MM$", spot({ dx_call: "HA5XYZ/MM/QRP" }))).toBe(false);
+    expect(match("re:^(EA|F)", spot({ dx_call: "EA8ABC" }))).toBe(true);
+    // spotter and comment are matched too
+    expect(match("re:W3.PL", spot())).toBe(true);
+    // a broken regex degrades to a substring match, doesn't throw
+    expect(match("re:(unclosed", spot({ comment: "re:(unclosed here" }))).toBe(true);
+    expect(match("re:[0-9]{4}", spot({ comment: "grid 1234" }))).toBe(true);
+    // negatable
+    expect(match("-re:/MM$", spot({ dx_call: "HA5XYZ" }))).toBe(true);
   });
 
   it("quoted phrases", () => {

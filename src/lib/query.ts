@@ -1,3 +1,6 @@
+import { modeLabel } from "./mode";
+import { inGreyline } from "./grayline";
+import { spotLonLat } from "./grid";
 import type { EnrichedSpot } from "./types";
 
 /**
@@ -13,7 +16,9 @@ import type { EnrichedSpot } from "./types";
  *
  * Fields: dx by dxcc bydxcc cq bycq itu cont bycont band mode grid
  *         comment|c  freq|f (supports `freq>14000`, `f<14100`, `freq:14000-14100`)
- *         age (minutes, e.g. `age<15`)   flag: skimmer
+ *         age (minutes, e.g. `age<15`)   flags: skimmer, grey (DX in the grey line)
+ *         re|regex: a JS regex (case-insensitive) tested against the DX call,
+ *                   spotter and comment — e.g. `re:/MM$` for maritime-mobile.
  */
 
 export type SpotPredicate = (s: EnrichedSpot) => boolean;
@@ -109,6 +114,13 @@ function termPredicate(token: Token): SpotPredicate {
   }
   // bare flag
   if (raw.toLowerCase() === "skimmer") return (s) => s.is_skimmer;
+  // bare flag: DX sits in the sunrise/sunset grey-line band right now
+  if (["grey", "greyline", "grayline"].includes(raw.toLowerCase())) {
+    return (s) => {
+      const ll = spotLonLat(s);
+      return ll ? inGreyline(ll, new Date()) : false;
+    };
+  }
 
   // bare word -> substring anywhere
   const needle = raw.toUpperCase();
@@ -116,6 +128,20 @@ function termPredicate(token: Token): SpotPredicate {
 }
 
 function scoped(field: string, value: string): SpotPredicate {
+  // `re:` takes a raw regex (which may itself contain commas / colons), so it
+  // must be handled before the comma-split that the other fields use.
+  if (field === "re" || field === "regex") {
+    let compiled: RegExp | null = null;
+    try {
+      compiled = new RegExp(value, "i");
+    } catch {
+      compiled = null;
+    }
+    if (!compiled) return (s) => haystack(s).includes(`${field}:${value}`.toUpperCase());
+    const rx = compiled;
+    return (s) => rx.test(s.dx_call) || rx.test(s.spotter_base || s.spotter) || rx.test(s.comment);
+  }
+
   const vals = anyOf(value);
   const U = vals.map((v) => v.toUpperCase());
 
@@ -146,8 +172,23 @@ function scoped(field: string, value: string): SpotPredicate {
       return (s) => U.includes(upper(s.by?.continent));
     case "band":
       return (s) => U.includes(upper(s.band));
-    case "mode":
-      return (s) => U.includes(upper(s.mode));
+    case "mode": {
+      // Match the mode *category* (CW/SSB/DIGI/FM) OR the specific sub-mode
+      // shown in the table (FT8/RTTY/SSTV…, dug out of the comment by
+      // `modeLabel`) OR a whole-word sub-mode token in the comment — so
+      // `mode:sstv`, `mode:ft8`, `mode:rtty` all work, not just `mode:digi`.
+      return (s) => {
+        const cat = upper(s.mode);
+        const label = upper(modeLabel(s.mode, s.comment));
+        const comment = upper(s.comment);
+        return U.some((v) => {
+          const w = v === "FT" ? "DIGI" : v; // legacy alias
+          if (cat === w || label === v) return true;
+          const tok = v.replace(/[^A-Z0-9]/g, "");
+          return tok.length > 1 && new RegExp(`\\b${tok}\\b`).test(comment);
+        });
+      };
+    }
     case "grid":
       return (s) => U.some((v) => upper(s.grid).startsWith(v));
     case "comment":

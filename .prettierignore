@@ -4,3 +4,4 @@ src-tauri/gen
 pnpm-lock.yaml
 .claude
 FELADAT.md
+src/assets/countries-110m.json

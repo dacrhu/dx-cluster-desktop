@@ -1,15 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCluster } from "@/store/useCluster";
+import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
 
 export function RawConsolePanel() {
+  const tr = useT();
   const { connections, raw } = useCluster();
   const ids = Object.keys(connections);
   const [selected, setSelected] = useState<string>(ids[0] ?? "");
   const [cmd, setCmd] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const [histIdx, setHistIdx] = useState(-1);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const consoleRef = useRef<HTMLDivElement>(null);
+  // Follow new output only while the view is scrolled to the bottom; scrolling
+  // up pauses it, scrolling back down (or the jump button) resumes.
+  const [stick, setStick] = useState(true);
+  const detachLenRef = useRef(0);
 
   useEffect(() => {
     if (!selected && ids.length) setSelected(ids[0]);
@@ -17,9 +23,24 @@ export function RawConsolePanel() {
 
   const lines = useMemo(() => raw[selected] ?? [], [raw, selected]);
 
+  useEffect(() => setStick(true), [selected]);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [lines.length]);
+    if (stick && consoleRef.current) {
+      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+    }
+  }, [lines.length, stick, selected]);
+
+  function onConsoleScroll() {
+    const el = consoleRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+    setStick((prev) => {
+      if (prev && !atBottom) detachLenRef.current = lines.length;
+      return atBottom;
+    });
+  }
+  const pending = stick ? 0 : Math.max(0, lines.length - detachLenRef.current);
 
   const online = connections[selected]?.state === "online";
 
@@ -53,9 +74,9 @@ export function RawConsolePanel() {
   return (
     <div className="panel raw-panel">
       <div className="panel-head">
-        <h2>Nyers terminál</h2>
+        <h2>{tr("raw.title")}</h2>
         <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-          {ids.length === 0 && <option value="">nincs kapcsolat</option>}
+          {ids.length === 0 && <option value="">{tr("raw.noConnection")}</option>}
           {ids.map((id) => (
             <option key={id} value={id}>
               {id} — {connections[id]?.state}
@@ -63,32 +84,39 @@ export function RawConsolePanel() {
           ))}
         </select>
       </div>
-      <p className="muted">
-        A GUI minden funkciót lefed — ez a fül a haladó felhasználóknak van, tetszőleges
-        cluster-parancshoz.
-      </p>
+      <p className="muted">{tr("raw.note")}</p>
 
-      <div className="console">
-        {lines.map((l, i) => (
-          <div key={i} className={l.dir === "out" ? "cline out" : "cline in"}>
-            <span className="mono">{l.dir === "out" ? "» " : "  "}</span>
-            <span className="mono">{l.text}</span>
-          </div>
-        ))}
-        <div ref={bottomRef} />
+      <div className="console-wrap">
+        <div className="console" ref={consoleRef} onScroll={onConsoleScroll}>
+          {lines.map((l, i) => (
+            <div key={i} className={l.dir === "out" ? "cline out" : "cline in"}>
+              <span className="mono">{l.dir === "out" ? "» " : "  "}</span>
+              <span className="mono">{l.text}</span>
+            </div>
+          ))}
+        </div>
+        {!stick && (
+          <button
+            className="console-jump"
+            title={tr("raw.jumpLatest")}
+            onClick={() => setStick(true)}
+          >
+            ↓ {pending > 0 ? pending : ""}
+          </button>
+        )}
       </div>
 
       <div className="console-input">
         <input
           className="mono grow"
-          placeholder={online ? "parancs…" : "(nincs élő kapcsolat)"}
+          placeholder={online ? tr("raw.cmdPlaceholder") : tr("common.noConnection")}
           value={cmd}
           disabled={!online}
           onChange={(e) => setCmd(e.target.value)}
           onKeyDown={onKey}
         />
         <button className="primary" disabled={!online} onClick={send}>
-          Küldés
+          {tr("common.send")}
         </button>
       </div>
     </div>

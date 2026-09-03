@@ -16,10 +16,14 @@
 pub mod band;
 pub mod commands;
 pub mod connection;
+pub mod logpush;
 pub mod parser;
+pub mod pskr;
 pub mod reference;
+pub mod rigctl;
 pub mod store;
 pub mod telnet;
+pub mod wsjtx;
 
 /// Crate version, surfaced to the app for diagnostics.
 pub fn core_version() -> &'static str {

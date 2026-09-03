@@ -61,7 +61,7 @@ static SPOT_RE: Lazy<Regex> = Lazy::new(|| {
 });
 
 /// Strip a trailing `-#`, `-7`, `-11` … node/skimmer suffix from a callsign.
-fn base_call(call: &str) -> &str {
+pub fn base_call(call: &str) -> &str {
     match call.rfind('-') {
         Some(idx) => &call[..idx],
         None => call,
@@ -147,7 +147,7 @@ mod tests {
             "DX de EA4XYZ:      14074.0  VK9XYZ      FT8 -15dB                    0301Z",
         )
         .expect("parsed");
-        assert_eq!(s.mode, Mode::Ft);
+        assert_eq!(s.mode, Mode::Digi);
         assert_eq!(s.freq_khz, 14074.0);
         assert_eq!(s.time_hhmm, "0301");
     }

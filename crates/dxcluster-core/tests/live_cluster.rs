@@ -19,6 +19,8 @@ async fn connects_and_parses_real_spots() {
         callsign: std::env::var("DXTEST_CALL").unwrap_or_else(|_| "N0CALL".into()),
         password: None,
         on_login: vec![],
+        auto_connect: false,
+        kind: Default::default(),
     };
 
     let (handle, mut events) = connect(profile, SessionConfig::default())

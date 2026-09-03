@@ -1,39 +1,36 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useCluster } from "@/store/useCluster";
-import { spotPasses } from "@/lib/filter";
-import { compileQuery } from "@/lib/query";
-import { ALL_BANDS, ALL_MODES, type Mode } from "@/lib/types";
-import { SpotTable, type SpotAction } from "@/components/SpotTable";
+import { useVisibleSpots } from "@/lib/visibleSpots";
+import { useSpotActions } from "@/lib/spotActions";
+import { type SpotAction } from "@/lib/types";
+import { SpotTable } from "@/components/SpotTable";
+import { QuickFilters } from "@/components/QuickFilters";
+import { QueryHelp } from "@/components/QueryHelp";
+import { WsjtxToggle } from "@/components/WsjtxToggle";
+import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
 
-const QUERY_HELP =
-  "Kereső: szabad szó bárhol illeszkedik. Mezők: dx: by: dxcc: bydxcc: cq: bycq: itu: " +
-  "cont: bycont: band: mode: grid: c: freq: age:  ·  freq:14000-14100, freq>14000  ·  " +
-  '-mode:cw (tagadás)  ·  "több szavas"  ·  dx:HA OR dx:OM  ·  band:20m,40m (vagy-lista)';
-
 export function SpotsPanel({ onGoToFilters }: { onGoToFilters: () => void }) {
-  const { spots, filters, filtersEnabled, connections, setFiltersEnabled } = useCluster();
-
-  const [bands, setBands] = useState<string[]>([]);
-  const [modes, setModes] = useState<Mode[]>([]);
-  const [search, setSearch] = useState("");
-  const [showSkimmer, setShowSkimmer] = useState(true);
-  const [showHelp, setShowHelp] = useState(false);
+  const tr = useT();
+  const { filtersEnabled, connections, setFiltersEnabled } = useCluster();
+  const { spotQuery, setSpotQuery, spotShowSkimmer, setSpotShowSkimmer } = useCluster();
+  const pendingSpotSearch = useCluster((s) => s.pendingSpotSearch);
 
   const onlineId = Object.values(connections).find((c) => c.state === "online")?.profile.id;
 
-  const queryPred = useMemo(() => compileQuery(search), [search]);
+  const visible = useVisibleSpots();
 
-  const visible = useMemo(() => {
-    return spots.filter((s) => {
-      if (!showSkimmer && s.is_skimmer) return false;
-      if (bands.length && !(s.band && bands.includes(s.band))) return false;
-      if (modes.length && !modes.includes(s.mode)) return false;
-      if (!queryPred(s)) return false;
-      if (filtersEnabled && filters.length && !spotPasses(s, filters)) return false;
-      return true;
-    });
-  }, [spots, bands, modes, queryPred, showSkimmer, filters, filtersEnabled]);
+  // Feed the tab-bar "new activity" dot: newest spot that passes the filter.
+  useEffect(() => {
+    useCluster.getState().setSpotsMatchTs((visible[0]?.received_at ?? 0) * 1000);
+  }, [visible]);
+
+  // Adopt a search requested from elsewhere (e.g. clicking an alert hit).
+  useEffect(() => {
+    if (pendingSpotSearch == null) return;
+    setSpotQuery(pendingSpotSearch);
+    useCluster.getState().setPendingSpotSearch(null);
+  }, [pendingSpotSearch, setSpotQuery]);
 
   const [freq, setFreq] = useState("");
   const [call, setCall] = useState("");
@@ -44,7 +41,7 @@ export function SpotsPanel({ onGoToFilters }: { onGoToFilters: () => void }) {
     if (!onlineId) return;
     try {
       const sent = await ipc.postSpot(onlineId, Number(freq), call, comment);
-      setPostMsg(`elküldve: ${sent}`);
+      setPostMsg(tr("spots.sent", { cmd: sent }));
       setCall("");
       setComment("");
     } catch (e) {
@@ -52,121 +49,76 @@ export function SpotsPanel({ onGoToFilters }: { onGoToFilters: () => void }) {
     }
   }
 
-  function addTerm(term: string) {
-    setSearch((prev) => (prev.trim() ? `${prev.trim()} ${term}` : term));
-  }
-
+  const commonActions = useSpotActions();
   const actions: SpotAction[] = [
-    { label: "Csak ez a hívójel", run: (s) => setSearch(`dx:${s.dx_call}`) },
-    { label: "+ ez a DXCC a keresőbe", run: (s) => s.dx && addTerm(`dxcc:${s.dx.primary_prefix}`) },
-    { label: "+ ez a sáv a keresőbe", run: (s) => s.band && addTerm(`band:${s.band}`) },
-    { label: "− ez a spotter kizárása", run: (s) => addTerm(`-by:${s.spotter_base}`) },
+    ...commonActions,
     {
-      label: "Spot előkészítése erre",
+      label: tr("spots.menu.prepPost"),
       run: (s) => {
         setFreq(String(s.freq_khz));
         setCall(s.dx_call);
       },
     },
-    {
-      label: "Talk a spotternek",
-      run: (s) => {
-        if (onlineId) ipc.sendRaw(onlineId, `talk ${s.spotter_base}`);
-      },
-    },
   ];
-
-  function toggle<T>(list: T[], v: T, set: (x: T[]) => void) {
-    set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
-  }
 
   return (
     <div className="panel spots-panel">
       <div className="quickbar">
-        <div className="band-buttons">
-          {ALL_BANDS.map((b) => (
-            <button
-              key={b}
-              className={bands.includes(b) ? "chip active" : "chip"}
-              onClick={() => toggle(bands, b, setBands)}
-            >
-              {b}
-            </button>
-          ))}
-        </div>
-        <div className="mode-buttons">
-          {ALL_MODES.map((m) => (
-            <button
-              key={m}
-              className={modes.includes(m) ? "chip active" : "chip"}
-              onClick={() => toggle(modes, m, setModes)}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
+        <QuickFilters />
         <input
           className="search mono"
-          placeholder='keresés — pl. dx:HA band:20m -mode:ft  vagy  "med games"'
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          placeholder={tr("spots.searchPlaceholder")}
+          value={spotQuery}
+          onChange={(e) => setSpotQuery(e.target.value)}
           spellCheck={false}
         />
-        {search && (
-          <button className="chip" onClick={() => setSearch("")} title="kereső törlése">
+        {spotQuery && (
+          <button className="chip" onClick={() => setSpotQuery("")} title={tr("spots.clearSearch")}>
             ✕
           </button>
         )}
-        <button
-          className={showHelp ? "chip active" : "chip"}
-          onClick={() => setShowHelp((v) => !v)}
-          title="keresési szintaxis"
-        >
-          ?
-        </button>
-        <label className="inline">
-          <input
-            type="checkbox"
-            checked={showSkimmer}
-            onChange={(e) => setShowSkimmer(e.target.checked)}
-          />
-          skimmer
-        </label>
-        <label className="inline">
-          <input
-            type="checkbox"
-            checked={filtersEnabled}
-            onChange={(e) => setFiltersEnabled(e.target.checked)}
-          />
-          mentett szűrők
-        </label>
-        <button onClick={onGoToFilters}>Szűrők szerkesztése</button>
-        <span className="muted">
-          {visible.length} / {spots.length}
-        </span>
+        <QueryHelp />
+        <div className="qf-toggles">
+          <label className="inline">
+            <input
+              type="checkbox"
+              checked={spotShowSkimmer}
+              onChange={(e) => setSpotShowSkimmer(e.target.checked)}
+            />
+            {tr("spots.skimmer")}
+          </label>
+          <WsjtxToggle />
+          <label className="inline">
+            <input
+              type="checkbox"
+              checked={filtersEnabled}
+              onChange={(e) => setFiltersEnabled(e.target.checked)}
+            />
+            {tr("spots.savedFilters")}
+          </label>
+          <button onClick={onGoToFilters}>{tr("spots.editFilters")}</button>
+        </div>
       </div>
 
-      {showHelp && <p className="muted query-help">{QUERY_HELP}</p>}
-
       <div className="post-spot">
-        <span>Spot küldése:</span>
+        <span>{tr("spots.post")}</span>
         <input
           className="mono"
           style={{ width: 90 }}
-          placeholder="kHz"
+          placeholder={tr("spots.freq")}
           value={freq}
           onChange={(e) => setFreq(e.target.value)}
         />
         <input
           className="mono"
           style={{ width: 110 }}
-          placeholder="hívójel"
+          placeholder={tr("spots.call")}
           value={call}
           onChange={(e) => setCall(e.target.value)}
         />
         <input
           className="grow"
-          placeholder="megjegyzés"
+          placeholder={tr("spots.comment")}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
         />
@@ -174,9 +126,9 @@ export function SpotsPanel({ onGoToFilters }: { onGoToFilters: () => void }) {
           className="primary"
           disabled={!onlineId || !freq || !call}
           onClick={postSpot}
-          title={onlineId ? "" : "nincs élő kapcsolat"}
+          title={onlineId ? "" : tr("common.noLiveConnection")}
         >
-          Küldés
+          {tr("common.send")}
         </button>
         {postMsg && <span className="muted">{postMsg}</span>}
       </div>

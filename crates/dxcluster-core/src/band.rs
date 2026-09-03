@@ -146,15 +146,14 @@ pub fn band_for_khz(khz: f64) -> Option<&'static str> {
         .map(|b| b.label)
 }
 
-/// Coarse operating mode guess.
+/// Coarse operating mode guess. Everything that is neither phone (SSB/FM) nor
+/// CW is lumped into `Digi` — FT8/FT4/JT, RTTY, PSK, SSTV, JS8 and the rest.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Mode {
     Cw,
     Ssb,
-    /// FT8/FT4/JT and other weak-signal digital.
-    Ft,
-    /// RTTY/PSK and other keyboard digital.
+    /// Any non-phone, non-CW mode: FT8/FT4/JT, RTTY, PSK, SSTV, JS8, …
     Digi,
     Fm,
     Unknown,
@@ -164,14 +163,36 @@ pub enum Mode {
 fn mode_from_comment(comment: &str) -> Option<Mode> {
     let c = comment.to_ascii_uppercase();
     // Order matters: check the more specific tokens first.
-    const FT: [&str; 4] = ["FT8", "FT4", "JT65", "JT9"];
-    const DIGI: [&str; 6] = ["RTTY", "PSK31", "PSK63", "PSK", "OLIVIA", "MFSK"];
+    const DIGI: [&str; 25] = [
+        "FT8",
+        "FT4",
+        "FST4W",
+        "FST4",
+        "JT65",
+        "JT9",
+        "JT6M",
+        "JS8",
+        "Q65",
+        "MSK144",
+        "FSK441",
+        "WSPR",
+        "RTTY",
+        "PSK31",
+        "PSK63",
+        "PSK",
+        "OLIVIA",
+        "MFSK",
+        "SSTV",
+        "THOR",
+        "CONTESTIA",
+        "DOMINO",
+        "MT63",
+        "PACTOR",
+        "NAVTEX",
+    ];
     const CW: [&str; 2] = ["CW", "MORSE"];
     const SSB: [&str; 4] = ["SSB", "LSB", "USB", "PHONE"];
     const FM: [&str; 2] = ["FM", "C4FM"];
-    if FT.iter().any(|t| c.contains(t)) {
-        return Some(Mode::Ft);
-    }
     if DIGI.iter().any(|t| c.contains(t)) {
         return Some(Mode::Digi);
     }
@@ -187,7 +208,7 @@ fn mode_from_comment(comment: &str) -> Option<Mode> {
     None
 }
 
-/// Well-known FT8 dial frequencies (kHz). A spot within 3 kHz is treated as FT8.
+/// Well-known FT8 dial frequencies (kHz). A spot within 3 kHz is treated as digi.
 const FT8_DIALS: &[f64] = &[
     1840.0, 3573.0, 5357.0, 7074.0, 10136.0, 14074.0, 18100.0, 21074.0, 24915.0, 28074.0, 50313.0,
     50323.0, 70154.0, 144174.0,
@@ -200,34 +221,52 @@ pub fn guess_mode(khz: f64, comment: &str) -> Mode {
         return m;
     }
     if FT8_DIALS.iter().any(|d| (d - khz).abs() <= 3.0) {
-        return Mode::Ft;
+        return Mode::Digi;
     }
-    // Sub-band heuristic: the lowest slice of each HF band is CW, then a digital
-    // slice, then phone. Expressed as kHz offset from the band's lower edge.
+    // Sub-band heuristic: CW at the bottom of the band, then a digital slice,
+    // then phone (or FM on VHF). See `src/lib/bands.ts` for the matching UI edges.
     let Some(band) = BANDS.iter().find(|b| khz >= b.low_khz && khz <= b.high_khz) else {
         return Mode::Unknown;
     };
-    let offset = khz - band.low_khz;
-    match band.label {
-        // HF bands with a conventional CW / digital / phone layout.
-        "160m" | "80m" | "40m" | "20m" | "17m" | "15m" | "12m" | "10m" => {
-            if offset < 30.0 {
-                Mode::Cw
-            } else if offset < 100.0 {
-                Mode::Digi
-            } else {
-                Mode::Ssb
-            }
-        }
-        // CW/digital-only narrow bands.
-        "30m" | "2200m" | "630m" | "60m" => {
+    submode_by_freq(band.label, khz, band.low_khz)
+}
+
+/// CW / digital / phone split for a band, by frequency. `(cw_upper, digi_upper)`
+/// kHz for the conventional HF bands mirror the IARU-R1 band plan closely enough
+/// to serve as a hint.
+fn submode_by_freq(label: &str, khz: f64, low: f64) -> Mode {
+    let hf = match label {
+        "160m" => Some((1838.0, 1843.0)),
+        "80m" => Some((3580.0, 3620.0)),
+        "40m" => Some((7040.0, 7090.0)),
+        "30m" => Some((10130.0, 10150.0)),
+        "20m" => Some((14070.0, 14099.0)),
+        "17m" => Some((18095.0, 18109.0)),
+        "15m" => Some((21070.0, 21150.0)),
+        "12m" => Some((24915.0, 24931.0)),
+        "10m" => Some((28070.0, 28190.0)),
+        _ => None,
+    };
+    if let Some((cw_upper, digi_upper)) = hf {
+        return if khz < cw_upper {
+            Mode::Cw
+        } else if khz < digi_upper {
+            Mode::Digi
+        } else {
+            Mode::Ssb
+        };
+    }
+    let offset = khz - low;
+    match label {
+        // CW / digital-only narrow bands.
+        "2200m" | "630m" | "60m" => {
             if offset < 20.0 {
                 Mode::Cw
             } else {
                 Mode::Digi
             }
         }
-        // VHF/UHF: CW/weak-signal at the bottom, FM higher up.
+        // VHF/UHF: CW / weak-signal at the bottom, FM higher up.
         "6m" | "4m" | "2m" | "1.25m" | "70cm" => {
             if offset < 200.0 {
                 Mode::Cw
@@ -266,9 +305,10 @@ mod tests {
     }
 
     #[test]
-    fn ft8_dial_detected() {
-        assert_eq!(guess_mode(14074.0, "-12 dB"), Mode::Ft);
-        assert_eq!(guess_mode(7074.0, ""), Mode::Ft);
+    fn ft8_dial_detected_as_digi() {
+        assert_eq!(guess_mode(14074.0, "-12 dB"), Mode::Digi);
+        assert_eq!(guess_mode(7074.0, ""), Mode::Digi);
+        assert_eq!(guess_mode(14230.0, "SSTV"), Mode::Digi);
     }
 
     #[test]
@@ -276,5 +316,9 @@ mod tests {
         assert_eq!(guess_mode(14010.0, ""), Mode::Cw);
         assert_eq!(guess_mode(14085.0, ""), Mode::Digi);
         assert_eq!(guess_mode(14250.0, ""), Mode::Ssb);
+        // 40m CW extends to ~7040 — a 7034 SOTA spot is CW, not digi.
+        assert_eq!(guess_mode(7034.0, "SOTA"), Mode::Cw);
+        assert_eq!(guess_mode(7060.0, ""), Mode::Digi);
+        assert_eq!(guess_mode(7120.0, ""), Mode::Ssb);
     }
 }

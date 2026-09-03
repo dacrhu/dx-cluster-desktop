@@ -10,6 +10,8 @@ available for power users.
 - **Storage:** SQLite (spot history / search) + Tauri store (profiles, settings)
 - **Reference data:** bundled `cty.dat` (callsign → DXCC / CQ zone / ITU zone /
   continent / coordinates), optional periodic auto-update
+- **Languages:** English, Hungarian, German — community-translatable without
+  coding, see [`TRANSLATING.md`](TRANSLATING.md)
 
 See [`FELADAT.md`](FELADAT.md) for the original brief and the plan file under
 `~/.claude/plans/` for the full phased roadmap.
@@ -93,3 +95,19 @@ DXTEST_CALL=<yourcall> cargo test -p dxcluster-core --test live_cluster -- --ign
 Push a tag `vX.Y.Z`; the `Release` workflow builds on four native runners
 (Linux, Windows, macOS Intel, macOS Apple Silicon) and creates a draft GitHub
 release with all installers.
+
+## Credits
+
+Both reference data files are bundled as a fallback, mirrored into this repo by
+the weekly `Refresh bundled data` workflow, and auto-updated in the app at
+startup (conditional GET, so an unchanged file costs one 304).
+
+- **DXCC country file** (`src-tauri/resources/cty.dat`) —
+  [country-files.com](https://www.country-files.com/). Thank you!
+- **Cluster node list** (`src-tauri/resources/dxclusters.dat`) — the
+  `DXCLUSTERS.DAT` database from [dxcluster.info](https://dxcluster.info/), used
+  with permission. Thank you!
+- **Ionosphere data** for the map's measured MUF layer — real-time ionosonde
+  measurements from [prop.kc2g.com](https://prop.kc2g.com/) (Andrew Rodland),
+  sourced from GIRO and INGV. Fetched on demand, in memory only. Thank you!
+- Natural Earth 110m country outline for the map.

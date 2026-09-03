@@ -6,6 +6,7 @@
 //! in-memory duplex stream in tests; [`connect`] is the thin wrapper that opens a
 //! real [`tokio::net::TcpStream`].
 
+use std::collections::BTreeSet;
 use std::time::Duration;
 
 use once_cell::sync::Lazy;
@@ -14,8 +15,26 @@ use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::sync::mpsc;
 
-use crate::parser::{parse_line, ClusterEvent};
+use crate::parser::{parse_line_ctx, ClusterEvent, ParseCtx};
 use crate::telnet::Decoder;
+
+/// Extract a `JOIN <group>` / `LEAVE <group>` from an outgoing command line.
+static JOIN_LEAVE_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?i)^\s*(join|leave)\s+(\S+)").unwrap());
+
+/// What kind of feed a profile connects to.
+///
+/// A `Cluster` is a normal DX cluster node (DXSpider / AR-Cluster) that accepts
+/// commands. An `Rbn` is the Reverse Beacon Network raw telnet feed
+/// (`telnet.reversebeacon.net:7000` CW/RTTY, `:7001` FT8/FT4) — a command-less
+/// firehose of every skimmer decode, used only to see who is hearing us.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NodeKind {
+    #[default]
+    Cluster,
+    Rbn,
+}
 
 /// Connection settings for a single node.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +51,12 @@ pub struct NodeProfile {
     /// Commands sent once, right after login completes (filters, `set/…`).
     #[serde(default)]
     pub on_login: Vec<String>,
+    /// Connect to this node automatically when the app starts.
+    #[serde(default)]
+    pub auto_connect: bool,
+    /// Whether this is a normal cluster node or the RBN raw feed.
+    #[serde(default)]
+    pub kind: NodeKind,
 }
 
 /// High-level connection state, surfaced to the UI.
@@ -233,6 +258,15 @@ pub async fn run_session<S>(
     let mut decoder = Decoder::new();
     let mut buf = vec![0u8; config.read_buf.max(1024)];
     let mut login = LoginMachine::new(profile);
+    // Chat groups we have joined this session (seeded from `on_login`), so chat
+    // lines can be told apart from node chatter.
+    let mut groups: BTreeSet<String> = profile
+        .on_login
+        .iter()
+        .filter_map(|c| JOIN_LEAVE_RE.captures(c))
+        .filter(|c| c[1].eq_ignore_ascii_case("join"))
+        .map(|c| c[2].to_ascii_uppercase())
+        .collect();
 
     let emit = |e: ConnEvent| {
         let _ = events.send(e);
@@ -268,7 +302,12 @@ pub async fn run_session<S>(
                         run_login_actions(actions, profile, &mut writer, &emit, &mut deadline, config).await;
                     }
                     if login.done() {
-                        emit(ConnEvent::Event { event: parse_line(&line) });
+                        let group_vec: Vec<String> = groups.iter().cloned().collect();
+                        let ctx = ParseCtx {
+                            my_call: Some(&profile.callsign),
+                            my_groups: &group_vec,
+                        };
+                        emit(ConnEvent::Event { event: parse_line_ctx(&line, &ctx) });
                     }
                 }
                 // Prompts often arrive without a trailing newline.
@@ -284,6 +323,14 @@ pub async fn run_session<S>(
                     None => { emit(ConnEvent::State { state: ConnState::Disconnected }); return; }
                     Some(line) => {
                         let trimmed = line.trim_end().to_string();
+                        if let Some(c) = JOIN_LEAVE_RE.captures(&trimmed) {
+                            let group = c[2].to_ascii_uppercase();
+                            if c[1].eq_ignore_ascii_case("join") {
+                                groups.insert(group);
+                            } else {
+                                groups.remove(&group);
+                            }
+                        }
                         if writer.write_all(format!("{trimmed}\r\n").as_bytes()).await.is_err() {
                             emit(ConnEvent::Error { message: "write failed".into() });
                             emit(ConnEvent::State { state: ConnState::Disconnected });
@@ -389,6 +436,8 @@ mod tests {
             callsign: "HA5XYZ".into(),
             password: None,
             on_login: vec!["set/ft8".into()],
+            auto_connect: false,
+            kind: NodeKind::default(),
         }
     }
 
@@ -396,12 +445,28 @@ mod tests {
     fn prompt_matchers() {
         assert!(is_call_prompt("login: "));
         assert!(is_call_prompt("Please enter your call:"));
+        // RBN feed prompt, both casings and with a trailing space.
+        assert!(is_call_prompt("Please enter your call: "));
+        assert!(is_call_prompt("please enter your call:"));
         assert!(is_call_prompt("Your call: "));
         assert!(!is_call_prompt("DX de X: 1"));
         assert!(is_password_prompt("Password: "));
         assert!(is_node_prompt("HA5XYZ de GB7DJK 12-Aug-2025 1830Z >"));
         assert!(is_node_prompt("AR-Cluster >>"));
         assert!(!is_node_prompt(""));
+    }
+
+    #[test]
+    fn node_kind_serde_defaults_to_cluster() {
+        // An old saved profile with no `kind` field deserialises as Cluster.
+        let json = r#"{"id":"a","host":"h","port":7300,"callsign":"HA5XYZ"}"#;
+        let p: NodeProfile = serde_json::from_str(json).unwrap();
+        assert_eq!(p.kind, NodeKind::Cluster);
+
+        // "rbn" round-trips.
+        assert_eq!(serde_json::to_string(&NodeKind::Rbn).unwrap(), r#""rbn""#);
+        let k: NodeKind = serde_json::from_str(r#""rbn""#).unwrap();
+        assert_eq!(k, NodeKind::Rbn);
     }
 
     #[tokio::test(start_paused = true)]

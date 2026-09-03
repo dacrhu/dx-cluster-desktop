@@ -1,0 +1,29 @@
+import { useCluster } from "@/store/useCluster";
+import { useT } from "@/i18n";
+import type { SpotAction } from "@/lib/types";
+
+/**
+ * The context-menu actions shared by the Spots table, the Bandmap and the Map.
+ * They drive the shared `spotQuery`, or hand a callsign to the Talk panel via
+ * `store.pendingTalk` (App.tsx switches to the Talk tab). The Spots panel appends
+ * its own "prepare a post" action.
+ */
+export function useSpotActions(): SpotAction[] {
+  const tr = useT();
+  const setSpotQuery = useCluster((s) => s.setSpotQuery);
+  const setPendingTalk = useCluster((s) => s.setPendingTalk);
+
+  const addTerm = (term: string) => {
+    const cur = useCluster.getState().spotQuery.trim();
+    setSpotQuery(cur ? `${cur} ${term}` : term);
+  };
+
+  return [
+    { label: tr("spots.menu.onlyCall"), run: (s) => setSpotQuery(`dx:${s.dx_call}`) },
+    { label: tr("spots.menu.addDxcc"), run: (s) => s.dx && addTerm(`dxcc:${s.dx.primary_prefix}`) },
+    { label: tr("spots.menu.addBand"), run: (s) => s.band && addTerm(`band:${s.band}`) },
+    { label: tr("spots.menu.excludeSpotter"), run: (s) => addTerm(`-by:${s.spotter_base}`) },
+    { label: tr("spots.menu.talkDx"), run: (s) => setPendingTalk(s.dx_call) },
+    { label: tr("spots.menu.talkSpotter"), run: (s) => setPendingTalk(s.spotter_base) },
+  ];
+}

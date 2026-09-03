@@ -179,6 +179,11 @@ impl CtyDb {
         self.entities.is_empty()
     }
 
+    /// All DXCC entities (for the map's country labels).
+    pub fn entities(&self) -> &[Entity] {
+        &self.entities
+    }
+
     /// Resolve a callsign. Handles `/P`, `/MM`, `/QRP` … suffixes and
     /// `PREFIX/CALL` portable operation.
     pub fn lookup(&self, callsign: &str) -> Option<Match> {
