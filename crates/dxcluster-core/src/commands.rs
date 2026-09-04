@@ -8,6 +8,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::band::{Mode, BANDS};
+use crate::connection::NodeSoftware;
 use crate::parser::Spot;
 use crate::reference::CtyMatch;
 
@@ -218,6 +219,45 @@ fn band_range_khz(label: &str) -> Option<(f64, f64)> {
         .map(|b| (b.low_khz, b.high_khz))
 }
 
+/// A band label's plain integer meters (`"20m"` -> `20`), for AR-Cluster's
+/// `Band=<meters>` filter field. `None` for labels that aren't a bare integer
+/// of meters (`"1.25m"`, any `"...cm"` VHF/UHF band) — AR-Cluster's
+/// documented examples only cover HF-style meter bands.
+fn band_meters(label: &str) -> Option<u32> {
+    label.strip_suffix('m').and_then(|n| n.parse().ok())
+}
+
+/// `field=A*` / `field=B*` … for each prefix (wildcarded so it matches a
+/// callsign starting with it, not just an exact one).
+fn prefix_terms(field: &str, prefixes: &[String]) -> Vec<String> {
+    prefixes
+        .iter()
+        .map(|p| format!("{field}={}*", p.to_ascii_uppercase()))
+        .collect()
+}
+
+/// `field=A` / `field=B` … for each exact value.
+fn eq_terms(field: &str, values: &[String]) -> Vec<String> {
+    values
+        .iter()
+        .map(|v| format!("{field}={}", v.to_ascii_uppercase()))
+        .collect()
+}
+
+/// `field=1` / `field=2` … for each zone number.
+fn zone_terms(field: &str, zones: &[u8]) -> Vec<String> {
+    zones.iter().map(|z| format!("{field}={z}")).collect()
+}
+
+/// Join alternatives with `or`, parenthesized once there's more than one term
+/// (a lone term needs no grouping).
+fn or_group(terms: &[String]) -> String {
+    match terms {
+        [one] => one.clone(),
+        many => format!("({})", many.join(" or ")),
+    }
+}
+
 impl SpotFilter {
     fn verb(&self) -> &'static str {
         match self.action {
@@ -274,6 +314,87 @@ impl SpotFilter {
             return None;
         }
         Some(format!("{} {}", self.verb(), conds.join(" and ")))
+    }
+
+    /// Build the node-push command for this rule in a profile's dialect, or
+    /// `None` if it only constrains local-only fields — see `to_dxspider`
+    /// and `to_arcluster`.
+    pub fn to_command(&self, software: NodeSoftware) -> Option<String> {
+        match software {
+            NodeSoftware::DxSpider => self.to_dxspider(),
+            NodeSoftware::ArCluster => self.to_arcluster(),
+        }
+    }
+
+    /// Build an AR-Cluster `SET/DX/FILTER <expr>` command for the same
+    /// node-supported fields as `to_dxspider` (bands, call/spotter prefixes,
+    /// DX/spotter DXCC, DX/spotter CQ zone), or `None` if the rule only
+    /// constrains local-only fields (continent / mode / skimmer — AR-Cluster
+    /// *can* filter on `Cont` and `Skimmer` too, but those stay local-only
+    /// here to match `to_dxspider`'s scope).
+    ///
+    /// AR-Cluster keeps exactly one active filter per session — there's no
+    /// numbered-slot chaining like DXSpider's `accept/spot N` — so, like
+    /// `to_dxspider`, applying a second rule replaces the filter rather than
+    /// adding to it; `FiltersPanel`'s per-rule "apply to node" button already
+    /// treats each push as a single overwrite, so this needs no special
+    /// handling on the frontend side. A `Reject` rule wraps the whole
+    /// expression in `not (...)`.
+    ///
+    /// Built to the documented AR-Cluster V6 filter syntax (fields, `=`,
+    /// `and`/`or`, parentheses, `*` wildcard) — like the mail parser,
+    /// unverified against a live AR-Cluster node. Prefix matching (`call:`,
+    /// `spotter:` in the GUI) is assumed to work the same wildcarded way the
+    /// manual documents for `Comment` (`comment=*iota*`); an exact call/
+    /// spotter (no trailing wildcard) would need `Call=EXACT` instead.
+    pub fn to_arcluster(&self) -> Option<String> {
+        let mut conds: Vec<String> = Vec::new();
+
+        if !self.bands.is_empty() {
+            let terms: Vec<String> = self
+                .bands
+                .iter()
+                .filter_map(|b| band_meters(b))
+                .map(|m| format!("Band={m}"))
+                .collect();
+            if !terms.is_empty() {
+                conds.push(or_group(&terms));
+            }
+        }
+        if !self.dx_call_prefixes.is_empty() {
+            conds.push(or_group(&prefix_terms("Call", &self.dx_call_prefixes)));
+        }
+        if !self.spotter_call_prefixes.is_empty() {
+            conds.push(or_group(&prefix_terms(
+                "Spotter",
+                &self.spotter_call_prefixes,
+            )));
+        }
+        if !self.dx_dxcc.is_empty() {
+            conds.push(or_group(&eq_terms("Cty", &self.dx_dxcc)));
+        }
+        if !self.spotter_dxcc.is_empty() {
+            conds.push(or_group(&eq_terms("SpotterCty", &self.spotter_dxcc)));
+        }
+        if !self.dx_cq_zones.is_empty() {
+            conds.push(or_group(&zone_terms("CqZone", &self.dx_cq_zones)));
+        }
+        if !self.spotter_cq_zones.is_empty() {
+            conds.push(or_group(&zone_terms(
+                "SpotterCqZone",
+                &self.spotter_cq_zones,
+            )));
+        }
+
+        if conds.is_empty() {
+            return None;
+        }
+        let expr = conds.join(" and ");
+        let expr = match self.action {
+            FilterAction::Accept => expr,
+            FilterAction::Reject => format!("not ({expr})"),
+        };
+        Some(format!("set/dx/filter {expr}"))
     }
 
     /// Evaluate every condition (including local-only ones) against a spot.
@@ -482,6 +603,56 @@ mod tests {
             ..Default::default()
         };
         assert!(f.to_dxspider().is_none());
+        assert!(f.to_arcluster().is_none());
+        assert!(f.to_command(NodeSoftware::ArCluster).is_none());
+    }
+
+    #[test]
+    fn arcluster_command_from_bands_and_calls() {
+        let f = SpotFilter {
+            bands: vec!["20m".into(), "40m".into()],
+            dx_dxcc: vec!["ha".into()],
+            dx_cq_zones: vec![14, 15],
+            ..Default::default()
+        };
+        assert_eq!(
+            f.to_arcluster().unwrap(),
+            "set/dx/filter (Band=20 or Band=40) and Cty=HA and (CqZone=14 or CqZone=15)"
+        );
+        assert_eq!(f.to_command(NodeSoftware::ArCluster), f.to_arcluster());
+        assert_eq!(f.to_command(NodeSoftware::DxSpider), f.to_dxspider());
+    }
+
+    #[test]
+    fn arcluster_single_prefix_and_reject() {
+        let accept = SpotFilter {
+            dx_call_prefixes: vec!["p5".into()],
+            ..Default::default()
+        };
+        assert_eq!(accept.to_arcluster().unwrap(), "set/dx/filter Call=P5*");
+
+        let reject = SpotFilter {
+            action: FilterAction::Reject,
+            spotter_call_prefixes: vec!["w3lpl".into(), "k1ttt".into()],
+            ..Default::default()
+        };
+        assert_eq!(
+            reject.to_arcluster().unwrap(),
+            "set/dx/filter not ((Spotter=W3LPL* or Spotter=K1TTT*))"
+        );
+    }
+
+    #[test]
+    fn arcluster_ignores_unmappable_bands() {
+        // "1.25m" and any "...cm" VHF/UHF label have no AR-Cluster `Band=`
+        // equivalent in the documented examples — dropped, like a DXSpider
+        // rule with no matching `BANDS` entry.
+        let f = SpotFilter {
+            bands: vec!["1.25m".into(), "70cm".into()],
+            spotter_dxcc: vec!["k".into()],
+            ..Default::default()
+        };
+        assert_eq!(f.to_arcluster().unwrap(), "set/dx/filter SpotterCty=K");
     }
 
     #[test]

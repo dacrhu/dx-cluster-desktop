@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from "react";
-import { useCluster } from "@/store/useCluster";
+import { useCluster, useOnlineId } from "@/store/useCluster";
 import { useShallow } from "zustand/react/shallow";
 import { saveFilters } from "@/lib/persist";
 import { Chips, CsvInput } from "@/components/fields";
@@ -21,42 +21,50 @@ const UNKNOWN_CMD_RE = /^(unknown command|sorry)/i;
 
 export const FiltersPanel = memo(function FiltersPanel() {
   const tr = useT();
-  const { filters, setFilters, connections } = useCluster(
+  const { filters, setFilters } = useCluster(
     useShallow((s) => ({
       filters: s.filters,
       setFilters: s.setFilters,
-      connections: s.connections,
     })),
+  );
+  // Node-side filters only make sense on a real cluster node that takes
+  // commands — the RBN feed is command-less. Which node that is (when more
+  // than one is online) is picked once, in the topbar connection picker, and
+  // shared by every send-panel.
+  const onlineId = useOnlineId();
+  // Which dialect to build node commands in — the target node's own setting,
+  // defaulting to DXSpider syntax when there's no target yet.
+  const targetSoftware = useCluster((s) =>
+    onlineId ? (s.connections[onlineId]?.profile.software ?? "dx_spider") : "dx_spider",
   );
   const [previews, setPreviews] = useState<Record<number, string | null>>({});
   const [nodeFilters, setNodeFilters] = useState<string[] | null>(null);
   const [fetching, setFetching] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [clearMsg, setClearMsg] = useState("");
-  const [targetId, setTargetId] = useState<string>("");
   // Accordion: at most one card open at a time (null = all collapsed).
   const [expanded, setExpanded] = useState<string | null>(null);
   const fid = (f: SpotFilter, i: number) => f.id ?? `f${i}`;
   const toggleExpand = (id: string) => setExpanded((cur) => (cur === id ? null : id));
 
-  // Node-side filters only make sense on a real cluster node that takes
-  // commands — the RBN feed is command-less.
-  const nodeTargets = Object.values(connections).filter(
-    (c) => c.state === "online" && (c.profile.kind ?? "cluster") !== "rbn",
-  );
-  const onlineId =
-    nodeTargets.find((c) => c.profile.id === targetId)?.profile.id ?? nodeTargets[0]?.profile.id;
-
   async function fetchNodeFilters() {
     if (!onlineId) return;
     setFetching(true);
     try {
-      const lines = await ipc.runQuery(onlineId, "sh/filter");
-      const parsed = lines
-        .map((l) => l.match(NODE_FILTER_RE))
-        .filter((m): m is RegExpMatchArray => m !== null)
-        .map((m) => `${m[2].toLowerCase()} ${m[3]}`);
-      setNodeFilters(parsed);
+      if (targetSoftware === "ar_cluster") {
+        // AR-Cluster has no per-line accept/reject listing like DXSpider's
+        // `sh/filter` — `show/dx options` echoes the single active filter
+        // expression among other DX settings. Its exact output format isn't
+        // documented, so show it raw rather than guess a parse.
+        setNodeFilters(await ipc.runQuery(onlineId, "show/dx options"));
+      } else {
+        const lines = await ipc.runQuery(onlineId, "sh/filter");
+        const parsed = lines
+          .map((l) => l.match(NODE_FILTER_RE))
+          .filter((m): m is RegExpMatchArray => m !== null)
+          .map((m) => `${m[2].toLowerCase()} ${m[3]}`);
+        setNodeFilters(parsed);
+      }
     } finally {
       setFetching(false);
     }
@@ -67,7 +75,10 @@ export const FiltersPanel = memo(function FiltersPanel() {
     setClearing(true);
     setClearMsg("");
     try {
-      const lines = await ipc.runQuery(onlineId, "clear/spot all", 6000);
+      // DXSpider: `clear/spot all` drops every accept/reject slot. AR-Cluster
+      // has only the one filter, and an empty `set/dx/filter` clears it.
+      const clearCmd = targetSoftware === "ar_cluster" ? "set/dx/filter" : "clear/spot all";
+      const lines = await ipc.runQuery(onlineId, clearCmd, 6000);
       setClearMsg(
         lines.some((l) => UNKNOWN_CMD_RE.test(l.trim()))
           ? tr("filters.clearUnsupported")
@@ -83,7 +94,7 @@ export const FiltersPanel = memo(function FiltersPanel() {
     let cancelled = false;
     Promise.all(
       filters.map((f) =>
-        f.pushToNode ? ipc.applySpotFilter("", f, false).catch(() => null) : null,
+        f.pushToNode ? ipc.applySpotFilter("", f, false, targetSoftware).catch(() => null) : null,
       ),
     ).then((cmds) => {
       if (cancelled) return;
@@ -94,7 +105,7 @@ export const FiltersPanel = memo(function FiltersPanel() {
     return () => {
       cancelled = true;
     };
-  }, [filters]);
+  }, [filters, targetSoftware]);
 
   function update(i: number, patch: Partial<SpotFilter>) {
     const next = filters.map((f, idx) => (idx === i ? { ...f, ...patch } : f));
@@ -116,7 +127,7 @@ export const FiltersPanel = memo(function FiltersPanel() {
 
   async function applyToNode(f: SpotFilter) {
     if (!onlineId) return;
-    await ipc.applySpotFilter(onlineId, f, true);
+    await ipc.applySpotFilter(onlineId, f, true, targetSoftware);
   }
 
   return (
@@ -132,21 +143,9 @@ export const FiltersPanel = memo(function FiltersPanel() {
       </p>
 
       <div className="preview-row">
-        <label>
-          {tr("filters.targetNode")}{" "}
-          <select
-            value={onlineId ?? ""}
-            disabled={nodeTargets.length === 0}
-            onChange={(e) => setTargetId(e.target.value)}
-          >
-            {nodeTargets.length === 0 && <option value="">{tr("common.noLiveConnection")}</option>}
-            {nodeTargets.map((c) => (
-              <option key={c.profile.id} value={c.profile.id}>
-                {c.profile.id}
-              </option>
-            ))}
-          </select>
-        </label>
+        <span className="muted">
+          {tr("filters.targetNode")} {onlineId ?? tr("common.noLiveConnection")}
+        </span>
         <button disabled={!onlineId || fetching} onClick={fetchNodeFilters}>
           {fetching ? tr("filters.fetching") : tr("filters.fetchNode")}
         </button>

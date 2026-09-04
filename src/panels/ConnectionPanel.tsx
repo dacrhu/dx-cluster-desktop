@@ -361,6 +361,7 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
       host: p.host,
       port: p.port,
       kind: "cluster",
+      software: /ar-?cluster/i.test(p.software) ? "ar_cluster" : "dx_spider",
     }));
   }
 
@@ -470,6 +471,11 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
                           {tr("conn.rbnTag")}
                         </span>
                       )}
+                      {(p.kind ?? "cluster") === "cluster" && p.software === "ar_cluster" && (
+                        <span className="tag" title={tr("conn.softwareArCluster")}>
+                          AR
+                        </span>
+                      )}
                       {p.auto_connect && (
                         <span className="tag" title={tr("conn.autoTagTitle")}>
                           {tr("conn.autoTag")}
@@ -565,6 +571,23 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
                     <option value="rbn">{tr("conn.kindRbn")}</option>
                   </select>
                 </label>
+                {(draft.kind ?? "cluster") === "cluster" && (
+                  <label>
+                    {tr("conn.softwareLabel")}
+                    <select
+                      value={draft.software ?? "dx_spider"}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          software: e.target.value as NodeProfile["software"],
+                        })
+                      }
+                    >
+                      <option value="dx_spider">{tr("conn.softwareDxSpider")}</option>
+                      <option value="ar_cluster">{tr("conn.softwareArCluster")}</option>
+                    </select>
+                  </label>
+                )}
               </div>
               {draft.kind === "rbn" && <p className="muted">{tr("conn.rbnEditorNote")}</p>}
               <div className="row">

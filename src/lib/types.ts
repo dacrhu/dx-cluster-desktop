@@ -10,6 +10,12 @@ export type Mode = "CW" | "SSB" | "DIGI" | "FM" | "UNKNOWN";
 /** A normal cluster node (accepts commands) vs the RBN raw telnet feed. */
 export type NodeKind = "cluster" | "rbn";
 
+/** Command dialect for a `"cluster"`-kind node — which syntax the command
+ *  builder generates for spot filters and `SH/DX` queries. Everything besides
+ *  AR-Cluster (CC Cluster, DxNet, CLX, WinCluster, AK1A, …) defaults to the
+ *  DXSpider-style AK1A syntax. */
+export type NodeSoftware = "dx_spider" | "ar_cluster";
+
 export interface NodeProfile {
   id: string;
   host: string;
@@ -19,6 +25,7 @@ export interface NodeProfile {
   on_login: string[];
   auto_connect?: boolean;
   kind?: NodeKind;
+  software?: NodeSoftware;
 }
 
 export interface CallInfo {

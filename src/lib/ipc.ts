@@ -5,6 +5,7 @@ import type {
   ConnState,
   EnrichedSpot,
   NodeProfile,
+  NodeSoftware,
   CtyEntity,
   CtyStatus,
   MufSnapshot,
@@ -103,8 +104,12 @@ export const sendRaw = (id: string, line: string) => invoke<void>("send_raw", { 
 export const postSpot = (id: string, freqKhz: number, dxCall: string, comment: string) =>
   invoke<string>("post_spot", { id, freqKhz, dxCall, comment });
 
-export const applySpotFilter = (id: string, filter: SpotFilter, toNode: boolean) =>
-  invoke<string | null>("apply_spot_filter", { id, filter, toNode });
+export const applySpotFilter = (
+  id: string,
+  filter: SpotFilter,
+  toNode: boolean,
+  software: NodeSoftware = "dx_spider",
+) => invoke<string | null>("apply_spot_filter", { id, filter, toNode, software });
 
 export const recentAnnouncements = (limit: number) =>
   invoke<StoredAnnounce[]>("recent_announcements", { limit });

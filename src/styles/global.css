@@ -295,7 +295,8 @@ button.tab.active .tab-dot {
 .conn-status.conn-down {
   background: var(--danger);
 }
-.topbar-age {
+.topbar-age,
+.topbar-target {
   flex-direction: row;
   align-items: center;
   gap: 4px;
@@ -305,6 +306,10 @@ button.tab.active .tab-dot {
 }
 .topbar-age input {
   width: 46px;
+  padding: 2px 4px;
+}
+.topbar-target select {
+  max-width: 140px;
   padding: 2px 4px;
 }
 .topbar-cat {

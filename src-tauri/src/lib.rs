@@ -16,7 +16,7 @@ use std::time::Duration;
 
 use dxcluster_core::commands::{self, SpotFilter};
 use dxcluster_core::connection::{
-    connect, ConnEvent, NodeKind, NodeProfile, SessionConfig, SessionHandle,
+    connect, ConnEvent, NodeKind, NodeProfile, NodeSoftware, SessionConfig, SessionHandle,
 };
 use dxcluster_core::parser::{
     base_call, parse_directory as parse_dir, parse_read_message, parse_sh_announce, parse_sh_chat,
@@ -1310,16 +1310,18 @@ fn post_spot(
     Ok(cmd)
 }
 
-/// Apply a GUI-built spot filter. When `to_node` is true the generated DXSpider
-/// command is sent; the command string is always returned for the live preview.
+/// Apply a GUI-built spot filter, in the target node's command dialect. When
+/// `to_node` is true the generated command is sent; the command string is
+/// always returned for the live preview.
 #[tauri::command]
 fn apply_spot_filter(
     state: State<'_, AppState>,
     id: String,
     filter: SpotFilter,
     to_node: bool,
+    software: NodeSoftware,
 ) -> CmdResult<Option<String>> {
-    let cmd = filter.to_dxspider();
+    let cmd = filter.to_command(software);
     if to_node {
         if let Some(c) = &cmd {
             with_session(&state, &id, |h| {

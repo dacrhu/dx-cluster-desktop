@@ -21,6 +21,7 @@ async fn connects_and_parses_real_spots() {
         on_login: vec![],
         auto_connect: false,
         kind: Default::default(),
+        software: Default::default(),
     };
 
     let (handle, mut events) = connect(profile, SessionConfig::default())

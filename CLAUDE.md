@@ -559,16 +559,61 @@ delete; body = the full editor. `SpotFilter` gained frontend-only `id` / `label`
 / `enabled` (backfilled in `persist.ts::loadFilters`); `spotPasses` skips
 `enabled === false` rules.
 
-**Next:** connection picker for the send-panels (they still target the first
-online `cluster` node via `useOnlineId`), announce/wwv/wcy filters (Announcements
-now has a `-exclude` text filter — do WWV/WCY too), AR-Cluster dialect; map
-polish (canvas if SVG is slow, per-skimmer coords instead of DXCC centroids);
-cross-source dedup of "reports of me" between the RBN feed, PSK Reporter, and a
-cluster that also relays skimmer spots of us; phase 12 v2 polish — MUF contour
-lines vs the dot field, grid-cell fill for openings, adjustable grey-line band
-width, HUD → Propagation tab on click, decode the WCY `Au` text, optional
-measured ionosonde grid (prop.kc2g.com). CAT: `rig_set` mode-follow toggle,
-per-profile radio config, split/RIT.
+**Send-target picker:** when more than one command-capable node is online
+(`useSendTargets()` — every non-`rbn`-kind connection with `state === "online"`),
+a topbar `<select>` (`.topbar-target`, next to the CAT chip / max-age field)
+lets the user pick which one every send-panel — post spot, mail, talk, chat,
+Tools/`sh/*` queries, node-side filters, WWV/announce posts — targets; hidden
+when there's 0 or 1 (nothing to choose between). The pick is session-only
+(`store.sendTargetId`, not persisted) and read through `useOnlineId()`, which
+now prefers it when it's still online and falls back to the old
+first-cluster-then-any-online rule otherwise — so existing call sites needed no
+change except `FiltersPanel` (dropped its own local target `<select>`, now a
+plain "applies to `<onlineId>`" label) and `SpotsPanel` (its inline
+`connections`-scan for "post a spot" could previously land on the command-less
+RBN feed; now goes through `useOnlineId()` like everything else).
+
+The same include/`-exclude` text filter (`matchTerms()`, now shared from
+`src/lib/util.ts` rather than living only in `AnnouncementsPanel`) also covers
+`PropagationPanel`'s WWV/WCY history tables — one search box above both tables,
+matched against `sender`+`forecast` for WWV rows and `sender`+`sa`+`gmf`+`aurora`
+for WCY rows; an empty result shows `prop.noMatch` instead of `prop.noData` so
+"no data at all" and "filtered to nothing" read differently.
+
+**AR-Cluster dialect (spot filters).** `NodeProfile.software` (`connection::NodeSoftware`
+— `DxSpider` | `ArCluster`, serde default `DxSpider`, mirrors `kind`'s pattern) picks
+which syntax `commands.rs` generates for a `Cluster`-kind node. `SpotFilter::to_command
+(software)` dispatches to `to_dxspider()` (unchanged) or the new `to_arcluster()`, built
+to the documented AR-Cluster V6 `SET/DX/FILTER` syntax (fields `Band`/`Call`/`Spotter`/
+`Cty`/`SpotterCty`/`CqZone`/`SpotterCqZone`, `=`, `and`/`or`, parentheses, trailing `*`
+wildcard) — same field scope as `to_dxspider` (continent/mode/skimmer stay local-only).
+AR-Cluster keeps exactly one active filter per session (no numbered `accept/spot N`
+slots), so a `Reject` rule becomes `not (...)` rather than a separate reject command;
+this needs no special handling in `FiltersPanel` since it already pushes one rule at a
+time as a single overwrite. `apply_spot_filter` takes an explicit `software` param
+(the frontend reads it off the target connection's profile, defaulting `dx_spider`) —
+command generation never depends on a live session, so the always-available preview
+(`applySpotFilter("", f, false, software)`) works the same as the real push.
+`FiltersPanel`'s "Clear node filters" sends `set/dx/filter` (empty) instead of
+`clear/spot all` for an AR-Cluster target, and "fetch node filters" falls back to
+showing the raw `show/dx options` response (no known line-format to parse, unlike
+DXSpider's `sh/filter`). The Connection panel's profile editor gained a Software select
+(shown only for `kind: "cluster"`), the preset browser auto-fills it from the preset's
+`software` string (`/ar-?cluster/i`), and an `AR` tag marks such profiles in the list.
+Built entirely from the AR-Cluster V6 manual, not a live node — like the mail parser
+below, unverified. Not yet dialect-aware: the `ToolsPanel` `SH/DX` query (still
+DXSpider-only, and still built ad hoc in the frontend rather than through
+`commands::sh_dx` — pre-existing debt, not introduced here); login banner detection,
+and spot/WWV/WCY/mail line parsing (assumed common AK1A-derived format across
+dialects).
+
+**Next:** map polish (canvas if SVG is slow, per-skimmer coords instead of DXCC
+centroids); cross-source dedup of "reports of me" between the RBN feed, PSK Reporter,
+and a cluster that also relays skimmer spots of us; phase 12 v2 polish — MUF contour
+lines vs the dot field, grid-cell fill for openings, adjustable grey-line band width,
+HUD → Propagation tab on click, decode the WCY `Au` text, optional measured ionosonde
+grid (prop.kc2g.com). CAT: `rig_set` mode-follow toggle, per-profile radio config,
+split/RIT.
 
 **Unverified against live data:** the mail `DIRECTORY` / `READ` regexes in
 `parser/mail.rs` and the compose prompt-matching in `sendMail` are built to the

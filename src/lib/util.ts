@@ -5,6 +5,20 @@ export function toggleIn<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 }
 
+/** Space-separated include/exclude terms: `foo` must appear, `-foo` must not.
+ *  Shared by the Announcements search box and the WWV/WCY history filter. */
+export function matchTerms(hay: string, query: string): boolean {
+  const h = hay.toUpperCase();
+  for (const t of query.trim().toUpperCase().split(/\s+/).filter(Boolean)) {
+    if (t.startsWith("-")) {
+      if (t.length > 1 && h.includes(t.slice(1))) return false;
+    } else if (!h.includes(t)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * While `active`, passes `value` straight through (and remembers it). While
  * inactive, keeps returning the last value seen while active — so a prop fed

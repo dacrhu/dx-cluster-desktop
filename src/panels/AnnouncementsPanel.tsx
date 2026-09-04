@@ -1,22 +1,10 @@
 import { memo, useMemo, useState } from "react";
 import { useCluster, useOnlineId } from "@/store/useCluster";
 import { fmtAge, fmtUtc } from "@/lib/format";
+import { matchTerms } from "@/lib/util";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
 import { runQuery } from "@/lib/ipc";
-
-/** Space-separated include/exclude terms: `foo` must appear, `-foo` must not. */
-function matchTerms(hay: string, query: string): boolean {
-  const h = hay.toUpperCase();
-  for (const t of query.trim().toUpperCase().split(/\s+/).filter(Boolean)) {
-    if (t.startsWith("-")) {
-      if (t.length > 1 && h.includes(t.slice(1))) return false;
-    } else if (!h.includes(t)) {
-      return false;
-    }
-  }
-  return true;
-}
 
 export const AnnouncementsPanel = memo(function AnnouncementsPanel() {
   const tr = useT();

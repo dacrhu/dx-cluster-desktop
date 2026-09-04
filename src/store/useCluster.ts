@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import type { AlertHit, AlertRule } from "@/lib/alerts";
 import type { AlertSound } from "@/lib/notify";
 import type { LangPref } from "@/i18n";
@@ -146,11 +147,16 @@ interface ClusterStore {
   seen: Record<string, number>;
   /** ms timestamp of the newest spot passing the Spots panel's current filter. */
   spotsMatchTs: number;
+  /** User's explicit pick for which node the send-panels target (topbar
+   *  picker), shown only when more than one command-capable node is online.
+   *  null = auto (prefer a cluster-kind node, first online otherwise). */
+  sendTargetId: string | null;
 
   upsertProfile: (p: NodeProfile) => void;
   removeProfile: (id: string) => void;
   setConnState: (id: string, state: ConnState) => void;
   setConnError: (id: string, message: string) => void;
+  setSendTargetId: (id: string | null) => void;
 
   addSpot: (s: EnrichedSpot) => void;
   /** Insert a batch in one `set()` — used to coalesce a burst of spot events
@@ -311,6 +317,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   sysLocale: null,
   seen: {},
   spotsMatchTs: 0,
+  sendTargetId: null,
 
   upsertProfile: (p) =>
     set((st) => ({
@@ -342,6 +349,8 @@ export const useCluster = create<ClusterStore>((set) => ({
         connections: { ...st.connections, [id]: { ...existing, lastError: message } },
       };
     }),
+
+  setSendTargetId: (sendTargetId) => set({ sendTargetId }),
 
   addSpot: (s) =>
     set((st) => ({
@@ -466,15 +475,34 @@ export const useCluster = create<ClusterStore>((set) => ({
     set((st) => (spotsMatchTs !== st.spotsMatchTs ? { spotsMatchTs } : {})),
 }));
 
+/** Online connections capable of taking commands (the RBN feed never sends a
+ *  prompt and can't be targeted). Feeds both `useOnlineId` and the topbar
+ *  connection picker. */
+function commandableOnline(s: ClusterStore): Connection[] {
+  return Object.values(s.connections).filter(
+    (c) => c.state === "online" && (c.profile.kind ?? "cluster") !== "rbn",
+  );
+}
+
 /**
- * The id of an online connection to send commands to — a real cluster node in
- * preference to the command-less RBN feed. Falls back to any online connection.
+ * The id of an online connection to send commands to. Honours the user's
+ * explicit pick from the topbar connection picker (`sendTargetId`) when it's
+ * still online; otherwise falls back to a real cluster node in preference to
+ * the command-less RBN feed, then any online connection.
  */
 export const useOnlineId = (): string | undefined =>
   useCluster((s) => {
+    const targets = commandableOnline(s);
+    const picked = targets.find((c) => c.profile.id === s.sendTargetId);
+    if (picked) return picked.profile.id;
     const online = Object.values(s.connections).filter((c) => c.state === "online");
     return (
       online.find((c) => (c.profile.kind ?? "cluster") === "cluster")?.profile.id ??
       online[0]?.profile.id
     );
   });
+
+/** The command-capable online connections, for the topbar picker — shown
+ *  only when there's more than one to choose between. */
+export const useSendTargets = (): Connection[] =>
+  useCluster(useShallow((s) => commandableOnline(s)));

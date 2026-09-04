@@ -36,6 +36,23 @@ pub enum NodeKind {
     Rbn,
 }
 
+/// Which command dialect a `Cluster`-kind node speaks — which syntax
+/// `commands.rs` should generate for spot filters and `SH/DX` queries.
+/// AR-Cluster's `SET/DX/FILTER` query language and `SHOW/DX` criteria differ
+/// from DXSpider's numbered `accept/spot` / `reject/spot` filters and `SH/DX`
+/// modifiers; everything else in the bundled preset list (CC Cluster, DxNet,
+/// CLX, WinCluster, AK1A, …) is close enough to DXSpider's AK1A-derived
+/// syntax to default to it. Built to the documented AR-Cluster V6 filter/
+/// SH-DX syntax — like the mail parser, unverified against a live AR-Cluster
+/// node.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NodeSoftware {
+    #[default]
+    DxSpider,
+    ArCluster,
+}
+
 /// Connection settings for a single node.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeProfile {
@@ -57,6 +74,9 @@ pub struct NodeProfile {
     /// Whether this is a normal cluster node or the RBN raw feed.
     #[serde(default)]
     pub kind: NodeKind,
+    /// Command dialect for a `Cluster`-kind node.
+    #[serde(default)]
+    pub software: NodeSoftware,
 }
 
 /// High-level connection state, surfaced to the UI.
@@ -438,6 +458,7 @@ mod tests {
             on_login: vec!["set/ft8".into()],
             auto_connect: false,
             kind: NodeKind::default(),
+            software: NodeSoftware::default(),
         }
     }
 

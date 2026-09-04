@@ -1,7 +1,8 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useCluster, useOnlineId } from "@/store/useCluster";
 import { useShallow } from "zustand/react/shallow";
 import { fmtAge, fmtUtc } from "@/lib/format";
+import { matchTerms } from "@/lib/util";
 import { useT } from "@/i18n";
 import { runQuery } from "@/lib/ipc";
 
@@ -21,9 +22,20 @@ export const PropagationPanel = memo(function PropagationPanel() {
   const onlineId = useOnlineId();
   const [showTable, setShowTable] = useState<string[] | null>(null);
   const [fetching, setFetching] = useState(false);
+  const [search, setSearch] = useState("");
 
   const latestWwv = wwv[0];
   const latestWcy = wcy[0];
+
+  const q = search.trim();
+  const wwvRows = useMemo(
+    () => (q ? wwv.filter((w) => matchTerms(`${w.sender} ${w.forecast}`, q)) : wwv),
+    [wwv, q],
+  );
+  const wcyRows = useMemo(
+    () => (q ? wcy.filter((w) => matchTerms(`${w.sender} ${w.sa} ${w.gmf} ${w.aurora}`, q)) : wcy),
+    [wcy, q],
+  );
 
   // Auto-request a WWV history table once on first connect if we have nothing.
   useEffect(() => {
@@ -88,6 +100,14 @@ export const PropagationPanel = memo(function PropagationPanel() {
 
       {showTable && showTable.length > 0 && <pre className="raw-block">{showTable.join("\n")}</pre>}
 
+      <input
+        className="search"
+        placeholder={tr("prop.searchPlaceholder")}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        spellCheck={false}
+      />
+
       <h3>{tr("prop.wwvHistory")}</h3>
       <table className="data-table">
         <thead>
@@ -102,14 +122,14 @@ export const PropagationPanel = memo(function PropagationPanel() {
           </tr>
         </thead>
         <tbody>
-          {wwv.length === 0 && (
+          {wwvRows.length === 0 && (
             <tr>
               <td colSpan={7} className="muted">
-                {tr("prop.noData")}
+                {tr(q ? "prop.noMatch" : "prop.noData")}
               </td>
             </tr>
           )}
-          {wwv.map((w) => (
+          {wwvRows.map((w) => (
             <tr key={w.id}>
               <td className="mono">{fmtUtc(w.received_at)}</td>
               <td>{w.hour}z</td>
@@ -141,7 +161,14 @@ export const PropagationPanel = memo(function PropagationPanel() {
               </tr>
             </thead>
             <tbody>
-              {wcy.map((w) => (
+              {wcyRows.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="muted">
+                    {tr("prop.noMatch")}
+                  </td>
+                </tr>
+              )}
+              {wcyRows.map((w) => (
                 <tr key={w.id}>
                   <td className="mono">{fmtUtc(w.received_at)}</td>
                   <td>{w.hour}z</td>

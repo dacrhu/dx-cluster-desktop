@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as ipc from "@/lib/ipc";
-import { useCluster } from "@/store/useCluster";
+import { useCluster, useSendTargets } from "@/store/useCluster";
 import {
   loadProfiles,
   loadSettings,
@@ -114,6 +114,7 @@ const TAB_IDS: TabId[] = TAB_GROUPS.flatMap((g) => g.tabs);
 export function App() {
   const [tab, setTab] = useState<TabId>("connection");
   const store = useCluster();
+  const sendTargets = useSendTargets();
   const tr = useT();
   const bootstrapped = useRef(false);
   // Spot events are coalesced into one store update per SPOT_FLUSH_MS instead
@@ -412,6 +413,26 @@ export function App() {
                 <span className="topbar-cat-dot" aria-hidden />
                 {label}
               </button>
+            );
+          })()}
+        {sendTargets.length > 1 &&
+          (() => {
+            const active =
+              sendTargets.find((c) => c.profile.id === store.sendTargetId) ?? sendTargets[0];
+            return (
+              <label className="topbar-target" title={tr("topbar.sendTargetHint")}>
+                {tr("topbar.sendTarget")}
+                <select
+                  value={active.profile.id}
+                  onChange={(e) => store.setSendTargetId(e.target.value || null)}
+                >
+                  {sendTargets.map((c) => (
+                    <option key={c.profile.id} value={c.profile.id}>
+                      {c.profile.id}
+                    </option>
+                  ))}
+                </select>
+              </label>
             );
           })()}
         <label className="topbar-age" title={tr("topbar.maxAgeHint")}>
