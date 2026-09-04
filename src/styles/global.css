@@ -20,6 +20,7 @@
   --mode-digi: #7c3aed;
   --mode-fm: #c2410c;
   --wm-report: #dc2626;
+  --wm-home: #db2777;
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, "SF Mono", Menlo, monospace;
   /* Size for actual content — spot rows, talk/chat messages, mail, data tables.
@@ -50,6 +51,7 @@
     --mode-digi: #c4b5fd;
     --mode-fm: #fb923c;
     --wm-report: #f87171;
+    --wm-home: #f472b6;
   }
 }
 
@@ -75,6 +77,7 @@
   --mode-digi: #c4b5fd;
   --mode-fm: #fb923c;
   --wm-report: #f87171;
+  --wm-home: #f472b6;
 }
 
 :root[data-theme="light"] {
@@ -1376,9 +1379,10 @@ button.chip.active {
   cursor: pointer;
 }
 .wm-home {
-  /* Same red as "reports of me" (spots + arcs) — the star is just another
-     mark of where I am, so it reads as part of that same story. */
-  fill: var(--wm-report);
+  /* Magenta — every other hue on the map is already spoken for (report red,
+     accent/CW blue, SSB green, DIGI violet, FM/MUF orange, alert amber), and
+     plain red on the QTH star read as a Soviet star. */
+  fill: var(--wm-home);
   stroke: var(--wm-ocean);
   stroke-width: 0.6;
   pointer-events: none;

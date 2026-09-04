@@ -599,7 +599,7 @@ export const WorldMap = memo(function WorldMap({
             {homeXY && (
               <path
                 className="wm-home"
-                transform={`translate(${homeXY[0]} ${homeXY[1]}) scale(${1 / view.k})`}
+                transform={`translate(${homeXY[0]} ${homeXY[1]}) scale(${1.3 / view.k})`}
                 d="M0,-7 L2,-2 L7,-2 L3,1.5 L4.5,7 L0,3.5 L-4.5,7 L-3,1.5 L-7,-2 L-2,-2 Z"
               />
             )}
