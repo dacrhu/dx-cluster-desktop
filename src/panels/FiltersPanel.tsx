@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useCluster } from "@/store/useCluster";
+import { useShallow } from "zustand/react/shallow";
 import { saveFilters } from "@/lib/persist";
 import { Chips, CsvInput } from "@/components/fields";
 import { describeFilter } from "@/lib/filterDesc";
@@ -18,9 +19,15 @@ import {
 const NODE_FILTER_RE = /^\s*(filter\d+|\d+)\s+(accept|reject)\s+(.+?)\s*$/i;
 const UNKNOWN_CMD_RE = /^(unknown command|sorry)/i;
 
-export function FiltersPanel() {
+export const FiltersPanel = memo(function FiltersPanel() {
   const tr = useT();
-  const { filters, setFilters, connections } = useCluster();
+  const { filters, setFilters, connections } = useCluster(
+    useShallow((s) => ({
+      filters: s.filters,
+      setFilters: s.setFilters,
+      connections: s.connections,
+    })),
+  );
   const [previews, setPreviews] = useState<Record<number, string | null>>({});
   const [nodeFilters, setNodeFilters] = useState<string[] | null>(null);
   const [fetching, setFetching] = useState(false);
@@ -341,4 +348,4 @@ export function FiltersPanel() {
       </ul>
     </div>
   );
-}
+});

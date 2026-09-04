@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useCluster } from "@/store/useCluster";
+import { useShallow } from "zustand/react/shallow";
 import { patchSettings } from "@/lib/persist";
 import { useVisibleSpots } from "@/lib/visibleSpots";
 import { useSpotActions } from "@/lib/spotActions";
 import { useMyReports } from "@/lib/mapReports";
 import { locatorToLonLat } from "@/lib/grid";
+import { useFrozenWhenInactive } from "@/lib/util";
 import { WorldMap } from "@/components/WorldMap";
 import { QuickFilters } from "@/components/QuickFilters";
 import { QueryHelp } from "@/components/QueryHelp";
@@ -14,10 +16,23 @@ import * as ipc from "@/lib/ipc";
 import { type CtyEntity } from "@/lib/types";
 
 const MAX_MARKERS = 600;
+const NO_ENTITIES: CtyEntity[] = [];
 
-export function MapPanel({ onGoToFilters }: { onGoToFilters: () => void }) {
+export const MapPanel = memo(function MapPanel({
+  onGoToFilters,
+  active,
+}: {
+  onGoToFilters: () => void;
+  /** Whether the Map tab is the one currently shown — while false, the
+   *  `WorldMap` (an SVG map re-computing several layers per spot) is fed a
+   *  frozen snapshot instead of live data, so it doesn't redo that work in
+   *  the background on every incoming spot. */
+  active: boolean;
+}) {
   const tr = useT();
-  const { spotQuery, setSpotQuery } = useCluster();
+  const { spotQuery, setSpotQuery } = useCluster(
+    useShallow((s) => ({ spotQuery: s.spotQuery, setSpotQuery: s.setSpotQuery })),
+  );
   const homeLocator = useCluster((s) => s.homeLocator);
   const projection = useCluster((s) => s.mapProjection);
   const setProjection = useCluster((s) => s.setMapProjection);
@@ -40,6 +55,15 @@ export function MapPanel({ onGoToFilters }: { onGoToFilters: () => void }) {
   const reports = useMyReports();
   const actions = useSpotActions();
   const home = useMemo(() => locatorToLonLat(homeLocator), [homeLocator]);
+  const shownEntities = labels ? entities : NO_ENTITIES;
+
+  // Freeze what actually reaches the (memo-wrapped, SVG-heavy) WorldMap while
+  // this tab isn't the visible one — it stays mounted (pan/zoom state
+  // survives), it just stops redoing its layers on every spot in the
+  // background. Catches up the instant the tab is shown again.
+  const frozenSpots = useFrozenWhenInactive(spots, active);
+  const frozenReports = useFrozenWhenInactive(reports, active);
+  const frozenEntities = useFrozenWhenInactive(shownEntities, active);
 
   return (
     <div className="panel map-panel">
@@ -107,12 +131,12 @@ export function MapPanel({ onGoToFilters }: { onGoToFilters: () => void }) {
       </div>
 
       <WorldMap
-        spots={spots}
-        reports={reports}
+        spots={frozenSpots}
+        reports={frozenReports}
         actions={actions}
         home={home}
-        entities={labels ? entities : []}
+        entities={frozenEntities}
       />
     </div>
   );
-}
+});

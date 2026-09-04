@@ -51,6 +51,43 @@ _Raw terminal_ tab exists for power users.
   `.msg-from`, forms, raw console) keeps its own smaller sizes. The spot table's
   virtual-row height (`.spot-row` height + `estimateSize` in
   `components/SpotTable.tsx`) must stay in sync (currently 28px).
+- **Render performance (all 14 panels stay mounted, `App.tsx` only toggles
+  `hidden` — never conditionally rendered — so per-panel state like fetched
+  lists, scroll position or open threads survives a tab switch).** That means
+  every mounted panel's own store subscription fires on every store change,
+  tab-visible or not, so a few rules keep a busy spot feed from burning CPU in
+  the background:
+  - Never call `useCluster()` bare (subscribes to the _whole_ store — any
+    field, anywhere, re-renders you). Select only what you use: a single field
+    as `useCluster((s) => s.foo)`, several as
+    `useCluster(useShallow((s) => ({ foo: s.foo, bar: s.bar })))` (`useShallow`
+    from `zustand/react/shallow`).
+  - Every panel (`src/panels/*.tsx`) and the heavy always-mounted
+    visualisations (`components/WorldMap.tsx`, `components/Bandmap.tsx`) are
+    wrapped in `React.memo`. A new one should be too. Memo only pays off if
+    the props you hand it are stable — a prop built from a store array/object
+    (`useVisibleSpots()`, `useSpotActions()`, …) must itself be memoized
+    (`useMemo`/selector), and a callback prop from `App.tsx` must be a
+    `useCallback`, not an inline arrow (`goToFilters`/`goToSpots` there are the
+    pattern to copy).
+  - Incoming spots are **batched**: `ipc.onSpot` in `App.tsx` buffers into
+    `pendingSpots` and flushes once per `SPOT_FLUSH_MS` (200 ms) via
+    `store.addSpots()`, instead of one `store.addSpot()` `set()` per spot — a
+    busy RBN feed can otherwise fire many `set()`s a second, each one
+    re-rendering every mounted panel.
+  - `MapPanel` / `BandmapPanel` additionally take an `active` prop from
+    `App.tsx` (`tab === "map"` / `"bandmap"`) and run the spots/reports/
+    entities they hand to `WorldMap`/`Bandmap` through
+    `useFrozenWhenInactive()` (`src/lib/util.ts`) — while inactive the prop
+    stays referentially frozen at its last value, so the memo on the SVG/DOM-
+    heavy child actually bails instead of redoing its layout for a tab nobody
+    is looking at; it catches up instantly on switching back. Don't apply this
+    to `SpotsPanel`'s own list — its newest-match timestamp feeds the
+    cross-tab "new activity" dot (`store.spotsMatchTs`) and must stay live
+    even when that tab isn't the active one.
+  - Known remaining gap: `Bandmap` polls `store.rigVfo` directly for the CAT
+    cursor (~1/s when CAT is connected), which isn't gated by the `active`
+    freeze — low priority unless CAT users report it matters.
 
 ## Checks before committing
 

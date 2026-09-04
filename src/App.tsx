@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as ipc from "@/lib/ipc";
 import { useCluster } from "@/store/useCluster";
 import {
@@ -50,6 +50,7 @@ type TabId =
 
 const ALERT_COOLDOWN_MS = 5 * 60_000;
 const lastAlert = new Map<string, number>();
+const SPOT_FLUSH_MS = 200;
 
 /** Refresh age-based views, drop over-age alert hits, persist if changed. */
 function ageTickAndPrune() {
@@ -115,6 +116,17 @@ export function App() {
   const store = useCluster();
   const tr = useT();
   const bootstrapped = useRef(false);
+  // Spot events are coalesced into one store update per SPOT_FLUSH_MS instead
+  // of one `set()` per spot — a busy RBN/skimmer feed can fire many spots a
+  // second, and each `set()` re-renders every mounted panel (see
+  // `useCluster`'s per-panel bare-hook subscriptions).
+  const pendingSpots = useRef<EnrichedSpot[]>([]);
+  const spotFlushTimer = useRef<number | null>(null);
+  // Stable callback identities so the `memo`-wrapped panels below don't see a
+  // "changed" prop (and re-render) on every App render — a plain inline arrow
+  // here would defeat the memo.
+  const goToFilters = useCallback(() => setTab("filters"), []);
+  const goToSpots = useCallback(() => setTab("spots"), []);
 
   useEffect(() => setActiveLang(store.lang), [store.lang, store.sysLocale]);
 
@@ -146,8 +158,19 @@ export function App() {
     window.addEventListener("beforeunload", () => window.clearInterval(hitTimer));
 
     void ipc.onSpot((s) => {
-      c().addSpot(s);
+      // Alerts (notification + alertHits log) still react per spot — matches
+      // are rare, so this doesn't cost extra renders — but the spot itself
+      // only lands in the store on the next flush.
       checkAlerts(s);
+      pendingSpots.current.push(s);
+      if (spotFlushTimer.current == null) {
+        spotFlushTimer.current = window.setTimeout(() => {
+          spotFlushTimer.current = null;
+          const batch = pendingSpots.current;
+          pendingSpots.current = [];
+          if (batch.length) c().addSpots(batch);
+        }, SPOT_FLUSH_MS);
+      }
     });
     void ipc.onState((id, s) => {
       const wasOnline = c().connections[id]?.state === "online";
@@ -421,17 +444,17 @@ export function App() {
         </div>
         <div hidden={tab !== "spots"} className="panel-fill">
           <ErrorBoundary label={tr("tab.spots")}>
-            <SpotsPanel onGoToFilters={() => setTab("filters")} />
+            <SpotsPanel onGoToFilters={goToFilters} />
           </ErrorBoundary>
         </div>
         <div hidden={tab !== "bandmap"} className="panel-fill">
           <ErrorBoundary label={tr("tab.bandmap")}>
-            <BandmapPanel onGoToFilters={() => setTab("filters")} />
+            <BandmapPanel onGoToFilters={goToFilters} active={tab === "bandmap"} />
           </ErrorBoundary>
         </div>
         <div hidden={tab !== "map"} className="panel-fill">
           <ErrorBoundary label={tr("tab.map")}>
-            <MapPanel onGoToFilters={() => setTab("filters")} />
+            <MapPanel onGoToFilters={goToFilters} active={tab === "map"} />
           </ErrorBoundary>
         </div>
         <div hidden={tab !== "filters"}>
@@ -471,7 +494,7 @@ export function App() {
         </div>
         <div hidden={tab !== "alerts"}>
           <ErrorBoundary label={tr("tab.alerts")}>
-            <AlertsPanel onGoToSpots={() => setTab("spots")} />
+            <AlertsPanel onGoToSpots={goToSpots} />
           </ErrorBoundary>
         </div>
         <div hidden={tab !== "users"}>

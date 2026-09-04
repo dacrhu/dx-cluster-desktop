@@ -153,6 +153,10 @@ interface ClusterStore {
   setConnError: (id: string, message: string) => void;
 
   addSpot: (s: EnrichedSpot) => void;
+  /** Insert a batch in one `set()` — used to coalesce a burst of spot events
+   *  (e.g. a busy RBN feed) into a single re-render instead of one per spot.
+   *  `list` is oldest-first, matching arrival order. */
+  addSpots: (list: EnrichedSpot[]) => void;
   loadSpots: (s: EnrichedSpot[]) => void;
   clearSpots: () => void;
 
@@ -342,6 +346,11 @@ export const useCluster = create<ClusterStore>((set) => ({
   addSpot: (s) =>
     set((st) => ({
       spots: [s, ...st.spots].slice(0, MAX_SPOTS),
+    })),
+
+  addSpots: (list) =>
+    set((st) => ({
+      spots: [...list].reverse().concat(st.spots).slice(0, MAX_SPOTS),
     })),
 
   loadSpots: (list) =>

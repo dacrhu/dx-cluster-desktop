@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useOnlineId } from "@/store/useCluster";
 import { useT } from "@/i18n";
 import { runQuery, parseHistSpots, searchLocalSpots } from "@/lib/ipc";
@@ -30,7 +30,7 @@ const QUERY_COMMANDS: QueryCmd[] = [
   { cmd: "sh/configuration/nodes", argKey: null, needsArg: false },
 ];
 
-export function ToolsPanel() {
+export const ToolsPanel = memo(function ToolsPanel() {
   const tr = useT();
   const onlineId = useOnlineId();
 
@@ -207,7 +207,7 @@ export function ToolsPanel() {
       </div>
     </div>
   );
-}
+});
 
 function HistTable({ rows }: { rows: HistRow[] }) {
   const tr = useT();

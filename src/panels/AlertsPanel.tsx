@@ -1,4 +1,5 @@
 import { useCluster } from "@/store/useCluster";
+import { useShallow } from "zustand/react/shallow";
 import { patchSettings, saveAlertHits } from "@/lib/persist";
 import { describeAlert, emptyAlert, type AlertRule } from "@/lib/alerts";
 import { fmtAge, fmtUtc } from "@/lib/format";
@@ -8,10 +9,10 @@ import { ALL_BANDS, ALL_CONTINENTS, ALL_MODES, type Mode } from "@/lib/types";
 import { Chips, CsvInput } from "@/components/fields";
 import { QueryHelp } from "@/components/QueryHelp";
 import { toggleIn } from "@/lib/util";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useT } from "@/i18n";
 
-export function AlertsPanel({ onGoToSpots }: { onGoToSpots: () => void }) {
+export const AlertsPanel = memo(function AlertsPanel({ onGoToSpots }: { onGoToSpots: () => void }) {
   const tr = useT();
   const {
     alerts,
@@ -25,7 +26,21 @@ export function AlertsPanel({ onGoToSpots }: { onGoToSpots: () => void }) {
     alertHits,
     clearAlertHits,
     setPendingSpotSearch,
-  } = useCluster();
+  } = useCluster(
+    useShallow((s) => ({
+      alerts: s.alerts,
+      setAlerts: s.setAlerts,
+      alertsEnabled: s.alertsEnabled,
+      setAlertsEnabled: s.setAlertsEnabled,
+      alertsSound: s.alertsSound,
+      setAlertsSound: s.setAlertsSound,
+      alertSoundStyle: s.alertSoundStyle,
+      setAlertSoundStyle: s.setAlertSoundStyle,
+      alertHits: s.alertHits,
+      clearAlertHits: s.clearAlertHits,
+      setPendingSpotSearch: s.setPendingSpotSearch,
+    })),
+  );
   const hitsSeen = useCluster((s) => s.seen.alerts ?? 0);
 
   function openHit(call: string) {
@@ -303,4 +318,4 @@ export function AlertsPanel({ onGoToSpots }: { onGoToSpots: () => void }) {
       </section>
     </div>
   );
-}
+});

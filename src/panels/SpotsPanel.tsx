@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useCluster } from "@/store/useCluster";
+import { useShallow } from "zustand/react/shallow";
 import { useVisibleSpots } from "@/lib/visibleSpots";
 import { useSpotActions } from "@/lib/spotActions";
 import { type SpotAction } from "@/lib/types";
@@ -10,10 +11,31 @@ import { WsjtxToggle } from "@/components/WsjtxToggle";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
 
-export function SpotsPanel({ onGoToFilters }: { onGoToFilters: () => void }) {
+export const SpotsPanel = memo(function SpotsPanel({
+  onGoToFilters,
+}: {
+  onGoToFilters: () => void;
+}) {
   const tr = useT();
-  const { filtersEnabled, connections, setFiltersEnabled } = useCluster();
-  const { spotQuery, setSpotQuery, spotShowSkimmer, setSpotShowSkimmer } = useCluster();
+  const {
+    filtersEnabled,
+    connections,
+    setFiltersEnabled,
+    spotQuery,
+    setSpotQuery,
+    spotShowSkimmer,
+    setSpotShowSkimmer,
+  } = useCluster(
+    useShallow((s) => ({
+      filtersEnabled: s.filtersEnabled,
+      connections: s.connections,
+      setFiltersEnabled: s.setFiltersEnabled,
+      spotQuery: s.spotQuery,
+      setSpotQuery: s.setSpotQuery,
+      spotShowSkimmer: s.spotShowSkimmer,
+      setSpotShowSkimmer: s.setSpotShowSkimmer,
+    })),
+  );
   const pendingSpotSearch = useCluster((s) => s.pendingSpotSearch);
 
   const onlineId = Object.values(connections).find((c) => c.state === "online")?.profile.id;
@@ -136,4 +158,4 @@ export function SpotsPanel({ onGoToFilters }: { onGoToFilters: () => void }) {
       <SpotTable spots={visible} actions={actions} />
     </div>
   );
-}
+});

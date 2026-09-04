@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useCluster } from "@/store/useCluster";
+import { useShallow } from "zustand/react/shallow";
 import { saveProfiles, patchSettings } from "@/lib/persist";
 import { LANGUAGES, resolveLang, useT } from "@/i18n";
 import { resolvePskrCalls } from "@/lib/pskr";
@@ -20,7 +21,7 @@ const BLANK: NodeProfile = {
   kind: "cluster",
 };
 
-export function ConnectionPanel() {
+export const ConnectionPanel = memo(function ConnectionPanel() {
   const tr = useT();
   const stateLabel = (s: ConnState) => tr(`conn.state.${s}`);
   const {
@@ -85,7 +86,71 @@ export function ConnectionPanel() {
     presetsAutoUpdate,
     setPresetsStatus,
     setPresetsAutoUpdate,
-  } = useCluster();
+  } = useCluster(
+    useShallow((s) => ({
+      connections: s.connections,
+      upsertProfile: s.upsertProfile,
+      removeProfile: s.removeProfile,
+      homeLocator: s.homeLocator,
+      setHomeLocator: s.setHomeLocator,
+      lang: s.lang,
+      setLang: s.setLang,
+      sysLocale: s.sysLocale,
+      ctyStatus: s.ctyStatus,
+      ctyAutoUpdate: s.ctyAutoUpdate,
+      setCtyAutoUpdate: s.setCtyAutoUpdate,
+      setCtyStatus: s.setCtyStatus,
+      pskrEnabled: s.pskrEnabled,
+      pskrCallsigns: s.pskrCallsigns,
+      pskrStatus: s.pskrStatus,
+      setPskrEnabled: s.setPskrEnabled,
+      setPskrCallsigns: s.setPskrCallsigns,
+      setPskrStatus: s.setPskrStatus,
+      wsjtxEnabled: s.wsjtxEnabled,
+      wsjtxBind: s.wsjtxBind,
+      wsjtxStatus: s.wsjtxStatus,
+      setWsjtxEnabled: s.setWsjtxEnabled,
+      setWsjtxBind: s.setWsjtxBind,
+      setWsjtxStatus: s.setWsjtxStatus,
+      catEnabled: s.catEnabled,
+      catTransport: s.catTransport,
+      catHost: s.catHost,
+      catPort: s.catPort,
+      catModelId: s.catModelId,
+      catDevice: s.catDevice,
+      catBaud: s.catBaud,
+      catPoll: s.catPoll,
+      catFollow: s.catFollow,
+      rigStatus: s.rigStatus,
+      rigVfo: s.rigVfo,
+      setCatEnabled: s.setCatEnabled,
+      setCatTransport: s.setCatTransport,
+      setCatHost: s.setCatHost,
+      setCatPort: s.setCatPort,
+      setCatModelId: s.setCatModelId,
+      setCatDevice: s.setCatDevice,
+      setCatBaud: s.setCatBaud,
+      setCatPoll: s.setCatPoll,
+      setCatFollow: s.setCatFollow,
+      setRigStatus: s.setRigStatus,
+      logPushEnabled: s.logPushEnabled,
+      logHost: s.logHost,
+      logPort: s.logPort,
+      logFormat: s.logFormat,
+      raiseLoggerEnabled: s.raiseLoggerEnabled,
+      raiseLoggerTitle: s.raiseLoggerTitle,
+      setLogPushEnabled: s.setLogPushEnabled,
+      setLogHost: s.setLogHost,
+      setLogPort: s.setLogPort,
+      setLogFormat: s.setLogFormat,
+      setRaiseLoggerEnabled: s.setRaiseLoggerEnabled,
+      setRaiseLoggerTitle: s.setRaiseLoggerTitle,
+      presetsStatus: s.presetsStatus,
+      presetsAutoUpdate: s.presetsAutoUpdate,
+      setPresetsStatus: s.setPresetsStatus,
+      setPresetsAutoUpdate: s.setPresetsAutoUpdate,
+    })),
+  );
   const [view, setView] = useState<"conn" | "settings">("conn");
   const [draft, setDraft] = useState<NodeProfile | null>(null);
   const [newDraft, setNewDraft] = useState(false);
@@ -995,4 +1060,4 @@ export function ConnectionPanel() {
       )}
     </div>
   );
-}
+});

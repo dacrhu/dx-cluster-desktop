@@ -1,4 +1,5 @@
 import {
+  memo,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -233,7 +234,7 @@ function Lane({
   );
 }
 
-export function Bandmap({
+export const Bandmap = memo(function Bandmap({
   spots,
   actions,
   bands = BANDMAP_BANDS.map((b) => b.label),
@@ -370,4 +371,4 @@ export function Bandmap({
       )}
     </div>
   );
-}
+});

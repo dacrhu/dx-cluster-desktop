@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useCluster, useOnlineId } from "@/store/useCluster";
 import { fmtUtc } from "@/lib/format";
 import { patchSettings } from "@/lib/persist";
@@ -10,7 +10,7 @@ import { runQuery } from "@/lib/ipc";
 // common well-known ones; the rest are discovered from SH/CHAT traffic.
 const KNOWN_GROUPS = ["#9000", "FOC", "RTTY", "DXNET", "SYSOP", "WX", "LOCAL"];
 
-export function ChatPanel() {
+export const ChatPanel = memo(function ChatPanel() {
   const tr = useT();
   const chat = useCluster((s) => s.chat);
   const chatGroups = useCluster((s) => s.chatGroups);
@@ -226,4 +226,4 @@ export function ChatPanel() {
       <p className="muted">{tr("chat.note")}</p>
     </div>
   );
-}
+});

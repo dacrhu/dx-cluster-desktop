@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from "react";
+import {
+  memo,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent,
+} from "react";
 import {
   geoAzimuthalEquidistant,
   geoCircle,
@@ -63,7 +71,7 @@ function ageClass(unix: number): string {
   return " age3";
 }
 
-export function WorldMap({
+export const WorldMap = memo(function WorldMap({
   spots,
   reports,
   actions,
@@ -745,4 +753,4 @@ export function WorldMap({
       )}
     </div>
   );
-}
+});

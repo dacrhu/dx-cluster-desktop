@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useCluster } from "@/store/useCluster";
+import { useShallow } from "zustand/react/shallow";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
 
-export function RawConsolePanel() {
+export const RawConsolePanel = memo(function RawConsolePanel() {
   const tr = useT();
-  const { connections, raw } = useCluster();
+  const { connections, raw } = useCluster(
+    useShallow((s) => ({ connections: s.connections, raw: s.raw })),
+  );
   const ids = Object.keys(connections);
   const [selected, setSelected] = useState<string>(ids[0] ?? "");
   const [cmd, setCmd] = useState("");
@@ -121,4 +124,4 @@ export function RawConsolePanel() {
       </div>
     </div>
   );
-}
+});

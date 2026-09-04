@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useOnlineId } from "@/store/useCluster";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
@@ -16,7 +16,7 @@ const SCOPE_CMD: Record<Scope, string> = {
 
 const BULLETIN_CATS = ["ALL", "LOCAL", "DX", "WANTED", "FORSALE", "SYSOP"];
 
-export function MailPanel() {
+export const MailPanel = memo(function MailPanel() {
   const tr = useT();
   const onlineId = useOnlineId();
 
@@ -246,7 +246,7 @@ export function MailPanel() {
       <p className="muted">{tr("mail.note")}</p>
     </div>
   );
-}
+});
 
 function Composer({
   draft,

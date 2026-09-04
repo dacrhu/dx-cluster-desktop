@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useCluster, useOnlineId } from "@/store/useCluster";
 import { fmtUtc } from "@/lib/format";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
 
-export function TalkPanel() {
+export const TalkPanel = memo(function TalkPanel() {
   const tr = useT();
   const talk = useCluster((s) => s.talk);
   const onlineId = useOnlineId();
@@ -131,4 +131,4 @@ export function TalkPanel() {
       <p className="muted">{tr("talk.note")}</p>
     </div>
   );
-}
+});

@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useCluster, useOnlineId } from "@/store/useCluster";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
 import { runQuery } from "@/lib/ipc";
 import type { StationInfo } from "@/lib/types";
 
-export function UsersPanel() {
+export const UsersPanel = memo(function UsersPanel() {
   const tr = useT();
   const onlineId = useOnlineId();
   const setPendingTalk = useCluster((s) => s.setPendingTalk);
@@ -156,4 +156,4 @@ export function UsersPanel() {
       </div>
     </div>
   );
-}
+});

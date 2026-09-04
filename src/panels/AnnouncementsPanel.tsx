@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { useCluster, useOnlineId } from "@/store/useCluster";
 import { fmtAge, fmtUtc } from "@/lib/format";
 import { useT } from "@/i18n";
@@ -18,7 +18,7 @@ function matchTerms(hay: string, query: string): boolean {
   return true;
 }
 
-export function AnnouncementsPanel() {
+export const AnnouncementsPanel = memo(function AnnouncementsPanel() {
   const tr = useT();
   const announcements = useCluster((s) => s.announcements);
   const loadAnnouncements = useCluster((s) => s.loadAnnouncements);
@@ -158,4 +158,4 @@ export function AnnouncementsPanel() {
       </table>
     </div>
   );
-}
+});

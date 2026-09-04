@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useCluster, useOnlineId } from "@/store/useCluster";
+import { useShallow } from "zustand/react/shallow";
 import { fmtAge, fmtUtc } from "@/lib/format";
 import { useT } from "@/i18n";
 import { runQuery } from "@/lib/ipc";
@@ -14,9 +15,9 @@ function Stat({ label, value, hint }: { label: string; value: string | number; h
   );
 }
 
-export function PropagationPanel() {
+export const PropagationPanel = memo(function PropagationPanel() {
   const tr = useT();
-  const { wwv, wcy } = useCluster();
+  const { wwv, wcy } = useCluster(useShallow((s) => ({ wwv: s.wwv, wcy: s.wcy })));
   const onlineId = useOnlineId();
   const [showTable, setShowTable] = useState<string[] | null>(null);
   const [fetching, setFetching] = useState(false);
@@ -161,4 +162,4 @@ export function PropagationPanel() {
       <p className="muted">{tr("prop.note")}</p>
     </div>
   );
-}
+});

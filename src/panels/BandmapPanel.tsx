@@ -1,23 +1,52 @@
-import { useCallback, useMemo, useRef } from "react";
+import { memo, useCallback, useMemo, useRef } from "react";
 import { useCluster } from "@/store/useCluster";
+import { useShallow } from "zustand/react/shallow";
 import { patchSettings } from "@/lib/persist";
 import { useVisibleSpots } from "@/lib/visibleSpots";
 import { useSpotActions } from "@/lib/spotActions";
 import { BANDMAP_BANDS } from "@/lib/bands";
+import { useFrozenWhenInactive } from "@/lib/util";
 import { Bandmap } from "@/components/Bandmap";
 import { QuickFilters } from "@/components/QuickFilters";
 import { QueryHelp } from "@/components/QueryHelp";
 import { WsjtxToggle } from "@/components/WsjtxToggle";
 import { useT } from "@/i18n";
 
-export function BandmapPanel({ onGoToFilters }: { onGoToFilters: () => void }) {
+export const BandmapPanel = memo(function BandmapPanel({
+  onGoToFilters,
+  active,
+}: {
+  onGoToFilters: () => void;
+  /** Whether the Bandmap tab is the one currently shown — while false, the
+   *  `Bandmap` (per-band lane layout, re-grouped per spot) is fed a frozen
+   *  snapshot instead of live data, so it doesn't redo that work in the
+   *  background on every incoming spot. */
+  active: boolean;
+}) {
   const tr = useT();
-  const { spotQuery, setSpotQuery, spotShowSkimmer, setSpotShowSkimmer, filtersEnabled } =
-    useCluster();
-  const setFiltersEnabled = useCluster((s) => s.setFiltersEnabled);
-  const zoom = useCluster((s) => s.bandmapZoom);
-  const setZoom = useCluster((s) => s.setBandmapZoom);
-  const spots = useVisibleSpots();
+  const {
+    spotQuery,
+    setSpotQuery,
+    spotShowSkimmer,
+    setSpotShowSkimmer,
+    filtersEnabled,
+    setFiltersEnabled,
+    zoom,
+    setZoom,
+  } = useCluster(
+    useShallow((s) => ({
+      spotQuery: s.spotQuery,
+      setSpotQuery: s.setSpotQuery,
+      spotShowSkimmer: s.spotShowSkimmer,
+      setSpotShowSkimmer: s.setSpotShowSkimmer,
+      filtersEnabled: s.filtersEnabled,
+      setFiltersEnabled: s.setFiltersEnabled,
+      zoom: s.bandmapZoom,
+      setZoom: s.setBandmapZoom,
+    })),
+  );
+  const liveSpots = useVisibleSpots();
+  const spots = useFrozenWhenInactive(liveSpots, active);
   const actions = useSpotActions();
 
   // Persist the zoom a beat after it settles (wheel / drag fire rapidly).
@@ -120,4 +149,4 @@ export function BandmapPanel({ onGoToFilters }: { onGoToFilters: () => void }) {
       <Bandmap spots={spots} actions={actions} bands={shownBands} zoom={zoom} onZoomBy={zoomBy} />
     </div>
   );
-}
+});

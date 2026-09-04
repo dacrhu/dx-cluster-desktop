@@ -1376,8 +1376,10 @@ button.chip.active {
   cursor: pointer;
 }
 .wm-home {
-  fill: var(--accent);
-  stroke: var(--accent-text);
+  /* Same red as "reports of me" (spots + arcs) — the star is just another
+     mark of where I am, so it reads as part of that same story. */
+  fill: var(--wm-report);
+  stroke: var(--wm-ocean);
   stroke-width: 0.6;
   pointer-events: none;
 }
