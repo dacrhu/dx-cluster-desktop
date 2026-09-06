@@ -53,10 +53,30 @@ export const FiltersPanel = memo(function FiltersPanel() {
     try {
       if (targetSoftware === "ar_cluster") {
         // AR-Cluster has no per-line accept/reject listing like DXSpider's
-        // `sh/filter` — `show/dx options` echoes the single active filter
-        // expression among other DX settings. Its exact output format isn't
-        // documented, so show it raw rather than guess a parse.
-        setNodeFilters(await ipc.runQuery(onlineId, "show/dx options"));
+        // `sh/filter`. `show/dx options` (verified on AR-Cluster V6 6.1.5123)
+        // prints a small block among the live spot stream:
+        //   DX configuration options:
+        //      Count: 20
+        //      Filter: not skimmer or skimvalid
+        //      Mode: FILTER
+        //      Output: ON
+        //      Comment Options:
+        // Keep the header + its indented continuation lines, drop the
+        // interleaved `DX de …` spots.
+        const raw = await ipc.runQuery(onlineId, "show/dx options");
+        const out: string[] = [];
+        let inBlock = false;
+        for (const l of raw) {
+          if (/^\s*DX configuration options\s*:/i.test(l)) {
+            inBlock = true;
+            out.push(l.trim());
+          } else if (inBlock && /^\s+\S/.test(l) && !/^\s*DX de /i.test(l)) {
+            out.push(l.trim());
+          } else if (inBlock && l.trim() !== "") {
+            inBlock = false;
+          }
+        }
+        setNodeFilters(out.length ? out : raw);
       } else {
         const lines = await ipc.runQuery(onlineId, "sh/filter");
         const parsed = lines

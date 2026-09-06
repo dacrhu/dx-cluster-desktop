@@ -1,15 +1,30 @@
 //! Parsers for the DXSpider mail / bulletin subsystem: `DIRECTORY` listings and
 //! `READ <msgno>` output.
 //!
-//! `DIRECTORY` rows look like (columns are space-padded, flags hug the number):
+//! `DIRECTORY` rows (real capture, DXSpider V1.57 build 686 — columns are
+//! space-padded `msgno size to from date time subject`, any read/personal flag
+//! hugs the number):
 //!
 //! ```text
-//!    12     1234 GB7DJK   G1TLH    12-Aug 1830Z test bulletin
-//!    13-p    567 G1TLH    G0RDI    12-Aug 1835Z re: sked
-//!    14 p    890 N1XYZ    G1TLH    11-Aug 0900Z personal, unread
+//!   1814  14505      ALL   IK5PWJ  7-Aug 1823Z 425 DX News #1840
+//!   1815   9322      ALL   IK5PWJ  7-Aug 1824Z 425 DX News #1840 [Calendar]
+//!   1816-  9854      ALL   IK5PWJ 14-Aug 1926Z 425 DX News #1841 [Calendar]
 //! ```
 //!
 //! A `-` right after the number = already read; a `p` = personal message.
+//!
+//! `READ <msgno>` starts with a single-line header, then the body straight after
+//! (no blank line), ending at the node prompt:
+//!
+//! ```text
+//! Msg: 1821 From: IK5PWJ Date: 28-Aug 1658Z Subj: 425 DX News #1843 [Calendar]
+//! 29 August 2026                                           A.R.I. DX Bulletin
+//! ...
+//! HG7WHD de HG8PRC  6-Sep-2026 1657Z dxspider >
+//! ```
+//!
+//! Older / other builds print one `Key: value` per line (`Subject:`, `Posted:`,
+//! `Msg:`, `From:`, `To:`) followed by a blank line — still handled.
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -86,6 +101,22 @@ pub fn parse_directory(lines: &[String]) -> Vec<MailHeader> {
 static READ_KV_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"(?i)^(subject|posted|msg|from|to|read)\s*:\s*(.+)$").unwrap());
 
+/// The single-line `READ` header seen on real DXSpider:
+/// `Msg: 1821 From: IK5PWJ Date: 28-Aug 1658Z Subj: 425 DX News #1843 [Calendar]`
+/// — `Private` after the number and a `To:` field appear on some builds.
+static READ_HDR_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"(?xi)^\s*
+        msg:\s*(?P<msgno>\d+)\s+
+        (?:private\s+)?
+        from:\s*(?P<from>\S+)\s+
+        (?:to:\s*(?P<to>\S+)\s+)?
+        (?:date|posted):\s*(?P<posted>.+?)\s+
+        subj(?:ect)?:\s*(?P<subject>.*?)\s*$",
+    )
+    .unwrap()
+});
+
 /// Parse `READ <msgno>` output into a [`MailMessage`].
 pub fn parse_read_message(lines: &[String]) -> Option<MailMessage> {
     let mut msgno = None;
@@ -95,10 +126,25 @@ pub fn parse_read_message(lines: &[String]) -> Option<MailMessage> {
     let mut posted = String::new();
     let mut body_lines: Vec<String> = Vec::new();
     let mut in_body = false;
+    let mut header_seen = false;
 
     for raw in lines {
         let line = raw.trim_end();
         if !in_body {
+            // Combined single-line header — body follows immediately.
+            if let Some(c) = READ_HDR_RE.captures(line.trim()) {
+                msgno = c["msgno"].parse().ok();
+                from = c["from"].to_ascii_uppercase();
+                if let Some(t) = c.name("to") {
+                    to = t.as_str().to_ascii_uppercase();
+                }
+                posted = c["posted"].trim().to_string();
+                subject = c["subject"].trim().to_string();
+                header_seen = true;
+                in_body = true;
+                continue;
+            }
+            // Legacy one-`Key: value`-per-line header.
             if let Some(c) = READ_KV_RE.captures(line.trim()) {
                 let val = c[2].trim().to_string();
                 match c[1].to_ascii_lowercase().as_str() {
@@ -109,15 +155,18 @@ pub fn parse_read_message(lines: &[String]) -> Option<MailMessage> {
                     "to" => to = val.to_ascii_uppercase(),
                     _ => {}
                 }
+                header_seen = true;
                 continue;
             }
-            // A blank line ends the header block.
-            if line.trim().is_empty() && (!subject.is_empty() || msgno.is_some()) {
-                in_body = true;
+            // A blank line ends a multi-line header block.
+            if line.trim().is_empty() {
+                if header_seen {
+                    in_body = true;
+                }
                 continue;
             }
             // Not a header line and no header seen yet — skip (banner/echo).
-            if subject.is_empty() && msgno.is_none() {
+            if !header_seen {
                 continue;
             }
         }
@@ -125,6 +174,10 @@ pub fn parse_read_message(lines: &[String]) -> Option<MailMessage> {
         // Body — stop at the node prompt.
         if line.contains(" de ") && line.ends_with('>') {
             break;
+        }
+        // Drop blank lines before the first real body line.
+        if body_lines.is_empty() && line.trim().is_empty() {
+            continue;
         }
         body_lines.push(line.to_string());
     }
@@ -177,14 +230,92 @@ mod tests {
     }
 
     #[test]
+    fn parses_real_directory_rows() {
+        // Real capture, hg8lxl.ham.hu (DXSpider V1.57 build 686).
+        let a = parse_directory_line(
+            "  1815   9322      ALL   IK5PWJ  7-Aug 1824Z 425 DX News #1840 [Calendar]",
+        )
+        .unwrap();
+        assert_eq!(a.msgno, 1815);
+        assert!(!a.read);
+        assert!(!a.private);
+        assert_eq!(a.size, 9322);
+        assert_eq!(a.to, "ALL");
+        assert_eq!(a.from, "IK5PWJ");
+        assert_eq!(a.date, "7-Aug");
+        assert_eq!(a.time, "1824Z");
+        assert_eq!(a.subject, "425 DX News #1840 [Calendar]");
+
+        let r =
+            parse_directory_line("  1816-  9854      ALL   IK5PWJ 14-Aug 1926Z 425 DX News #1841")
+                .unwrap();
+        assert_eq!(r.msgno, 1816);
+        assert!(r.read);
+    }
+
+    #[test]
     fn rejects_non_directory_lines() {
         assert!(parse_directory_line("No messages found").is_none());
         assert!(parse_directory_line("HA5TEST de WA9PIE-2 31-Aug-2026 1815Z dxspider >").is_none());
         assert!(parse_directory_line("Msg   Date   Time  From    To      Subject").is_none());
+        // WWV history row — leading date must not read as a msgno.
+        assert!(parse_directory_line(
+            " 6-Sep-2026   15   111   6   1 Minor w/S1 R1 -> No Storms   <W0MU>"
+        )
+        .is_none());
+        // Connected-users list.
+        assert!(parse_directory_line("EA3NP        HA0HV        HA0NAR       HA1AR").is_none());
     }
 
     #[test]
-    fn parses_read_message() {
+    fn parses_real_read_message() {
+        // Real capture: single-line header, body immediately after, prompt ends it.
+        let lines: Vec<String> = [
+            "read 1821",
+            "Msg: 1821 From: IK5PWJ Date: 28-Aug 1658Z Subj: 425 DX News #1843 [Calendar]",
+            "29 August 2026                                           A.R.I. DX Bulletin",
+            "                                   No 1843",
+            "",
+            "PERIOD           CALL                                                   REF",
+            "till  30/08      EN35UKR: special callsign                             1839",
+            "",
+            "HG7WHD de HG8PRC  6-Sep-2026 1657Z dxspider >",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        let m = parse_read_message(&lines).unwrap();
+        assert_eq!(m.msgno, 1821);
+        assert_eq!(m.from, "IK5PWJ");
+        assert_eq!(m.to, "");
+        assert_eq!(m.posted, "28-Aug 1658Z");
+        assert_eq!(m.subject, "425 DX News #1843 [Calendar]");
+        assert!(m.body.starts_with("29 August 2026"));
+        assert!(m.body.ends_with("1839"));
+        assert!(m.body.contains("PERIOD"));
+    }
+
+    #[test]
+    fn parses_combined_header_with_private_and_to() {
+        let lines: Vec<String> = [
+            "Msg: 42 Private From: G1TLH To: HA5TEST Date: 12-Aug-2026 1830Z Subject: re: sked",
+            "see you at 1400 on 20m",
+            "HA5TEST de GB7DJK 12-Aug-2026 1831Z dxspider >",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        let m = parse_read_message(&lines).unwrap();
+        assert_eq!(m.msgno, 42);
+        assert_eq!(m.from, "G1TLH");
+        assert_eq!(m.to, "HA5TEST");
+        assert_eq!(m.posted, "12-Aug-2026 1830Z");
+        assert_eq!(m.subject, "re: sked");
+        assert_eq!(m.body, "see you at 1400 on 20m");
+    }
+
+    #[test]
+    fn parses_legacy_multiline_read_message() {
         let lines: Vec<String> = [
             "Subject: test bulletin",
             "Posted: 12-Aug-2026 1830Z",

@@ -643,27 +643,37 @@ time as a single overwrite. `apply_spot_filter` takes an explicit `software` par
 command generation never depends on a live session, so the always-available preview
 (`applySpotFilter("", f, false, software)`) works the same as the real push.
 `FiltersPanel`'s "Clear node filters" sends `set/dx/filter` (empty) instead of
-`clear/spot all` for an AR-Cluster target, and "fetch node filters" falls back to
-showing the raw `show/dx options` response (no known line-format to parse, unlike
-DXSpider's `sh/filter`). The Connection panel's profile editor gained a Software select
-(shown only for `kind: "cluster"`), the preset browser auto-fills it from the preset's
-`software` string (`/ar-?cluster/i`), and an `AR` tag marks such profiles in the list.
-Built entirely from the AR-Cluster V6 manual, not a live node — like the mail parser
-below, unverified. Not yet dialect-aware: the `ToolsPanel` `SH/DX` query (still
-DXSpider-only, and still built ad hoc in the frontend rather than through
-`commands::sh_dx` — pre-existing debt, not introduced here); login banner detection,
-and spot/WWV/WCY/mail line parsing (assumed common AK1A-derived format across
-dialects).
+`clear/spot all` for an AR-Cluster target, and "fetch node filters" runs
+`show/dx options` and keeps the `DX configuration options:` block (header +
+indented `Count:/Filter:/Mode:/Output:/Comment Options:` lines), dropping the
+interleaved live `DX de …` spots. The Connection panel's profile editor gained a
+Software select (shown only for `kind: "cluster"`), the preset browser auto-fills
+it from the preset's `software` string (`/ar-?cluster/i`), and an `AR` tag marks
+such profiles in the list. **Verified against a live AR-Cluster V6 node
+(6.1.5123, `dxcluster.hadxc.hu`):** `show/dx options` is valid and returns the
+block above; `show/filter` / `sh/filter` / `show/dx/filter` are aliases for it;
+the spot line format is the common AK1A `DX de …` (skimmer `-#`, `CW 38 dB 34
+WPM` comment) — so the "assumed common across dialects" spot/WWV/WCY parsing
+holds. The `SET/DX/FILTER` command generation itself is still only exercised
+against the V6 manual (pushing a filter to the live node wasn't done). Not yet
+dialect-aware: the `ToolsPanel` `SH/DX` query (still DXSpider-only, built ad hoc
+in the frontend rather than through `commands::sh_dx` — pre-existing debt); login
+banner detection.
 
 **Next:** map polish (canvas if SVG is slow, per-skimmer coords instead of DXCC
 centroids); phase 12 v2 polish — adjustable grey-line band width, HUD →
 Propagation tab on click, decode the WCY `Au` text. CAT: `rig_set` mode-follow
 toggle, per-profile radio config, split/RIT.
 
-**Unverified against live data:** the mail `DIRECTORY` / `READ` regexes in
-`parser/mail.rs` and the compose prompt-matching in `sendMail` are built to the
-documented DXSpider format — the test node's mailbox was empty, so they need a
-real message to confirm. Fallback timers keep the compose flow from hanging.
+**Verified against live data (DXSpider V1.57 build 686, `hg8lxl.ham.hu`):** the
+mail `DIRECTORY` / `READ` parsers in `parser/mail.rs` — real capture showed the
+`READ` header is a **single line** (`Msg: N From: C Date: … Subj: …`) with the
+body straight after, not the documented one-`Key: value`-per-line block;
+`parse_read_message` now handles both (`READ_HDR_RE` + the legacy `READ_KV_RE`),
+real rows are pinned as tests. **Still unverified:** the interactive compose
+prompt-matching in `sendMail` (posting a bulletin on a live net wasn't done) —
+built to the documented `Enter Subject:` / `Enter Message /EX to send` wording;
+fallback timers keep it from hanging if the prompts differ.
 
 Parser dispatch order in `parser/mod.rs::parse_line_ctx`: spot → wwv → wcy →
 announce → chat → talk → Raw. `run_session` builds a `ParseCtx` with the profile
