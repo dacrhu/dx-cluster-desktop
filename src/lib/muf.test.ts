@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { interpolateMuf, mufAt, mufColor, mufGrid, sfiToSsn } from "./muf";
+import {
+  interpolateMuf,
+  mufAt,
+  mufBandLabels,
+  mufColor,
+  mufContours,
+  MUF_THRESHOLDS,
+  sfiToSsn,
+} from "./muf";
 import type { MufStation } from "./types";
 
 const stn = (lat: number, lon: number, mufd: number, cs = 80): MufStation => ({
@@ -89,10 +97,94 @@ describe("interpolateMuf (measured / model blend)", () => {
   });
 });
 
-describe("mufGrid / mufColor", () => {
-  it("covers the globe and every cell gets a colour", () => {
-    const g = mufGrid(noon, 100, 20);
-    expect(g.length).toBeGreaterThan(100);
-    for (const c of g) expect(mufColor(c.muf)).toMatch(/^#[0-9a-f]{6}$/i);
+describe("mufContours", () => {
+  // 20×10 grid, MUF rising 0→38 MHz west→east.
+  const gw = 20;
+  const gh = 10;
+  const gradient = Array.from({ length: gw * gh }, (_, k) => (k % gw) * 2);
+
+  it("returns nested bands, low→high, each a threshold with geometry", () => {
+    const bands = mufContours(gradient, gw, gh);
+    expect(bands.length).toBeGreaterThan(2);
+    const vals = bands.map((b) => b.value);
+    expect(vals).toEqual([...vals].sort((a, b) => a - b));
+    for (const b of bands) {
+      expect(MUF_THRESHOLDS).toContain(b.value);
+      expect(b.color).toBe(mufColor(b.value));
+      expect(b.coordinates.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("scales ring coordinates by the cell pitch", () => {
+    const a = mufContours(gradient, gw, gh, 1)[0].coordinates[0][0][0];
+    const b = mufContours(gradient, gw, gh, 12)[0].coordinates[0][0][0];
+    expect(b[0]).toBeCloseTo(a[0] * 12);
+    expect(b[1]).toBeCloseTo(a[1] * 12);
+  });
+
+  it("a uniformly closed field yields only the base (0 MHz) band", () => {
+    const bands = mufContours(new Array(gw * gh).fill(2), gw, gh);
+    expect(bands.map((b) => b.value)).toEqual([0]);
+  });
+});
+
+describe("mufBandLabels", () => {
+  const gw = 24;
+  const gh = 12;
+  // MUF rising 0→46 MHz west→east: one contiguous strip per band.
+  const gradient = Array.from({ length: gw * gh }, (_, k) => (k % gw) * 2);
+
+  it("places one anchor per band (>7 MHz), inside the grid, scaled by cell", () => {
+    const labels = mufBandLabels(gradient, gw, gh, 10);
+    expect(labels.length).toBeGreaterThan(2);
+    for (const l of labels) {
+      expect(MUF_THRESHOLDS).toContain(l.value);
+      expect(l.value).toBeGreaterThanOrEqual(7); // the closed <7 band is skipped
+      expect(l.x).toBeGreaterThanOrEqual(0);
+      expect(l.x).toBeLessThanOrEqual((gw - 1) * 10);
+      expect(l.y).toBeGreaterThanOrEqual(0);
+      expect(l.y).toBeLessThanOrEqual((gh - 1) * 10);
+    }
+    // ascending MUF west→east → ascending label x with ascending value
+    const byVal = [...labels].sort((a, b) => a.value - b.value);
+    expect(byVal.map((l) => l.x)).toEqual([...byVal.map((l) => l.x)].sort((a, b) => a - b));
+  });
+
+  it("anchors in the interior of a band, not on the boundary with the next", () => {
+    // wide bands (step 1 MHz over 24 cols) so each strip has real interior
+    const wide = Array.from({ length: gw * gh }, (_, k) => (k % gw) * 1);
+    const bandAt = (v: number) => {
+      let b = 0;
+      for (let t = 1; t < MUF_THRESHOLDS.length; t++) if (v >= MUF_THRESHOLDS[t]) b = t;
+      return b;
+    };
+    for (const l of mufBandLabels(wide, gw, gh, 1)) {
+      const ix = l.x;
+      const iy = l.y;
+      const here = bandAt(wide[iy * gw + ix]);
+      // all four neighbours are the same band → the anchor is not on an edge
+      for (const [dx, dy] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ]) {
+        const nx = ix + dx;
+        const ny = iy + dy;
+        if (nx < 0 || ny < 0 || nx >= gw || ny >= gh) continue;
+        expect(bandAt(wide[ny * gw + nx])).toBe(here);
+      }
+    }
+  });
+
+  it("drops components smaller than minCells", () => {
+    // a single open cell in an otherwise closed field
+    const v = new Array(gw * gh).fill(2);
+    v[gw * 6 + 12] = 30;
+    expect(mufBandLabels(v, gw, gh, 1, 6)).toHaveLength(0);
+  });
+
+  it("a uniformly closed field gets no labels", () => {
+    expect(mufBandLabels(new Array(gw * gh).fill(3), gw, gh)).toHaveLength(0);
   });
 });

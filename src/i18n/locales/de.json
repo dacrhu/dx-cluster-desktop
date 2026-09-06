@@ -163,6 +163,7 @@
   "map.noQth": "QRA-Locator im Verbindungs-Panel setzen für eine QTH-zentrierte Karte und Entfernungsringe.",
   "map.legendReach": "hat mich gehört (RBN / Skimmer)",
   "map.heardBy": "gehört von",
+  "map.reportFeeds": "Feeds",
   "map.spotActions": "Aktionen",
   "map.spotClose": "schließen",
   "map.greyline": "Graulinie",

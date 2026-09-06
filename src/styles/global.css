@@ -1447,11 +1447,33 @@ button.chip.active {
   pointer-events: none;
 }
 .wm-muf {
-  opacity: 0.6;
   pointer-events: none;
 }
-.wm-muf circle {
+.wm-muf-fill {
+  opacity: 0.11;
+}
+.wm-muf-fill path {
   stroke: none;
+}
+.wm-muf-line path {
+  fill: none;
+  stroke-width: 0.9;
+  stroke-opacity: 0.6;
+}
+.wm-muf-labels text {
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  fill: var(--text-muted);
+  fill-opacity: 0.65;
+  /* faint halo in the ocean colour so the value reads over any band */
+  paint-order: stroke;
+  stroke: var(--wm-ocean);
+  stroke-width: 3px;
+  stroke-opacity: 0.3;
 }
 .wm-opening {
   fill: none;
@@ -1560,10 +1582,10 @@ button.chip.active {
   gap: 3px;
 }
 .wm-muf-legend-step i {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 2px;
-  opacity: 0.85;
+  border: 1px solid; /* colour set inline; matches the map's faint fill + iso-line */
 }
 
 /* Solar / geomagnetic HUD */
@@ -1663,6 +1685,29 @@ button.chip.active {
   font-family: var(--font-mono);
   color: var(--text-muted);
   word-break: break-word;
+}
+.wm-popup-reports {
+  margin: 7px 0 0;
+  padding: 6px 0 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 132px;
+  overflow-y: auto;
+}
+.wm-popup-reports li {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  word-break: break-word;
+}
+.wm-popup-report-age {
+  display: inline-block;
+  min-width: 34px;
+  margin-right: 7px;
+  text-align: right;
+  color: var(--text-faint, var(--text-muted));
 }
 .wm-popup-actions {
   margin-top: 9px;

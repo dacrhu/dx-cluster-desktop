@@ -1,3 +1,4 @@
+import { contours } from "d3-contour";
 import type { LonLat } from "./grid";
 import type { MufStation } from "./types";
 import { subsolarPoint, angularSepDeg } from "./grayline";
@@ -26,23 +27,6 @@ export function mufAt(ll: LonLat, date: Date, ssn: number): number {
   const solar = 1 + Math.max(0, ssn) / 250; // ~1 at min, ~2 at ssn 250
   const foF2 = (2.4 + 5.8 * Math.sqrt(day)) * solar; // MHz: ~2.4 night, ~8 day, ×solar
   return 3.0 * foF2; // M(3000)F2 factor ≈ 3
-}
-
-export interface MufCell {
-  ll: LonLat;
-  muf: number;
-}
-
-/** Sample `mufAt` on a lon/lat grid for a dot-field overlay. */
-export function mufGrid(date: Date, ssn: number, stepDeg = 9): MufCell[] {
-  const out: MufCell[] = [];
-  for (let lat = -80; lat <= 80; lat += stepDeg) {
-    for (let lon = -180; lon < 180; lon += stepDeg) {
-      const ll: LonLat = [lon, lat];
-      out.push({ ll, muf: mufAt(ll, date, ssn) });
-    }
-  }
-  return out;
 }
 
 /** MUF colour scale, low → high; `from` is the lower MHz bound of each step. */
@@ -89,4 +73,148 @@ export function mufColor(muf: number): string {
   let c = MUF_SCALE[0].color;
   for (const step of MUF_SCALE) if (muf >= step.from) c = step.color;
   return c;
+}
+
+/** Filled-contour band edges (MHz) — the `MUF_SCALE` step boundaries, plus 0 so
+ *  the "closed" zone gets its own filled band too. */
+export const MUF_THRESHOLDS = [0, 7, 10, 14, 18, 21, 28];
+
+export interface MufBand {
+  /** Lower MHz bound of the band (one of `MUF_THRESHOLDS`). */
+  value: number;
+  /** Fill / stroke colour (the `MUF_SCALE` bucket at this value). */
+  color: string;
+  /** GeoJSON MultiPolygon rings, scaled by `cell` (px), ready for `geoPath()`. */
+  coordinates: number[][][][];
+}
+
+/**
+ * Filled MUF contour bands from a row-major `values` grid (`gw × gh`, MHz) via
+ * marching squares (`d3-contour`). Ring coordinates are scaled by `cell` — the
+ * grid pitch in screen px — so they render straight through an un-projected
+ * `geoPath()`. Bands come back low → high; drawn in that order each higher band
+ * paints over the previous one, giving a clean choropleth (no alpha stacking).
+ * Empty thresholds are dropped.
+ */
+export function mufContours(values: number[], gw: number, gh: number, cell = 1): MufBand[] {
+  return contours()
+    .size([gw, gh])
+    .thresholds(MUF_THRESHOLDS)(values)
+    .filter((c) => c.coordinates.length > 0)
+    .map((c) => ({
+      value: c.value,
+      color: mufColor(c.value),
+      coordinates:
+        cell === 1
+          ? (c.coordinates as number[][][][])
+          : c.coordinates.map((poly) =>
+              poly.map((ring) => ring.map(([x, y]) => [x * cell, y * cell])),
+            ),
+    }));
+}
+
+export interface MufLabel {
+  /** Anchor in the same px space as `mufContours` (grid px × `cell`). */
+  x: number;
+  y: number;
+  /** Lower MHz bound of the band this region sits in (a `MUF_THRESHOLDS` entry). */
+  value: number;
+}
+
+/** Which `MUF_THRESHOLDS` band a MUF value falls in (index, 0 = "<7 / closed"). */
+function bandIndex(v: number): number {
+  let k = 0;
+  for (let t = 1; t < MUF_THRESHOLDS.length; t++) if (v >= MUF_THRESHOLDS[t]) k = t;
+  return k;
+}
+
+/**
+ * One label anchor per sizeable contiguous MUF band on the sampled `values`
+ * grid (4-connected components). The closed `<7 MHz` band (index 0) is skipped.
+ * The anchor is the component's *most interior* cell — the one farthest (in
+ * grid steps) from any edge of the region — with the centroid distance as a
+ * tie-break, so the number sits in the meat of its band, not on a boundary
+ * with the neighbouring one. Coords scaled by `cell` like `mufContours`.
+ */
+export function mufBandLabels(
+  values: number[],
+  gw: number,
+  gh: number,
+  cell = 1,
+  minCells = 6,
+): MufLabel[] {
+  const band = values.map(bandIndex);
+  const seen = new Uint8Array(gw * gh);
+  const out: MufLabel[] = [];
+  const neighbours = (p: number): number[] => {
+    const px = p % gw;
+    const py = (p / gw) | 0;
+    return [
+      px + 1 < gw ? p + 1 : -1,
+      px - 1 >= 0 ? p - 1 : -1,
+      py + 1 < gh ? p + gw : -1,
+      py - 1 >= 0 ? p - gw : -1,
+    ];
+  };
+  for (let start = 0; start < band.length; start++) {
+    if (seen[start] || band[start] < 1) continue;
+    const b = band[start];
+    const members: number[] = [];
+    const stack = [start];
+    seen[start] = 1;
+    while (stack.length) {
+      const p = stack.pop() as number;
+      members.push(p);
+      for (const np of neighbours(p)) {
+        if (np < 0 || seen[np] || band[np] !== b) continue;
+        seen[np] = 1;
+        stack.push(np);
+      }
+    }
+    if (members.length < minCells) continue;
+
+    let sx = 0;
+    let sy = 0;
+    for (const m of members) {
+      sx += m % gw;
+      sy += (m / gw) | 0;
+    }
+    const cx = sx / members.length;
+    const cy = sy / members.length;
+
+    // Distance transform: BFS inward from every edge cell (a member touching
+    // the grid border or a cell of another band). `depth` = steps to the edge.
+    const depth = new Map<number, number>();
+    const queue: number[] = [];
+    for (const m of members) {
+      const nb = neighbours(m);
+      if (nb.some((np) => np < 0 || band[np] !== b)) {
+        depth.set(m, 1);
+        queue.push(m);
+      }
+    }
+    for (let head = 0; head < queue.length; head++) {
+      const p = queue[head];
+      const d = depth.get(p) as number;
+      for (const np of neighbours(p)) {
+        if (np < 0 || band[np] !== b || depth.has(np)) continue;
+        depth.set(np, d + 1);
+        queue.push(np);
+      }
+    }
+
+    let best = members[0];
+    let bestScore = -Infinity;
+    for (const m of members) {
+      const d = depth.get(m) ?? 1;
+      const centreD = Math.hypot((m % gw) - cx, ((m / gw) | 0) - cy);
+      const score = d * 100 - centreD; // deepest wins; centre breaks ties
+      if (score > bestScore) {
+        bestScore = score;
+        best = m;
+      }
+    }
+    out.push({ x: (best % gw) * cell, y: ((best / gw) | 0) * cell, value: MUF_THRESHOLDS[b] });
+  }
+  return out;
 }

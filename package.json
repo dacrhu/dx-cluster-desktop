@@ -18,6 +18,7 @@
     "@tauri-apps/api": "^2.1.1",
     "@tauri-apps/plugin-notification": "^2.2.0",
     "@tauri-apps/plugin-store": "^2.2.0",
+    "d3-contour": "^4.0.2",
     "d3-geo": "^3.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",
+    "@types/d3-contour": "^3.0.6",
     "@types/d3-geo": "^3.1.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

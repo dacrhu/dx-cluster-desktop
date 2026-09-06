@@ -23,6 +23,52 @@ export interface MyReport {
   wpm: number | null;
   /** Skimmer / spotter position, `[lon, lat]`. */
   lonLat: LonLat;
+  /** How many raw reports collapsed into this one (same skimmer, same freq). */
+  count: number;
+  /** Number of distinct feeds that carried it (RBN feed / PSK Reporter / cluster). */
+  feeds: number;
+  /** Every raw report that collapsed here, newest first (incl. the representative). */
+  members: EnrichedSpot[];
+}
+
+/**
+ * Collapse reports of the same skimmer hearing me on the same frequency into a
+ * single marker, regardless of which feed carried them — the RBN telnet feed,
+ * the PSK Reporter feed and a cluster that also relays skimmer spots of us can
+ * each produce their own copy, and each feed dedups only within itself. Keyed
+ * like the backend's `synth_spot_key` (base DX call, base spotter, 0.1 kHz),
+ * the freshest report wins (it drives the age fade); its SNR/WPM are kept, with
+ * an older report's values filled in only where the freshest lacks them.
+ */
+export function collapseReports(raw: MyReport[]): MyReport[] {
+  const groups = new Map<string, MyReport & { _feeds: Set<string> }>();
+  for (const r of raw) {
+    const key = `${baseCall(r.spot.dx_call).toUpperCase()}|${baseCall(
+      r.spot.spotter_base,
+    ).toUpperCase()}|${Math.round(r.spot.freq_khz * 10)}`;
+    const g = groups.get(key);
+    if (!g) {
+      groups.set(key, { ...r, count: 1, _feeds: new Set([r.spot.node_id]), members: [r.spot] });
+      continue;
+    }
+    g.count += 1;
+    g._feeds.add(r.spot.node_id);
+    g.members.push(r.spot);
+    if (r.spot.received_at > g.spot.received_at) {
+      g.spot = r.spot;
+      g.lonLat = r.lonLat;
+      g.snrDb = r.snrDb ?? g.snrDb;
+      g.wpm = r.wpm ?? g.wpm;
+    } else {
+      g.snrDb = g.snrDb ?? r.snrDb;
+      g.wpm = g.wpm ?? r.wpm;
+    }
+  }
+  return [...groups.values()].map(({ _feeds, ...rest }) => ({
+    ...rest,
+    feeds: _feeds.size,
+    members: [...rest.members].sort((a, b) => b.received_at - a.received_at),
+  }));
 }
 
 /**
@@ -53,8 +99,11 @@ export function useMyReports(): MyReport[] {
         snrDb: snr ? Number(snr[1]) : null,
         wpm: wpm ? Number(wpm[1]) : null,
         lonLat: pos,
+        count: 1,
+        feeds: 1,
+        members: [s],
       });
     }
-    return out;
+    return collapseReports(out);
   }, [spots, myCalls, maxAgeMin, ageTick]);
 }

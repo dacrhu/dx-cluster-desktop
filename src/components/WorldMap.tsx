@@ -23,7 +23,7 @@ import { modeClass, modeLabel } from "@/lib/mode";
 import { spotLonLat, type LonLat } from "@/lib/grid";
 import { antipode, inGreyline, subsolarPoint } from "@/lib/grayline";
 import { auroraOvals } from "@/lib/aurora";
-import { interpolateMuf, mufColor, MUF_SCALE, mufGrid, sfiToSsn } from "@/lib/muf";
+import { interpolateMuf, mufAt, mufBandLabels, mufContours, MUF_SCALE, sfiToSsn } from "@/lib/muf";
 import { bandOpenings } from "@/lib/openings";
 import { bandRose, ROSE_SECTORS } from "@/lib/bandRose";
 import { fmtAge } from "@/lib/format";
@@ -60,8 +60,6 @@ async function loadWorld(): Promise<WorldData> {
 function clamp(v: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, v));
 }
-
-const mufGradId = (hex: string) => `url(#muf${hex.replace("#", "")})`;
 
 function ageClass(unix: number): string {
   const min = (Date.now() / 1000 - unix) / 60;
@@ -276,52 +274,93 @@ export const WorldMap = memo(function WorldMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aurora, rawPath, kIndex]);
 
-  const MUF_STEP = 10;
-  // Soft dot field: one gradient-filled blob per grid point. Radial-gradient
-  // fills give the "not a plain circle" look with **no SVG filter** (WebKitGTK
-  // is far too slow at those). The <g> is memoised so a pan/zoom doesn't
-  // reconcile hundreds of nodes — only the parent transform changes.
-  const mufDots = useMemo(() => {
+  // MUF as filled contour bands. Sample the MUF field on a coarse screen-space
+  // grid (invert the projection at each node), run marching squares
+  // (`d3-contour`) and paint one filled polygon per band — **no SVG filter**
+  // (WebKitGTK is far too slow at those), and the whole thing is `useMemo`'d so
+  // a pan/zoom only moves the parent transform, never reconciles the polygons.
+  // Sampled in base (un-zoomed) screen space, so the deps exclude `view`.
+  const MUF_CELL = 10;
+  const mufBandPath = useMemo(() => geoPath(), []);
+  const mufBands = useMemo(() => {
     void tick;
-    if (!showMuf || !rawPath) return { dots: [], r: 0 };
-    const s = MUF_STEP;
+    if (!showMuf || !projection || !ready) return null;
+    const invert = projection.invert;
+    if (!invert) return null;
     const now = new Date();
-    const dots: { xy: [number, number]; color: string; coverage: number }[] = [];
-    for (const cell of mufGrid(now, ssn, s)) {
-      const xy = project(cell.ll);
-      if (!xy) continue;
-      const { muf, coverage } = mufStations.length
-        ? interpolateMuf(mufStations, cell.ll, cell.muf)
-        : { muf: cell.muf, coverage: 0 };
-      dots.push({ xy, color: mufColor(muf), coverage });
+    const gw = Math.max(2, Math.ceil(w / MUF_CELL) + 1);
+    const gh = Math.max(2, Math.ceil(h / MUF_CELL) + 1);
+    const values = new Array<number>(gw * gh);
+    for (let j = 0; j < gh; j++) {
+      for (let i = 0; i < gw; i++) {
+        const ll = invert([i * MUF_CELL, j * MUF_CELL]);
+        let v = 0;
+        if (ll && Number.isFinite(ll[0]) && Number.isFinite(ll[1])) {
+          // azimuthal `invert` extrapolates beyond the disc — clamp those out
+          if (!azim || !home || geoDistance(home, ll as LonLat) < Math.PI) {
+            const model = mufAt(ll as LonLat, now, ssn);
+            v = mufStations.length ? interpolateMuf(mufStations, ll as LonLat, model).muf : model;
+          }
+        }
+        values[j * gw + i] = v;
+      }
     }
-    // Blob radius ≈ the projected grid spacing at the equator, so neighbours
-    // overlap into a continuous field.
-    const a = project([0, 0]);
-    const b = project([s, 0]);
-    const gap = a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : 14;
-    return { dots, r: Math.max(6, gap * 0.8) };
+    return {
+      bands: mufContours(values, gw, gh, MUF_CELL),
+      labels: mufBandLabels(values, gw, gh, MUF_CELL),
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showMuf, rawPath, ssn, tick, mufStations]);
+  }, [showMuf, projection, ready, w, h, ssn, tick, mufStations, azim, home]);
 
-  const mufLayer = useMemo(() => {
-    if (!showMuf || mufDots.dots.length === 0) return null;
-    const measured = mufStations.length > 0;
+  // Bands: view-independent (a pan/zoom only moves the parent transform). The
+  // 0-MHz "closed" band covers the whole grid — skip it so the layer never
+  // washes the entire map; below 7 MHz just reads as bare ocean.
+  const mufBandsLayer = useMemo(() => {
+    if (!mufBands) return null;
+    const bands = mufBands.bands.filter((b) => b.value > 0);
+    if (bands.length === 0) return null;
+    const d = (b: (typeof bands)[number]) =>
+      mufBandPath({ type: "MultiPolygon", coordinates: b.coordinates } as GeoAny) ?? "";
     return (
-      <g className="wm-muf">
-        {mufDots.dots.map((d, i) => (
-          <circle
-            key={i}
-            cx={d.xy[0]}
-            cy={d.xy[1]}
-            r={mufDots.r}
-            fill={mufGradId(d.color)}
-            opacity={measured ? 0.35 + 0.6 * d.coverage : 1}
-          />
+      <>
+        {/* faint filled bands… */}
+        <g className="wm-muf-fill">
+          {bands.map((b) => (
+            <path key={b.value} d={d(b)} fill={b.color} />
+          ))}
+        </g>
+        {/* …crisp iso-lines on top so the layer reads without hiding the map */}
+        <g className="wm-muf-line">
+          {bands.map((b) => (
+            <path key={b.value} d={d(b)} stroke={b.color} />
+          ))}
+        </g>
+      </>
+    );
+  }, [mufBands, mufBandPath]);
+
+  // Labels: the band's MHz value written inside each region; only the font size
+  // tracks the zoom (cheap — a handful of <text> nodes).
+  const mufLabelsLayer = useMemo(() => {
+    if (!mufBands || mufBands.labels.length === 0) return null;
+    return (
+      <g className="wm-muf-labels">
+        {mufBands.labels.map((l, i) => (
+          <text key={i} x={l.x} y={l.y} fontSize={18 / view.k}>
+            {l.value}
+          </text>
         ))}
       </g>
     );
-  }, [showMuf, mufDots, mufStations.length]);
+  }, [mufBands, view.k]);
+
+  const mufLayer =
+    mufBandsLayer || mufLabelsLayer ? (
+      <g className="wm-muf" clipPath="url(#wm-sphere-clip)">
+        {mufBandsLayer}
+        {mufLabelsLayer}
+      </g>
+    ) : null;
 
   const openingArcs = useMemo(() => {
     if (!showOpenings) return [];
@@ -479,15 +518,13 @@ export const WorldMap = memo(function WorldMap({
         onPointerUp={onPointerUp}
         onClick={() => setMenu(null)}
       >
-        {showMuf && (
+        {showMuf && ready && rawPath && (
           <defs>
-            {MUF_SCALE.map(({ color }) => (
-              <radialGradient key={color} id={`muf${color.replace("#", "")}`}>
-                <stop offset="0%" stopColor={color} stopOpacity="0.34" />
-                <stop offset="55%" stopColor={color} stopOpacity="0.14" />
-                <stop offset="100%" stopColor={color} stopOpacity="0" />
-              </radialGradient>
-            ))}
+            {/* Base (pre-transform) coords — the referencing <g.wm-muf> already
+                sits inside <g transform={g}>, so userSpaceOnUse lines them up. */}
+            <clipPath id="wm-sphere-clip">
+              <path d={path({ type: "Sphere" } as GeoAny)} />
+            </clipPath>
           </defs>
         )}
         {ready && rawPath && (
@@ -579,7 +616,7 @@ export const WorldMap = memo(function WorldMap({
                   onClick={(e) => pickSpot(e, r.spot)}
                   onContextMenu={(e) => openMenu(e, r.spot)}
                 >
-                  <title>{r.spot.spotter}</title>
+                  <title>{r.count > 1 ? `${r.spot.spotter} ×${r.count}` : r.spot.spotter}</title>
                 </path>
               );
             })}
@@ -628,7 +665,12 @@ export const WorldMap = memo(function WorldMap({
           </span>
           {MUF_SCALE.map(({ color, label }) => (
             <span key={label} className="wm-muf-legend-step">
-              <i style={{ background: color }} />
+              <i
+                style={{
+                  background: `color-mix(in srgb, ${color} 18%, transparent)`,
+                  borderColor: color,
+                }}
+              />
               {label}
             </span>
           ))}
@@ -670,7 +712,11 @@ export const WorldMap = memo(function WorldMap({
             ]);
           rows.push([
             rep ? tr("map.heardBy") : tr("col.spotter"),
-            s.by ? `${s.spotter}  ·  ${s.by.dxcc_name}` : s.spotter,
+            `${s.by ? `${s.spotter}  ·  ${s.by.dxcc_name}` : s.spotter}${
+              rep && rep.count > 1
+                ? `  ·  ×${rep.count}${rep.feeds > 1 ? ` (${rep.feeds} ${tr("map.reportFeeds")})` : ""}`
+                : ""
+            }`,
           ]);
           if (rep && (rep.snrDb != null || rep.wpm != null))
             rows.push([
@@ -710,7 +756,21 @@ export const WorldMap = memo(function WorldMap({
                   </div>
                 ))}
               </dl>
-              {s.comment && <p className="wm-popup-comment">{s.comment}</p>}
+              {rep && rep.members.length > 1 ? (
+                <ul className="wm-popup-reports">
+                  {rep.members.map(
+                    (m) =>
+                      m.comment && (
+                        <li key={m.id}>
+                          <span className="wm-popup-report-age">{fmtAge(m.received_at)}</span>
+                          {m.comment}
+                        </li>
+                      ),
+                  )}
+                </ul>
+              ) : (
+                s.comment && <p className="wm-popup-comment">{s.comment}</p>
+              )}
               {(catEnabled || logPushEnabled) && (
                 <div className="wm-popup-engage">
                   {catEnabled && (

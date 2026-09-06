@@ -291,7 +291,15 @@ terminator-edge stroke on `.wm-night`, `store.mapGrayline`), range rings, DX-spo
 (`store.mapArcs`), and "reports of me" — `src/lib/mapReports.ts::useMyReports()`
 filters `store.spots` for `baseCall(dx_call)` matching any connection's callsign,
 parses SNR/WPM from the comment, plots the skimmer (`spot.by` centroid) + a green
-arc. Left-click a dot/report → `.wm-popup`, a tidy fact card (freq/band, mode,
+arc. `collapseReports()` (same file, unit-tested) then merges reports that share
+`(base dx, base spotter, 0.1 kHz)` — the same skimmer hearing me on one freq
+carried by more than one feed (RBN telnet feed, PSK Reporter, and a cluster that
+also relays skimmer spots of us each dedup only within themselves) collapse to a
+single marker; freshest report wins, `count`/`feeds` ride the `MyReport` and
+show as `spotter ×N` in the marker tooltip + popup. The `MyReport` also keeps
+`members` (every raw report that collapsed, newest first) — a collapsed report's
+popup lists each member's `age · comment` (`.wm-popup-reports`) instead of the
+single `.wm-popup-comment`, so per-skimmer detail (SNR/WPM/time) isn't lost. Left-click a dot/report → `.wm-popup`, a tidy fact card (freq/band, mode,
 DXCC, spotter, SNR/WPM for reports, heading, age + comment) built inline in
 `WorldMap`; dismissed by an outside click (document `mousedown`), Escape, or its
 `×`. Its "Actions ▾" button opens the shared `SpotAction` menu; right-click a dot
@@ -323,7 +331,7 @@ optional measured overlay added in phase 13 (see `store.mapMuf` below):
   bare flag in `compileQuery` (`src/lib/query.ts`) → Spots/Bandmap/Map filter.
 - `store.mapAurora` — `src/lib/aurora.ts::auroraOvals(k)`: K-index-scaled
   colatitude caps around the geomagnetic poles (`GEOMAG_NORTH/SOUTH`).
-- `store.mapMuf` — `src/lib/muf.ts`: a MUF(3000) dot field.
+- `store.mapMuf` — `src/lib/muf.ts`: a MUF(3000) filled-contour layer.
   - **Model** (`mufAt`) = solar-zenith `day` term × a sunspot `solar` factor
     (`2.4 + 5.8·√day`, `×(1 + ssn/250)`). `ssn` = `wcy[0].r`, else
     `sfiToSsn(wwv[0].sfi)`, else **90** so the map isn't all red before any
@@ -334,16 +342,35 @@ optional measured overlay added in phase 13 (see `store.mapMuf` below):
     data is useless). `WorldMap` pulls it while the layer is on (15-min
     interval); `interpolateMuf(stations, ll, model)` does confidence-weighted
     IDW (Gaussian, 12° scale) and blends to the model where coverage is thin,
-    returning a `coverage` 0..1 that drives each dot's `opacity` — measured
-    areas solid, model-filled areas faint. Legend header shows `kc2g · N` vs
-    `model · SSN n`. Credit: README + `map.mufLegendHint`.
-  - Render: one radial-gradient `<circle>` per point of a 10° grid (blob radius
-    ≈ the projected grid spacing), gradients `muf<hex>` in `<defs>`. **No SVG
-    filter** (WebKitGTK is far too slow at those); the whole `<g>` is `useMemo`'d
-    (`mufLayer`) so a pan/zoom doesn't reconcile the ~600 nodes. `MUF_SCALE` in
-    `muf.ts` is the shared palette (gradients, `mufColor` buckets, legend).
-    Estimate, not a prediction. Painted **above** the grayline/greyband so the
-    dot field isn't muddied by the night cap.
+    returning a `coverage` 0..1 that blends measured→model. Legend header shows
+    `kc2g · N` vs `model · SSN n`; each step swatch is a faint fill + a
+    band-colour border, mirroring the map's faint-fill + iso-line look. Credit:
+    README + `map.mufLegendHint`.
+  - Render: **filled contour bands** (`d3-contour` marching squares). `WorldMap`
+    samples the MUF field on a coarse screen-space grid (`MUF_CELL` = 10 px,
+    `projection.invert` at each node → lon/lat → `mufAt` ± `interpolateMuf`),
+    `muf.ts::mufContours` runs marching squares at the `MUF_SCALE` step edges
+    (`MUF_THRESHOLDS` = `0/7/10/14/18/21/28`) and returns one GeoJSON
+    MultiPolygon per band, ring coords pre-scaled to px so an un-projected
+    `geoPath()` draws them. Bands paint low→high (each higher band opaque over
+    the last = clean choropleth, no alpha stacking), clipped to a
+    `<clipPath>` of the sphere. Drawn as three sub-`<g>`s so the layer doesn't
+    hide the map: `.wm-muf-fill` (very faint, `opacity: 0.11`; the whole-grid
+    `value === 0` "closed" band is skipped so it never washes the map — below
+    7 MHz just reads as bare ocean) + `.wm-muf-line` (crisp iso-lines — the
+    same band polygons, stroked-only) + `.wm-muf-labels` (the band's MHz number
+    written inside each region — bare `l.value`, no unit — semi-transparent
+    mono with an ocean-colour halo). Label anchors come from
+    `muf.ts::mufBandLabels` — 4-connected components on the same sampled grid,
+    one anchor per sizeable region at its _most interior_ cell (grid distance
+    transform inward from the region edge, centroid distance as tie-break) so
+    the number never lands on a band boundary; the `<7 MHz` band is skipped. **No SVG filter** (WebKitGTK is far too slow at
+    those); the bands memo (`mufBands` → `{bands, labels}`) and `mufBandsLayer`
+    are view-independent (a pan/zoom only moves the parent transform); only
+    `mufLabelsLayer`'s font size tracks `view.k`. `MUF_SCALE` in `muf.ts` is
+    the shared palette (`mufColor` buckets, legend). Estimate, not a
+    prediction. Painted **above** the grayline/greyband so the band field
+    isn't muddied by the night cap.
 - `store.mapOpenings` — `src/lib/openings.ts::bandOpenings`: every spot from the
   last 30 min as a faint mode-coloured great-circle arc (spotter→DX); overlap =
   heat. Empirical (measured), coverage-biased to where hams are active.
@@ -360,10 +387,8 @@ optional measured overlay added in phase 13 (see `store.mapMuf` below):
 - `store.mapCondHud` (default on) — HTML overlay top-left showing SFI / A / K /
   SSN from `wwv[0]`/`wcy[0]`, left border tinted by K (green/amber/red).
   The `WorldMap` time `tick` interval now also runs for greyline/MUF (not just
-  grayline). i18n `map.greyline|aurora|muf|openings|bandRose|condHud` + `qh.grey`.
-  Still open (plan phase 12 D-list): contour lines instead of a MUF dot field,
-  grid-cell fill for openings, an optional measured ionosonde grid
-  (`prop.kc2g.com`) as a separate later add-on.
+  grayline). i18n `map.greyline`, `map.aurora`, `map.muf`, `map.openings`,
+  `map.bandRose`, `map.condHud`, `qh.grey`.
 
 **RBN feed:** `NodeProfile.kind` (`dxcluster_core::connection::NodeKind` —
 `cluster` | `rbn`, serde default `cluster`, so old saved profiles still load).
@@ -631,12 +656,9 @@ and spot/WWV/WCY/mail line parsing (assumed common AK1A-derived format across
 dialects).
 
 **Next:** map polish (canvas if SVG is slow, per-skimmer coords instead of DXCC
-centroids); cross-source dedup of "reports of me" between the RBN feed, PSK Reporter,
-and a cluster that also relays skimmer spots of us; phase 12 v2 polish — MUF contour
-lines vs the dot field, grid-cell fill for openings, adjustable grey-line band width,
-HUD → Propagation tab on click, decode the WCY `Au` text, optional measured ionosonde
-grid (prop.kc2g.com). CAT: `rig_set` mode-follow toggle, per-profile radio config,
-split/RIT.
+centroids); phase 12 v2 polish — adjustable grey-line band width, HUD →
+Propagation tab on click, decode the WCY `Au` text. CAT: `rig_set` mode-follow
+toggle, per-profile radio config, split/RIT.
 
 **Unverified against live data:** the mail `DIRECTORY` / `READ` regexes in
 `parser/mail.rs` and the compose prompt-matching in `sendMail` are built to the

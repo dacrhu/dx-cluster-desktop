@@ -163,6 +163,7 @@
   "map.noQth": "Add meg a QRA locátorod a Kapcsolat panelen a QTH-központú térképhez és a távolsággyűrűkhöz.",
   "map.legendReach": "hallott engem (RBN / skimmer)",
   "map.heardBy": "hallotta",
+  "map.reportFeeds": "forrás",
   "map.spotActions": "Műveletek",
   "map.spotClose": "bezárás",
   "map.greyline": "szürkületi vonal",

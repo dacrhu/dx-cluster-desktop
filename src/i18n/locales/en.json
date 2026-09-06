@@ -163,6 +163,7 @@
   "map.noQth": "Set your QRA locator in the Connection panel for a QTH-centred map and range rings.",
   "map.legendReach": "heard me (RBN / skimmer)",
   "map.heardBy": "heard by",
+  "map.reportFeeds": "feeds",
   "map.spotActions": "Actions",
   "map.spotClose": "close",
   "map.greyline": "grey line",
