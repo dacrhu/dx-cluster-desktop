@@ -1,7 +1,7 @@
-import { memo, useState } from "react";
-import { useOnlineId } from "@/store/useCluster";
+import { memo, useEffect, useState } from "react";
+import { useCluster, useOnlineId } from "@/store/useCluster";
 import { useT } from "@/i18n";
-import { runQuery, parseHistSpots, searchLocalSpots } from "@/lib/ipc";
+import { runQuery, parseHistSpots, searchLocalSpots, shDxCommand } from "@/lib/ipc";
 import { fmtAge, fmtHhmm } from "@/lib/format";
 import { modeClass, modeLabel } from "@/lib/mode";
 import { ALL_BANDS, type EnrichedSpot, type HistRow } from "@/lib/types";
@@ -33,6 +33,9 @@ const QUERY_COMMANDS: QueryCmd[] = [
 export const ToolsPanel = memo(function ToolsPanel() {
   const tr = useT();
   const onlineId = useOnlineId();
+  const targetSoftware = useCluster((s) =>
+    onlineId ? (s.connections[onlineId]?.profile.software ?? "dx_spider") : "dx_spider",
+  );
 
   const [cmdIdx, setCmdIdx] = useState(0);
   const [arg, setArg] = useState("");
@@ -67,27 +70,41 @@ export const ToolsPanel = memo(function ToolsPanel() {
   const [dxBy, setDxBy] = useState("");
   const [dxHours, setDxHours] = useState("");
   const [dxRunning, setDxRunning] = useState(false);
+  const [dxNote, setDxNote] = useState("");
   const [nodeRows, setNodeRows] = useState<HistRow[] | null>(null);
   const [localRows, setLocalRows] = useState<EnrichedSpot[] | null>(null);
 
-  function buildShDx(): string {
-    let s = "sh/dx";
-    if (dxCount.trim()) s += ` ${dxCount.trim()}`;
-    if (dxBand) s += ` on ${dxBand}`;
-    if (dxCall.trim()) s += ` ${dxCall.trim().toUpperCase()}`;
-    if (dxBy.trim()) s += ` by ${dxBy.trim().toUpperCase()}`;
-    if (dxHours.trim()) s += ` ${dxHours.trim()} hours`;
-    return s;
-  }
+  // The node query string is built in Rust (dialect-aware) — recomputed as the
+  // form or the target node's software changes, so the button label and the
+  // actual send always agree.
+  const [dxCmd, setDxCmd] = useState("SH/DX");
+  useEffect(() => {
+    const n = Number(dxCount.trim());
+    shDxCommand(
+      {
+        count: Number.isFinite(n) && n > 0 ? n : undefined,
+        band: dxBand || undefined,
+        call: dxCall.trim() || undefined,
+        by: dxBy.trim() || undefined,
+        hours: dxHours.trim() ? Number(dxHours.trim()) || undefined : undefined,
+      },
+      targetSoftware,
+    )
+      .then(setDxCmd)
+      .catch(() => {});
+  }, [dxCount, dxBand, dxCall, dxBy, dxHours, targetSoftware]);
 
   async function runNodeDx() {
     if (!onlineId) return;
     setDxRunning(true);
     setNodeRows(null);
     setLocalRows(null);
+    setDxNote("");
     try {
-      const lines = await runQuery(onlineId, buildShDx(), 6000);
+      const lines = await runQuery(onlineId, dxCmd, 6000);
       setNodeRows(await parseHistSpots(lines));
+      if (lines.some((l) => /^(unknown command|sorry|error)/i.test(l.trim())))
+        setDxNote(tr("tools.notSupported", { cmd: dxCmd }));
     } finally {
       setDxRunning(false);
     }
@@ -195,13 +212,14 @@ export const ToolsPanel = memo(function ToolsPanel() {
         </div>
         <div className="row">
           <button className="primary" disabled={!onlineId || dxRunning} onClick={runNodeDx}>
-            {tr("tools.fromNode", { cmd: buildShDx() })}
+            {tr("tools.fromNode", { cmd: dxCmd })}
           </button>
           <button disabled={dxRunning} onClick={runLocalDx}>
             {tr("tools.fromLocal")}
           </button>
         </div>
 
+        {dxNote && <p className="warn">{dxNote}</p>}
         {nodeRows && <HistTable rows={nodeRows} />}
         {localRows && <LocalTable rows={localRows} />}
       </div>

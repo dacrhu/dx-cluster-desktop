@@ -468,6 +468,13 @@ fn parse_hist_spots(state: State<'_, AppState>, lines: Vec<String>) -> Vec<HistR
         .collect()
 }
 
+/// Build a `SH/DX` historical query string in the target node's dialect
+/// (DXSpider positional vs AR-Cluster `show/dx/N field=value`).
+#[tauri::command]
+fn sh_dx_command(query: commands::DxQuery, software: NodeSoftware) -> String {
+    commands::sh_dx(&query, software)
+}
+
 /// Offline `SH/DX`: search the local spot history.
 #[tauri::command]
 fn search_local_spots(
@@ -1730,6 +1737,7 @@ pub fn run() {
             parse_station,
             parse_directory,
             parse_hist_spots,
+            sh_dx_command,
             search_local_spots,
             cty_status,
             cty_entities,

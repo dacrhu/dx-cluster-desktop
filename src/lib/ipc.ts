@@ -164,6 +164,19 @@ export const parseDirectory = (lines: string[]) =>
 
 export const parseHistSpots = (lines: string[]) => invoke<HistRow[]>("parse_hist_spots", { lines });
 
+/** Options for a `SH/DX` historical query (mirrors Rust `commands::DxQuery`). */
+export interface DxQuery {
+  count?: number;
+  band?: string;
+  call?: string;
+  by?: string;
+  hours?: number;
+}
+
+/** Build the `SH/DX` query string in the target node's dialect. */
+export const shDxCommand = (query: DxQuery, software: NodeSoftware = "dx_spider") =>
+  invoke<string>("sh_dx_command", { query, software });
+
 export const searchLocalSpots = (opts: {
   dxPrefix?: string;
   band?: string;

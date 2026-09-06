@@ -337,5 +337,19 @@ mod tests {
         assert_eq!(b.band.as_deref(), Some("20m"));
 
         assert!(parse_sh_dx_line("HA5TEST de WA9PIE-2 31-Aug-2026 1912Z dxspider >").is_none());
+
+        // AR-Cluster V6 `show/dx/N` row — captured from a live node
+        // (`dxcluster.hadxc.hu`). Same AK1A layout; skimmer `-#` spotter tag.
+        let c = parse_sh_dx_line(
+            "    7032.0  G4WDZ       06-Sep-2026 2105Z  CW 23 dB 25 WPM CQ           <OE6ADD-#>",
+        )
+        .unwrap();
+        assert_eq!(c.freq_khz, 7032.0);
+        assert_eq!(c.dx_call, "G4WDZ");
+        assert_eq!(c.time, "2105");
+        assert_eq!(c.comment, "CW 23 dB 25 WPM CQ");
+        assert_eq!(c.spotter, "OE6ADD-#");
+        assert_eq!(c.band.as_deref(), Some("40m"));
+        assert_eq!(c.mode, Mode::Cw);
     }
 }

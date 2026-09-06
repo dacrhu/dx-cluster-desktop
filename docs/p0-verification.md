@@ -1,12 +1,19 @@
 # P0 live verification checklist
 
-Two things in the codebase are built to documentation only and need one live
-run each. The command/orchestration code was audited and hardened (see the
-git history for `commands.rs` / `ipc.ts`); what remains is confirming the real
-node behaves as the docs say.
+> **Status (done):** both checks were run against live nodes.
+> §1 — a generated `set/dx/filter` was pushed to a live AR-Cluster V6 and
+> accepted, spot stream filtered as expected.
+> §2 — a bulletin was composed and posted on a live DXSpider net and
+> propagated.
+> The only issues that surfaced were unrelated and since fixed: the mailbox
+> didn't auto-refresh for new mail (now polled, §3), and accented text was
+> mangled node-side (`Árvíztűrő` → `�rvíztűr�` — Latin-1 decode fallback +
+> a compose-time ASCII warning added).
+> Kept as a reference for re-runs / other nodes.
 
-Do these with the app running against a real node and the **Raw terminal** tab
-open so you can watch exactly what goes out and comes back.
+The command/orchestration code was audited and hardened (see the git history
+for `commands.rs` / `ipc.ts`). Run these with the app against a real node and
+the **Raw terminal** tab open so you can watch what goes out and comes back.
 
 ---
 
@@ -68,6 +75,16 @@ is accepted and actually filters the spot stream.
 - The exact ack / error line for each apply.
 - Whether Test C's `Call=P5*` worked, and if not, which of `Call=*P5*` /
   `Call=P5` the node accepts.
+
+### Test D — Tools panel `SH/DX` against AR-Cluster (added later)
+
+1. With an AR-Cluster connection selected, Tools panel → SH/DX historical
+   section → set count 10, band 40m, then hit **from node**.
+2. The button label should read `show/dx/10 band=40` (not `SH/DX 10 on 40m`).
+3. Rows should fill the history table. An `unknown command` reply shows a
+   `tools.notSupported` note instead.
+4. Add a DX call / spotter and confirm the label becomes
+   `show/dx/10 band=40 and call=… and spotter=…` and still returns rows.
 
 ---
 

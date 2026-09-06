@@ -141,8 +141,16 @@ pub struct DxQuery {
     pub hours: Option<u32>,
 }
 
-/// Build a `SH/DX` command from the query options.
-pub fn sh_dx(q: &DxQuery) -> String {
+/// Build a `SH/DX` historical-spot query in the target node's dialect.
+pub fn sh_dx(q: &DxQuery, software: NodeSoftware) -> String {
+    match software {
+        NodeSoftware::DxSpider => sh_dx_dxspider(q),
+        NodeSoftware::ArCluster => sh_dx_arcluster(q),
+    }
+}
+
+/// DXSpider `SH/DX` — positional: `SH/DX <n> on <band> <call> by <spotter> <h> hours`.
+fn sh_dx_dxspider(q: &DxQuery) -> String {
     let mut out = String::from("SH/DX");
     if let Some(n) = q.count {
         out.push_str(&format!(" {n}"));
@@ -160,6 +168,33 @@ pub fn sh_dx(q: &DxQuery) -> String {
         out.push_str(&format!(" {h} hours"));
     }
     out
+}
+
+/// AR-Cluster V6 — `SHOW/DX/<n>` with `field=value` conditions joined by `and`
+/// (`show/dx/25 call=HA and band=20 and spotter=W3LPL`). The `hours` window has
+/// no simple equivalent (AR takes an absolute `dts>` timestamp), so it's
+/// dropped — the row count already bounds the result. Historical-row output is
+/// the common AK1A layout, so `parser::show::parse_sh_dx` handles both dialects.
+fn sh_dx_arcluster(q: &DxQuery) -> String {
+    let mut cmd = String::from("show/dx");
+    if let Some(n) = q.count {
+        cmd.push_str(&format!("/{n}"));
+    }
+    let mut conds: Vec<String> = Vec::new();
+    if let Some(m) = q.band.as_deref().and_then(band_meters) {
+        conds.push(format!("band={m}"));
+    }
+    if let Some(c) = q.call.as_deref().filter(|s| !s.is_empty()) {
+        conds.push(format!("call={}", c.to_ascii_uppercase()));
+    }
+    if let Some(by) = q.by.as_deref().filter(|s| !s.is_empty()) {
+        conds.push(format!("spotter={}", by.to_ascii_uppercase()));
+    }
+    if !conds.is_empty() {
+        cmd.push(' ');
+        cmd.push_str(&conds.join(" and "));
+    }
+    cmd
 }
 
 /// Remove a callsign from the buddy list.
@@ -574,23 +609,45 @@ mod tests {
 
     #[test]
     fn builds_sh_dx() {
-        assert_eq!(sh_dx(&DxQuery::default()), "SH/DX");
+        use NodeSoftware::*;
+        assert_eq!(sh_dx(&DxQuery::default(), DxSpider), "SH/DX");
         assert_eq!(
-            sh_dx(&DxQuery {
-                count: Some(20),
-                ..Default::default()
-            }),
+            sh_dx(
+                &DxQuery {
+                    count: Some(20),
+                    ..Default::default()
+                },
+                DxSpider
+            ),
             "SH/DX 20"
         );
+        let full = DxQuery {
+            count: Some(10),
+            band: Some("20m".into()),
+            call: Some("ha".into()),
+            by: Some("w3lpl".into()),
+            hours: Some(6),
+        };
         assert_eq!(
-            sh_dx(&DxQuery {
-                count: Some(10),
-                band: Some("20m".into()),
-                call: Some("ha".into()),
-                by: Some("w3lpl".into()),
-                hours: Some(6),
-            }),
+            sh_dx(&full, DxSpider),
             "SH/DX 10 on 20m HA by W3LPL 6 hours"
+        );
+        // AR-Cluster: `show/dx/<n> field=value and …`, hours dropped.
+        assert_eq!(
+            sh_dx(&full, ArCluster),
+            "show/dx/10 band=20 and call=HA and spotter=W3LPL"
+        );
+        assert_eq!(sh_dx(&DxQuery::default(), ArCluster), "show/dx");
+        assert_eq!(
+            sh_dx(
+                &DxQuery {
+                    count: Some(30),
+                    call: Some("p5".into()),
+                    ..Default::default()
+                },
+                ArCluster
+            ),
+            "show/dx/30 call=P5"
         );
     }
 

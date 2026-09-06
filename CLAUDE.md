@@ -88,9 +88,9 @@ _Raw terminal_ tab exists for power users.
     newest-match timestamp feeds the cross-tab "new activity" dot
     (`store.spotsMatchTs`). `MapPanel` still freezes `entities` (not
     spot-derived) separately.
-  - Known remaining gap: `Bandmap` polls `store.rigVfo` directly for the CAT
-    cursor (~1/s when CAT is connected), which isn't gated by the `active`
-    freeze — low priority unless CAT users report it matters.
+  - Minor known gap: `Bandmap` reads `store.rigVfo` for the CAT cursor without
+    the `active` freeze, so it re-renders ~1/s while CAT is connected even when
+    hidden.
 
 ## Checks before committing
 
@@ -721,51 +721,45 @@ WPM` comment) — so the "assumed common across dialects" spot/WWV/WCY parsing
 holds. `SET/DX/FILTER` command generation was **re-audited against the V6 Telnet
 User Manual** (all `to_arcluster` field names match the DX Filter field table;
 `Band=<meters>`; OR-groups must be parenthesised because `and` binds before `or`;
-`not (...)` for a Reject rule is a documented form; empty `set/dx/filter` clears)
-— the one thing the manual doesn't pin down is whether a trailing `*` does a
-prefix match on `Call=` / `Spotter=` (it only documents `*` for `Comment`).
-**Pushing a generated filter to the live node still wasn't done** — see
-`docs/p0-verification.md` for the step-by-step live check. Not yet dialect-aware:
-the `ToolsPanel` `SH/DX` query (still DXSpider-only, built ad hoc in the frontend
-rather than through `commands::sh_dx` — pre-existing debt); login banner
-detection.
+`not (...)` for a Reject rule is a documented form; empty `set/dx/filter` clears).
+**A generated `set/dx/filter` was then pushed to the live node and accepted** —
+no errors, spot stream filtered as expected. The one thing not separately
+confirmed is whether a trailing `*` on `Call=` / `Spotter=` does a prefix match
+(the manual only documents `*` for `Comment`); if a future report shows a
+prefix rule matching nothing, switch `prefix_terms` to `*P5*` (infix) or exact.
 
-**Next:** map polish (canvas if SVG is slow — user reports it's fine for now;
-the skimmer table now accumulates across scrapes so coverage grows past the
-~300 currently-active, but a spot from a never-seen skimmer still uses the DXCC
-centroid). Phase 12 v2 polish **done**: grey-line band width is a slider
-(`store.mapGreylineWidth`, ±3–12°, in the Map "Layers ▾" popover under the
-greyline toggle; feeds both the `wm-greyband` annulus radii and the
-`inGreyline` spot-ring test — the `grey:` query flag stays a fixed ±9° so
-search results don't shift with a display setting); the conditions HUD
-(`.wm-hud`) is a `<button>` → Propagation tab (`onGoToPropagation` threaded
-App → MapPanel → WorldMap); WCY `SA`/`GMF`/`Au` codes are decoded for display
-via `src/lib/wcy.ts::describeWcyCode` (`qui`→quiet, `act`→active, `maj`→major
-storm, `no`/`yes` for aurora …; raw code kept in the cell `title`, unknown /
-numeric values pass through). Still open: HUD → decode the WCY `Au` _number_
-(high-latitude auroral level) rather than just no/yes; `ToolsPanel`'s `SH/DX`
-is still DXSpider-only (ad hoc in the frontend, not `commands::sh_dx`) —
-deferred until the AR-Cluster live verification (`docs/p0-verification.md`)
-happens, since AR's `show/dx field=value` syntax and history-table output need
-checking on the same node. CAT: RIT/XIT possible fast-follow (split is
-button-only today, and `catSplit` "always honour QSX on plain Tune" was
-deliberately dropped — comment QSX data is too often wrong); multi-radio
-config only if asked.
+**`SH/DX` historical query is now dialect-aware.** `commands::sh_dx(q, software)`
+dispatches: DXSpider keeps the positional `SH/DX <n> on <band> <call> by
+<spotter> <h> hours`; AR-Cluster V6 gets `show/dx/<n> band=20 and call=HA and
+spotter=W3LPL` (`sh_dx_arcluster`, `field=value` joined by `and`, the `hours`
+window dropped — AR needs an absolute `dts>` timestamp). Exposed as the
+`sh_dx_command` Tauri command; `ToolsPanel` computes the string reactively via
+`ipc.shDxCommand(query, targetSoftware)` (reads the target connection's
+`software`, like `FiltersPanel`) instead of the old ad-hoc `buildShDx`, so the
+button label and the send agree. The historical rows are the common AK1A
+layout on both dialects — a live AR row (`7032.0  G4WDZ  06-Sep-2026 2105Z  CW
+23 dB 25 WPM CQ  <OE6ADD-#>`) is pinned as a test — so `parser::show::parse_sh_dx`
+is unchanged. `runNodeDx` now also shows `tools.notSupported` on an
+`unknown command` / `sorry` / `error` reply (own `dxNote`).
+
+Only remaining dialect gap: login-banner detection isn't AR-specific (it worked
+fine on `dxcluster.hadxc.hu`, just isn't provably general). Anything else is
+explicit-request-only.
 
 **Verified against live data (DXSpider V1.57 build 686, `hg8lxl.ham.hu`):** the
 mail `DIRECTORY` / `READ` parsers in `parser/mail.rs` — real capture showed the
 `READ` header is a **single line** (`Msg: N From: C Date: … Subj: …`) with the
 body straight after, not the documented one-`Key: value`-per-line block;
 `parse_read_message` now handles both (`READ_HDR_RE` + the legacy `READ_KV_RE`),
-real rows are pinned as tests. **Still unverified:** the interactive compose
-prompt-matching in `sendMail` (posting a bulletin on a live net wasn't done) —
-built to the documented DXSpider prompts `Enter Subject (30 characters):` /
-`Enter Message /EX to send or /ABORT to exit` (regexes also match the `Enter
-your message` / `Enter text` variants). Hardened after the P0 audit: the blind
-fallback that fires `sendSubject()` is now 8 s (a node still flushing its login
-banner used to trip the old 2.5 s timer into sending the subject as a raw
-command), and a body line that is itself `/EX` or `/ABORT` is space-padded so it
-can't end the message early. Live check: `docs/p0-verification.md`.
+real rows are pinned as tests. The interactive compose prompt-matching in
+`sendMail` (documented DXSpider prompts `Enter Subject (30 characters):` /
+`Enter Message /EX to send or /ABORT to exit`; regexes also match the `Enter
+your message` / `Enter text` variants) was **verified live** — a bulletin was
+posted and propagated. Hardened during the P0 pass: the blind fallback that
+fires `sendSubject()` is now 8 s (a node still flushing its login banner used
+to trip the old 2.5 s timer into sending the subject as a raw command), and a
+body line that is itself `/EX` or `/ABORT` is space-padded so it can't end the
+message early.
 
 **Text encoding.** `telnet.rs::decode_line` reads each node line as UTF-8, or
 falls back to ISO-8859-1 (byte → `U+00xx`) when that fails, instead of
