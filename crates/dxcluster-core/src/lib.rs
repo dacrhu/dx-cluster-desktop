@@ -21,6 +21,7 @@ pub mod parser;
 pub mod pskr;
 pub mod reference;
 pub mod rigctl;
+pub mod split;
 pub mod store;
 pub mod telnet;
 pub mod wsjtx;

@@ -58,6 +58,7 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
     catBaud,
     catPoll,
     catFollow,
+    catDigiMode,
     rigStatus,
     rigVfo,
     setCatEnabled,
@@ -69,6 +70,7 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
     setCatBaud,
     setCatPoll,
     setCatFollow,
+    setCatDigiMode,
     setRigStatus,
     logPushEnabled,
     logHost,
@@ -121,6 +123,7 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
       catBaud: s.catBaud,
       catPoll: s.catPoll,
       catFollow: s.catFollow,
+      catDigiMode: s.catDigiMode,
       rigStatus: s.rigStatus,
       rigVfo: s.rigVfo,
       setCatEnabled: s.setCatEnabled,
@@ -132,6 +135,7 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
       setCatBaud: s.setCatBaud,
       setCatPoll: s.setCatPoll,
       setCatFollow: s.setCatFollow,
+      setCatDigiMode: s.setCatDigiMode,
       setRigStatus: s.setRigStatus,
       logPushEnabled: s.logPushEnabled,
       logHost: s.logHost,
@@ -982,6 +986,25 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
               />
               {tr("conn.catFollow")}
             </label>
+            <div className="seg-field">
+              <span className="seg-label">{tr("conn.catDigiMode")}</span>
+              <span className="segmented" role="group" aria-label={tr("conn.catDigiMode")}>
+                {(["none", "usb", "data"] as const).map((v) => (
+                  <button
+                    key={v}
+                    className={catDigiMode === v ? "active" : ""}
+                    aria-pressed={catDigiMode === v}
+                    onClick={() => {
+                      setCatDigiMode(v);
+                      void patchSettings({ catDigiMode: v });
+                    }}
+                  >
+                    {tr(`conn.catDigi_${v}`)}
+                  </button>
+                ))}
+              </span>
+            </div>
+            <p className="field-hint">{tr("conn.catDigiModeHint")}</p>
             <div className="row settings-controls">
               <button onClick={() => void testRig()}>{tr("conn.catTest")}</button>
               <span className="grow" />

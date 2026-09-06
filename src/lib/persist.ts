@@ -70,6 +70,8 @@ export interface AppSettings {
   catPoll: boolean;
   /** "Follow radio": scroll/highlight the spot nearest the rig's frequency. */
   catFollow: boolean;
+  /** Which mode a digital-mode spot switches the rig to: "none" = leave it. */
+  catDigiMode: "none" | "usb" | "data";
 
   // --- logging-program push ("prepare a QSO") ---
   /** Push clicked spots to the local logger's entry window. Off unless opted in. */
@@ -121,6 +123,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   catBaud: 38400,
   catPoll: true,
   catFollow: false,
+  catDigiMode: "data",
   logPushEnabled: false,
   logHost: "127.0.0.1",
   logPort: 2237,

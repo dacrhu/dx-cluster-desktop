@@ -69,9 +69,19 @@ pub struct RigConfig {
 /// A request pushed into a running session.
 #[derive(Debug, Clone, PartialEq)]
 pub enum RigCommand {
-    /// Put the rig on `freq_hz`, and optionally switch mode (`"CW"`, `"USB"`,
-    /// `"LSB"`, `"FM"`, `"PKTUSB"`, …).
+    /// Put the rig on `freq_hz` simplex, and optionally switch mode (`"CW"`,
+    /// `"USB"`, `"LSB"`, `"FM"`, `"PKTUSB"`, …). If the session had split on
+    /// (from an earlier [`RigCommand::SetSplit`]) it is turned off first.
     SetFreqMode { freq_hz: f64, mode: Option<String> },
+    /// Work split: receive on `rx_hz`, transmit on `tx_hz` (the DX's QSX).
+    /// Optionally set the mode (shared RX/TX).
+    SetSplit {
+        rx_hz: f64,
+        tx_hz: f64,
+        tx_mode: Option<String>,
+    },
+    /// Drop split, back to simplex on the current VFO.
+    ClearSplit,
 }
 
 /// Lifecycle + data events from a running session.
@@ -163,28 +173,36 @@ pub fn rig_models() -> Vec<RigModel> {
 
 // --- mode mapping ------------------------------------------------------
 
-/// The `rigctld` mode name for a coarse cluster mode + frequency. SSB picks
-/// the conventional sideband by band edge (LSB below 10 MHz, USB above).
-pub fn mode_for(mode: crate::band::Mode, freq_hz: f64) -> &'static str {
+/// Which `rigctld` mode a spot in the coarse digital category should put the rig
+/// into — the shack's fixed arrangement decides this, so it's a user setting.
+/// `None` = leave the rig's mode alone (frequency-only tune).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum DigiMode {
+    /// Don't send a mode for a digital spot.
+    None,
+    /// Plain USB (soundcard digi with no dedicated data mode).
+    Usb,
+    /// The rig's data / packet mode (`PKTUSB`).
+    #[default]
+    Data,
+}
+
+/// The `rigctld` mode name for a coarse cluster mode + frequency, or `None` to
+/// leave the rig's mode untouched. SSB picks the conventional sideband by band
+/// edge (LSB below 10 MHz, USB above); the digital category follows `digi`.
+pub fn mode_for(mode: crate::band::Mode, freq_hz: f64, digi: DigiMode) -> Option<&'static str> {
     use crate::band::Mode;
+    let sideband = if freq_hz < 10_000_000.0 { "LSB" } else { "USB" };
     match mode {
-        Mode::Cw => "CW",
-        Mode::Ssb => {
-            if freq_hz < 10_000_000.0 {
-                "LSB"
-            } else {
-                "USB"
-            }
-        }
-        Mode::Digi => "PKTUSB",
-        Mode::Fm => "FM",
-        Mode::Unknown => {
-            if freq_hz < 10_000_000.0 {
-                "LSB"
-            } else {
-                "USB"
-            }
-        }
+        Mode::Cw => Some("CW"),
+        Mode::Ssb | Mode::Unknown => Some(sideband),
+        Mode::Fm => Some("FM"),
+        Mode::Digi => match digi {
+            DigiMode::None => None,
+            DigiMode::Usb => Some("USB"),
+            DigiMode::Data => Some("PKTUSB"),
+        },
     }
 }
 
@@ -249,6 +267,25 @@ impl Link {
     async fn set_mode(&mut self, mode: &str) -> Result<(), String> {
         let resp = self
             .cmd(&format!("M {mode} 0"))
+            .await
+            .map_err(|e| e.to_string())?;
+        check_rprt(resp.first().map(String::as_str).unwrap_or(""))
+    }
+
+    /// `S <split> <tx_vfo>` — turn split on (TX on VFO B) or off (back to VFO A).
+    async fn set_split_vfo(&mut self, on: bool) -> Result<(), String> {
+        let arg = if on { "1 VFOB" } else { "0 VFOA" };
+        let resp = self
+            .cmd(&format!("S {arg}"))
+            .await
+            .map_err(|e| e.to_string())?;
+        check_rprt(resp.first().map(String::as_str).unwrap_or(""))
+    }
+
+    /// `I <hz>` — set the split (TX) frequency.
+    async fn set_split_freq(&mut self, hz: f64) -> Result<(), String> {
+        let resp = self
+            .cmd(&format!("I {}", hz.round() as i64))
             .await
             .map_err(|e| e.to_string())?;
         check_rprt(resp.first().map(String::as_str).unwrap_or(""))
@@ -368,12 +405,20 @@ pub async fn run(
 
         let mut poll = tokio::time::interval(Duration::from_secs(1));
         poll.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        // Per-connection: a reconnect resets it (and clears the rig's split with
+        // it), so this must NOT be hoisted above the outer loop.
+        let mut split_active = false;
 
         loop {
             tokio::select! {
                 cmd = cmd_rx.recv() => match cmd {
                     None => return, // sender dropped → session stopped
                     Some(RigCommand::SetFreqMode { freq_hz, mode }) => {
+                        // A plain tune transparently exits split.
+                        if split_active {
+                            let _ = link.set_split_vfo(false).await;
+                            split_active = false;
+                        }
                         if let Err(e) = link.set_freq(freq_hz).await {
                             let _ = tx.send(RigEvent::Error(e));
                             break; // drop the link, reconnect
@@ -388,6 +433,36 @@ pub async fn run(
                                 let _ = tx.send(RigEvent::Vfo { freq_hz, mode });
                             }
                         }
+                    }
+                    Some(RigCommand::SetSplit { rx_hz, tx_hz, tx_mode }) => {
+                        let r = async {
+                            link.set_freq(rx_hz).await?;
+                            if let Some(m) = &tx_mode {
+                                link.set_mode(m).await?;
+                            }
+                            link.set_split_vfo(true).await?;
+                            link.set_split_freq(tx_hz).await?;
+                            Ok::<(), String>(())
+                        }
+                        .await;
+                        match r {
+                            Ok(()) => split_active = true,
+                            Err(e) => {
+                                let _ = tx.send(RigEvent::Error(e));
+                                break; // drop the link, reconnect
+                            }
+                        }
+                        if cfg.poll {
+                            if let Ok((freq_hz, mode)) = link.get_vfo().await {
+                                let _ = tx.send(RigEvent::Vfo { freq_hz, mode });
+                            }
+                        }
+                    }
+                    Some(RigCommand::ClearSplit) => {
+                        if let Err(e) = link.set_split_vfo(false).await {
+                            let _ = tx.send(RigEvent::Error(e));
+                        }
+                        split_active = false;
                     }
                 },
                 _ = poll.tick(), if cfg.poll => {
@@ -464,10 +539,26 @@ mod tests {
     #[test]
     fn mode_mapping() {
         use crate::band::Mode;
-        assert_eq!(mode_for(Mode::Cw, 7_020_000.0), "CW");
-        assert_eq!(mode_for(Mode::Ssb, 7_120_000.0), "LSB");
-        assert_eq!(mode_for(Mode::Ssb, 14_200_000.0), "USB");
-        assert_eq!(mode_for(Mode::Digi, 14_074_000.0), "PKTUSB");
-        assert_eq!(mode_for(Mode::Fm, 29_600_000.0), "FM");
+        assert_eq!(mode_for(Mode::Cw, 7_020_000.0, DigiMode::None), Some("CW"));
+        assert_eq!(
+            mode_for(Mode::Ssb, 7_120_000.0, DigiMode::Data),
+            Some("LSB")
+        );
+        assert_eq!(
+            mode_for(Mode::Ssb, 14_200_000.0, DigiMode::Data),
+            Some("USB")
+        );
+        assert_eq!(mode_for(Mode::Fm, 29_600_000.0, DigiMode::Data), Some("FM"));
+        // The digital category follows the setting.
+        assert_eq!(
+            mode_for(Mode::Digi, 14_074_000.0, DigiMode::Data),
+            Some("PKTUSB")
+        );
+        assert_eq!(
+            mode_for(Mode::Digi, 14_074_000.0, DigiMode::Usb),
+            Some("USB")
+        );
+        assert_eq!(mode_for(Mode::Digi, 14_074_000.0, DigiMode::None), None);
+        assert_eq!(DigiMode::default(), DigiMode::Data);
     }
 }

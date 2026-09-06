@@ -83,6 +83,11 @@ export const rigStop = () => invoke<void>("rig_stop", {});
 export const rigSet = (freqKhz: number, mode?: string) =>
   invoke<void>("rig_set", { freqKhz, mode: mode ?? null });
 
+export const rigSetSplit = (rxKhz: number, txKhz: number, mode?: string) =>
+  invoke<void>("rig_set_split", { rxKhz, txKhz, mode: mode ?? null });
+
+export const rigClearSplit = () => invoke<void>("rig_clear_split", {});
+
 export interface QsoHint {
   call: string;
   freqHz: number;

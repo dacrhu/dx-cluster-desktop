@@ -53,3 +53,24 @@ export function modeLabel(m: Mode, comment: string): string {
   }
   return m;
 }
+
+/** How a digital-mode spot should switch the rig — a shack setting
+ *  (`store.catDigiMode`), mirror of Rust `rigctl::DigiMode`. */
+export type DigiMode = "none" | "usb" | "data";
+
+/** The `rigctld` mode string to send when tuning to a spot, or `undefined` to
+ *  leave the rig's mode alone. Mirror of Rust `rigctl::mode_for`. CW → CW,
+ *  SSB → LSB/USB by band edge, FM → FM; the digital category follows `digi`. */
+export function modeArg(m: Mode, freqKhz: number, digi: DigiMode): string | undefined {
+  switch (m) {
+    case "CW":
+      return "CW";
+    case "FM":
+      return "FM";
+    case "DIGI":
+      return digi === "none" ? undefined : digi === "usb" ? "USB" : "PKTUSB";
+    case "SSB":
+    default:
+      return freqKhz < 10_000 ? "LSB" : "USB";
+  }
+}

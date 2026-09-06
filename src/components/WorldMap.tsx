@@ -27,7 +27,8 @@ import { interpolateMuf, mufAt, mufBandLabels, mufContours, MUF_SCALE, sfiToSsn 
 import { bandOpenings } from "@/lib/openings";
 import { bandRose, ROSE_SECTORS } from "@/lib/bandRose";
 import { fmtAge } from "@/lib/format";
-import { prepareQso, tuneToSpot } from "@/lib/engage";
+import { prepareQso, tuneSplitToSpot, tuneToSpot } from "@/lib/engage";
+import { qsxFromComment } from "@/lib/split";
 import { useCluster } from "@/store/useCluster";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
@@ -703,9 +704,17 @@ export const WorldMap = memo(function WorldMap({
           const s = popup.spot;
           const rep = reports.find((r) => r.spot.id === s.id);
           const repComments = rep ? rep.members.filter((m) => m.comment) : [];
+          const qsx = catEnabled && s.comment ? qsxFromComment(s.comment, s.freq_khz) : null;
           const rows: [string, string][] = [];
           rows.push([tr("col.khz"), `${s.freq_khz.toFixed(1)}${s.band ? `  ·  ${s.band}` : ""}`]);
           rows.push([tr("col.mode"), modeLabel(s.mode, s.comment)]);
+          if (qsx != null) {
+            const d = qsx - s.freq_khz;
+            rows.push([
+              tr("col.split"),
+              `${qsx.toFixed(1)}  ·  ${d > 0 ? "+" : ""}${d.toFixed(1)}`,
+            ]);
+          }
           if (s.dx)
             rows.push([
               tr("col.dxcc"),
@@ -773,6 +782,11 @@ export const WorldMap = memo(function WorldMap({
                 <div className="wm-popup-engage">
                   {catEnabled && (
                     <button onClick={() => void tuneToSpot(s)}>{tr("spots.menu.tuneRadio")}</button>
+                  )}
+                  {catEnabled && qsx != null && (
+                    <button onClick={() => void tuneSplitToSpot(s)}>
+                      {tr("spots.menu.tuneSplit", { f: qsx.toFixed(1) })}
+                    </button>
                   )}
                   {logPushEnabled && (
                     <button onClick={() => void prepareQso(s)}>{tr("spots.menu.prepQso")}</button>

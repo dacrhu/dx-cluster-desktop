@@ -12,23 +12,9 @@ async function raiseLoggerIfWanted(): Promise<void> {
 
 import { useCluster } from "@/store/useCluster";
 import * as ipc from "@/lib/ipc";
-import { modeLabel } from "@/lib/mode";
-import type { EnrichedSpot, Mode, RigConfig } from "@/lib/types";
-
-/** TS mirror of Rust `rigctl::mode_for` — the rigctld mode name for a spot. */
-export function modeArg(mode: Mode, freqKhz: number): string {
-  switch (mode) {
-    case "CW":
-      return "CW";
-    case "DIGI":
-      return "PKTUSB";
-    case "FM":
-      return "FM";
-    case "SSB":
-    default:
-      return freqKhz < 10_000 ? "LSB" : "USB";
-  }
-}
+import { modeArg, modeLabel } from "@/lib/mode";
+import { qsxFromComment } from "@/lib/split";
+import type { EnrichedSpot, RigConfig } from "@/lib/types";
 
 /** Build the RigConfig the Rust side expects from the current settings. */
 export function rigConfigFromStore(): RigConfig {
@@ -48,14 +34,31 @@ export function rigConfigFromStore(): RigConfig {
   return { transport, poll: s.catPoll };
 }
 
-/** QSY the rig to this spot (no-op if CAT is off). */
+/** QSY the rig to this spot, simplex (no-op if CAT is off). If the rig was left
+ *  in split by an earlier "Tune split", the Rust session drops split here. */
 export async function tuneToSpot(spot: EnrichedSpot): Promise<void> {
   const s = useCluster.getState();
   if (!s.catEnabled) return;
   try {
-    await ipc.rigSet(spot.freq_khz, modeArg(spot.mode, spot.freq_khz));
+    await ipc.rigSet(spot.freq_khz, modeArg(spot.mode, spot.freq_khz, s.catDigiMode));
   } catch (e) {
     console.warn("tuneToSpot failed", e);
+  }
+}
+
+/** QSY the rig to this spot in split — RX on the spot, TX on the DX's QSX from
+ *  the comment. Plain simplex tune when the comment carries no usable QSX.
+ *  No-op if CAT is off. */
+export async function tuneSplitToSpot(spot: EnrichedSpot): Promise<void> {
+  const s = useCluster.getState();
+  if (!s.catEnabled) return;
+  const tx = qsxFromComment(spot.comment, spot.freq_khz);
+  const mode = modeArg(spot.mode, spot.freq_khz, s.catDigiMode);
+  try {
+    if (tx == null) await ipc.rigSet(spot.freq_khz, mode);
+    else await ipc.rigSetSplit(spot.freq_khz, tx, mode);
+  } catch (e) {
+    console.warn("tuneSplitToSpot failed", e);
   }
 }
 

@@ -3,7 +3,8 @@ import { useT } from "@/i18n";
 import { useCluster } from "@/store/useCluster";
 import { modeClass, modeLabel } from "@/lib/mode";
 import { fmtAge } from "@/lib/format";
-import { prepareQso, tuneToSpot } from "@/lib/engage";
+import { prepareQso, tuneSplitToSpot, tuneToSpot } from "@/lib/engage";
+import { qsxFromComment } from "@/lib/split";
 import type { EnrichedSpot, SpotAction } from "@/lib/types";
 
 /**
@@ -42,10 +43,16 @@ export function SpotPopover({
     };
   }, [onClose]);
 
+  const qsx = catEnabled && spot.comment ? qsxFromComment(spot.comment, spot.freq_khz) : null;
+
   const rows: [string, string][] = [
     [tr("col.khz"), `${spot.freq_khz.toFixed(1)}${spot.band ? `  ·  ${spot.band}` : ""}`],
     [tr("col.mode"), modeLabel(spot.mode, spot.comment)],
   ];
+  if (qsx != null) {
+    const d = qsx - spot.freq_khz;
+    rows.push([tr("col.split"), `${qsx.toFixed(1)}  ·  ${d > 0 ? "+" : ""}${d.toFixed(1)}`]);
+  }
   if (spot.dx) rows.push([tr("col.dxcc"), `${spot.dx.dxcc_name}  ·  CQ ${spot.dx.cq_zone}`]);
   rows.push([
     tr("col.spotter"),
@@ -95,6 +102,11 @@ export function SpotPopover({
         <div className="spot-pop-engage">
           {catEnabled && (
             <button onClick={() => void tuneToSpot(spot)}>{tr("spots.menu.tuneRadio")}</button>
+          )}
+          {catEnabled && qsx != null && (
+            <button onClick={() => void tuneSplitToSpot(spot)}>
+              {tr("spots.menu.tuneSplit", { f: qsx.toFixed(1) })}
+            </button>
           )}
           {logPushEnabled && (
             <button onClick={() => void prepareQso(spot)}>{tr("spots.menu.prepQso")}</button>

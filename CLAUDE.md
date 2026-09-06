@@ -478,11 +478,16 @@ _not_ cluster transports (hardware / local-IPC).
   `rigctld -m <model> -r <dev> -s <baud> -t 4599` (`ChildGuard` kills it on
   drop) and talks to it on localhost. `run(cfg, cmd_rx, tx)` follows the
   feed-task pattern (`AppState.rig_task` + `rig_cmd` sender; `rig_start` /
-  `rig_stop` / `rig_set` / `rig_test` / `rig_models` commands); reconnects
-  with backoff. `rig_models()` = `rigctl -l` parsed (`parse_rig_list`), or the
-  bundled `src-tauri/resources/hamlib_rigs.txt` snapshot when Hamlib is
-  absent. `rigctl::mode_for` maps `band::Mode` + freq → `CW`/`LSB`/`USB`/
-  `PKTUSB`/`FM`. Lifecycle on `rig://state`
+  `rig_stop` / `rig_set` / `rig_set_split` / `rig_clear_split` / `rig_test` /
+  `rig_models` commands); reconnects with backoff. `rig_models()` = `rigctl -l`
+  parsed (`parse_rig_list`), or the bundled
+  `src-tauri/resources/hamlib_rigs.txt` snapshot when Hamlib is absent.
+  `rigctl::mode_for(mode, freq, DigiMode)` → `Option<&str>` (`CW`/`LSB`/`USB`/
+  `PKTUSB`/`FM`, or `None` = leave the mode alone); the digital category
+  follows the `DigiMode` shack setting (`none`/`usb`/`data`). **Split:**
+  `RigCommand::{SetSplit,ClearSplit}` drive rigctld `S 1 VFOB` / `I <tx_hz>` /
+  `S 0 VFOA`; the session tracks a per-connection `split_active` so a plain
+  `SetFreqMode` transparently drops split. Lifecycle on `rig://state`
   (`off`/`connecting`/`connected`/`disconnected`/`error: …`), VFO polls
   (~1/s when `catPoll`) on `rig://vfo` (`{freqHz, mode}`). Top-bar chip
   (`.topbar-cat` in `App.tsx`) shows the VFO / status → click = Connection
@@ -509,23 +514,34 @@ _not_ cluster transports (hardware / local-IPC).
   `xdotool` (X11), then `gtk-launch <id>` (single-instance apps raise
   themselves). macOS: `osascript … activate` then `open -a`. Windows:
   PowerShell `AppActivate`. `try_cmd` helper runs each with nulled stdio.
-- **Frontend glue** — `src/lib/engage.ts`: `tuneToSpot` / `prepareQso`
-  (both no-op when their feature is off; `prepareQso` also runs
-  `raiseLoggerIfWanted`) / `testLogPush` + `rigConfigFromStore` + `modeArg`.
+- **Frontend glue** — `src/lib/engage.ts`: `tuneToSpot` (simplex) /
+  `tuneSplitToSpot` (RX on the spot, TX on the QSX from the comment, plain tune
+  if none) / `prepareQso` (all no-op when their feature is off; `prepareQso`
+  also runs `raiseLoggerIfWanted`) / `testLogPush` + `rigConfigFromStore`.
+  Mode selection is `src/lib/mode.ts::modeArg(mode, freqKhz, catDigiMode)` →
+  `string | undefined` (TS mirror of Rust `rigctl::mode_for`); QSX parsing is
+  `src/lib/split.ts::qsxFromComment(comment, rxKhz)` → `number | null` (TS
+  mirror of `crates/…/split.rs::qsx_from_comment`, unit-tested both sides:
+  `QSX 14195` absolute, `UP 2`/`DWN 5`/`up1.5` offsets, `UP 1-3` → low end,
+  bare `UP` and `QSX 599` → none, > 50 kHz jump rejected).
   Left-click on a spot (Spots table, Bandmap marker, Map dot) opens the shared
   `components/SpotPopover.tsx` fact card (`.spot-pop`, same shape as the Map's
-  `.wm-popup`) with **Tune radio** / **Prepare QSO** buttons + the
-  `useSpotActions()` list — those buttons are the _only_ triggers (no
-  tune-on-click). Right-click = the plain context menu. Settings:
+  `.wm-popup`) with **Tune radio** / **Split — TX on …** (only when a QSX is
+  detected) / **Prepare QSO** buttons + the `useSpotActions()` list — those
+  buttons are the _only_ triggers (no tune-on-click). Right-click = the plain
+  context menu. Settings:
   `catEnabled`/`catTransport`/`catHost`/`catPort`/`catModelId`/`catDevice`/
-  `catBaud`/`catPoll`/`catFollow` +
+  `catBaud`/`catPoll`/`catFollow`/`catDigiMode` +
   `logPushEnabled`/`logHost`/`logPort`/`logFormat`/`raiseLoggerEnabled`/
-  `raiseLoggerTitle`; `App.tsx` bootstrap starts CAT if enabled. `SpotPopover`
-  clamps its own position to the viewport in a `useLayoutEffect` (measures its
-  real size — a bottom-of-lane click flips it up). i18n keys
-  `spots.menu.tuneRadio|prepQso`, `spots.jumpLatest`, `rig.*`, `conn.cat*`,
-  `conn.log*`, `bandmap.recenter|qsyBand`. Build dep: the workspace `tokio`
-  gained the `process` feature (spawned `rigctld` / `raise_window`).
+  `raiseLoggerTitle`; `App.tsx` bootstrap starts CAT if enabled. The DIGI-mode
+  segmented control (`none`/`usb`/`data`, `.seg-field`/`.segmented`) sits in the
+  Connection panel's CAT section. `SpotPopover` clamps its own position to the
+  viewport in a `useLayoutEffect` (measures its real size — a bottom-of-lane
+  click flips it up). i18n keys
+  `spots.menu.tuneRadio|tuneSplit|prepQso`, `col.split`, `conn.catDigiMode*`,
+  `conn.catDigi_*`, `spots.jumpLatest`, `rig.*`, `conn.cat*`, `conn.log*`,
+  `bandmap.recenter|qsyBand`. Build dep: the workspace `tokio` gained the
+  `process` feature (spawned `rigctld` / `raise_window`).
 - **Radio-position feedback (Bandmap)** — whenever CAT is connected the
   Bandmap reads `store.rigVfo` directly: a cursor line at the VFO, the
   containing lane gets `.radio-active` while the others fade
@@ -676,8 +692,9 @@ banner detection.
 **Next:** map polish (canvas if SVG is slow; skimmer-table coverage is ~315
 active RBN skimmers — a spot from an unlisted skimmer still uses the DXCC
 centroid); phase 12 v2 polish — adjustable grey-line band width, HUD →
-Propagation tab on click, decode the WCY `Au` text. CAT: `rig_set` mode-follow
-toggle, per-profile radio config, split/RIT.
+Propagation tab on click, decode the WCY `Au` text. CAT: RIT/XIT and a
+`catSplit` "always honour QSX on the plain Tune button" toggle are possible
+fast-follows (split is button-only today); multi-radio config only if asked.
 
 **Verified against live data (DXSpider V1.57 build 686, `hg8lxl.ham.hu`):** the
 mail `DIRECTORY` / `READ` parsers in `parser/mail.rs` — real capture showed the

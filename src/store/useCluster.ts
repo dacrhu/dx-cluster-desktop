@@ -124,6 +124,7 @@ interface ClusterStore {
   catBaud: number;
   catPoll: boolean;
   catFollow: boolean;
+  catDigiMode: "none" | "usb" | "data";
   /** CAT session lifecycle: "off" | "connecting" | "connected" | "disconnected" | "error: …". */
   rigStatus: string;
   /** Latest VFO poll from the rig, or null. */
@@ -230,6 +231,7 @@ interface ClusterStore {
   setCatBaud: (b: number) => void;
   setCatPoll: (on: boolean) => void;
   setCatFollow: (on: boolean) => void;
+  setCatDigiMode: (m: "none" | "usb" | "data") => void;
   setRigStatus: (status: string) => void;
   setRigVfo: (v: RigVfo | null) => void;
   setFollowFreqKhz: (khz: number | null) => void;
@@ -303,6 +305,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   catBaud: 38400,
   catPoll: true,
   catFollow: false,
+  catDigiMode: "data",
   rigStatus: "off",
   rigVfo: null,
   followFreqKhz: null,
@@ -451,6 +454,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   setCatBaud: (catBaud) => set({ catBaud }),
   setCatPoll: (catPoll) => set({ catPoll }),
   setCatFollow: (catFollow) => set({ catFollow, followFreqKhz: null }),
+  setCatDigiMode: (catDigiMode) => set({ catDigiMode }),
   setRigStatus: (rigStatus) => set({ rigStatus }),
   setRigVfo: (rigVfo) => set({ rigVfo }),
   setFollowFreqKhz: (followFreqKhz) => set({ followFreqKhz }),

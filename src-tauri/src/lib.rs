@@ -1123,6 +1123,33 @@ fn rig_set(state: State<'_, AppState>, freq_khz: f64, mode: Option<String>) -> C
     .map_err(|_| "CAT session has gone away".to_string())
 }
 
+/// Put the rig into split — receive on `rx_khz`, transmit on `tx_khz`.
+#[tauri::command]
+fn rig_set_split(
+    state: State<'_, AppState>,
+    rx_khz: f64,
+    tx_khz: f64,
+    mode: Option<String>,
+) -> CmdResult<()> {
+    let guard = state.rig_cmd.lock().unwrap();
+    let tx = guard.as_ref().ok_or("CAT is not connected")?;
+    tx.send(rigctl::RigCommand::SetSplit {
+        rx_hz: rx_khz * 1000.0,
+        tx_hz: tx_khz * 1000.0,
+        tx_mode: mode,
+    })
+    .map_err(|_| "CAT session has gone away".to_string())
+}
+
+/// Drop split, back to simplex.
+#[tauri::command]
+fn rig_clear_split(state: State<'_, AppState>) -> CmdResult<()> {
+    let guard = state.rig_cmd.lock().unwrap();
+    let tx = guard.as_ref().ok_or("CAT is not connected")?;
+    tx.send(rigctl::RigCommand::ClearSplit)
+        .map_err(|_| "CAT session has gone away".to_string())
+}
+
 // --- logging-program push ("prepare a QSO") -------------------------------
 
 /// Push a QSO hint to the local logging program so it pre-fills its entry
@@ -1681,6 +1708,8 @@ pub fn run() {
             rig_start,
             rig_stop,
             rig_set,
+            rig_set_split,
+            rig_clear_split,
             log_prepare,
             raise_window,
             send_raw,

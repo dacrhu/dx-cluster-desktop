@@ -272,6 +272,7 @@ export function App() {
       c().setCatBaud(settings.catBaud ?? 38400);
       c().setCatPoll(settings.catPoll ?? true);
       c().setCatFollow(settings.catFollow ?? false);
+      c().setCatDigiMode(settings.catDigiMode ?? "data");
       c().setLogPushEnabled(settings.logPushEnabled ?? false);
       c().setLogHost(settings.logHost ?? "127.0.0.1");
       c().setLogPort(settings.logPort ?? 2237);
