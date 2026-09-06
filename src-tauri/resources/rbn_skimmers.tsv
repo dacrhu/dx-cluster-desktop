@@ -1,5 +1,5 @@
-# RBN skimmer positions — CALL<TAB>grid. Scraped from
-# reversebeacon.net/cont_includes/status.php?t=skt
+# RBN skimmer positions — CALL<TAB>grid. Accumulated across weekly scrapes of
+# reversebeacon.net/cont_includes/status.php?t=skt (fresh grid wins on conflict).
 3B8GL	LG89RR
 5Z4GO	KI96UA
 7L4IOU	PM95WR

@@ -59,6 +59,7 @@ jobs:
             "https://www.reversebeacon.net/cont_includes/status.php?t=skt" -o /tmp/skt.html
           python3 - <<'PY'
           import re, sys
+          path = "src-tauri/resources/rbn_skimmers.tsv"
           html = open("/tmp/skt.html", encoding="utf-8", errors="replace").read()
           call_re = re.compile(r"[?&]c=([A-Za-z0-9]+(?:-\d+)?)&t=de", re.I)
           grid_re = re.compile(r"<td>\s*([A-R]{2}\d{2}(?:[A-X]{2})?)\s*</td>", re.I)
@@ -69,12 +70,28 @@ jobs:
                   seen.setdefault(c.group(1).split("-")[0].upper(), g.group(1).upper())
           if len(seen) < 100:
               sys.exit(f"scraped page looks wrong ({len(seen)} skimmers)")
-          with open("src-tauri/resources/rbn_skimmers.tsv", "w", encoding="utf-8") as f:
-              f.write("# RBN skimmer positions — CALL<TAB>grid. Scraped from\n")
-              f.write("# reversebeacon.net/cont_includes/status.php?t=skt\n")
-              for call in sorted(seen):
-                  f.write(f"{call}\t{seen[call]}\n")
-          print(f"wrote {len(seen)} skimmer positions")
+          # Merge into the committed table — the page only lists currently-active
+          # skimmers, so a plain rewrite keeps dropping ones that are off air.
+          table = {}
+          try:
+              with open(path, encoding="utf-8") as f:
+                  for line in f:
+                      line = line.strip()
+                      if not line or line.startswith("#"):
+                          continue
+                      parts = line.split("\t")
+                      if len(parts) >= 2 and parts[0]:
+                          table[parts[0].split("-")[0].upper()] = parts[1].strip().upper()
+          except FileNotFoundError:
+              pass
+          added = sum(1 for k in seen if k not in table)
+          table.update(seen)  # fresh grid wins
+          with open(path, "w", encoding="utf-8") as f:
+              f.write("# RBN skimmer positions — CALL<TAB>grid. Accumulated across weekly scrapes of\n")
+              f.write("# reversebeacon.net/cont_includes/status.php?t=skt (fresh grid wins on conflict).\n")
+              for call in sorted(table):
+                  f.write(f"{call}\t{table[call]}\n")
+          print(f"wrote {len(table)} skimmer positions ({added} new, {len(seen)} scraped)")
           PY
 
       - name: Commit if changed

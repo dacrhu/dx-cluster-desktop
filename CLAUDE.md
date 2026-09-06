@@ -296,14 +296,18 @@ filters `store.spots` for `baseCall(dx_call)` matching any connection's callsign
 parses SNR/WPM from the comment, plots the skimmer (`spot.by` position) + a green
 arc. **Skimmer position:** `enrich()` (`src-tauri/src/enrich.rs`) resolves a
 skimmer spot's `by` to the skimmer's real Maidenhead grid from `reference::SkimmerDb`
-(`src-tauri/resources/rbn_skimmers.tsv`, ~315 `CALL` / `grid` rows distilled from the
+(`src-tauri/resources/rbn_skimmers.tsv`, `CALL` / `grid` rows distilled from the
 `reversebeacon.net` public skimmer status page) rather than the DXCC-entity centroid
 — a US skimmer plots in Maryland, not mid-Kansas. `src-tauri/src/skimmers_update.rs`
 loads and weekly-refreshes it (mirrors `presets_update.rs`: a downloaded app-data
 copy beats the bundled snapshot beats empty; a setup task `maybe_update` scrapes the
-page and rewrites the TSV, hot-swapping `AppState.skimmers`; commands
+page, hot-swapping `AppState.skimmers`; commands
 `skimmers_status` / `maybe_update_skimmers` / `update_skimmers`;
-`.github/workflows/data-update.yml` regenerates the bundled file too). PSK Reporter's
+`.github/workflows/data-update.yml` refreshes the bundled file too). The status
+page lists only _currently active_ skimmers (~300), so both the runtime refresh
+(`merge_tsv`) and the CI job **accumulate** — each scrape is merged into the
+existing table (fresh grid wins on conflict), never a plain rewrite, so a
+skimmer that's off air at scrape time isn't dropped and coverage only grows. PSK Reporter's
 exact receiver locator (`place_by_at_locator`, applied after `enrich`) still wins
 over the table; the frontend `spotterLonLat` jitters whatever position it gets by
 callsign so co-located skimmers don't stack.
@@ -717,12 +721,14 @@ the `ToolsPanel` `SH/DX` query (still DXSpider-only, built ad hoc in the fronten
 rather than through `commands::sh_dx` — pre-existing debt); login banner
 detection.
 
-**Next:** map polish (canvas if SVG is slow; skimmer-table coverage is ~315
-active RBN skimmers — a spot from an unlisted skimmer still uses the DXCC
+**Next:** map polish (canvas if SVG is slow — user reports it's fine for now;
+the skimmer table now accumulates across scrapes so coverage grows past the
+~300 currently-active, but a spot from a never-seen skimmer still uses the DXCC
 centroid); phase 12 v2 polish — adjustable grey-line band width, HUD →
-Propagation tab on click, decode the WCY `Au` text. CAT: RIT/XIT and a
-`catSplit` "always honour QSX on the plain Tune button" toggle are possible
-fast-follows (split is button-only today); multi-radio config only if asked.
+Propagation tab on click, decode the WCY `Au` text. CAT: RIT/XIT possible
+fast-follow (split is button-only today, and `catSplit` "always honour QSX on
+plain Tune" was deliberately dropped — comment QSX data is too often wrong);
+multi-radio config only if asked.
 
 **Verified against live data (DXSpider V1.57 build 686, `hg8lxl.ham.hu`):** the
 mail `DIRECTORY` / `READ` parsers in `parser/mail.rs` — real capture showed the
