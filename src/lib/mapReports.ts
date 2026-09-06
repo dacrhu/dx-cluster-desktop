@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useCluster } from "@/store/useCluster";
 import { baseCall, spotterLonLat, type LonLat } from "./grid";
+import { useFrozenWhenInactive } from "./util";
 import type { EnrichedSpot } from "./types";
 
 /** Base callsigns of every configured connection profile ("who am I"). */
@@ -75,9 +76,14 @@ export function collapseReports(raw: MyReport[]): MyReport[] {
  * Reception reports of *my* callsign — every spot whose DX call is one of mine
  * (any spotter; skimmers included), positioned at the spotter. Derived live
  * from `store.spots`, so it honours the global age cap.
+ *
+ * `active` (default true) — while false the `spots` input is frozen, so this
+ * scan (up to `MAX_SPOTS` rows, two regexes per match) isn't repeated on every
+ * spot flush while the Map tab is hidden.
  */
-export function useMyReports(): MyReport[] {
-  const spots = useCluster((s) => s.spots);
+export function useMyReports(active = true): MyReport[] {
+  const liveSpots = useCluster((s) => s.spots);
+  const spots = useFrozenWhenInactive(liveSpots, active);
   const maxAgeMin = useCluster((s) => s.spotMaxAgeMin);
   const ageTick = useCluster((s) => s.ageTick);
   const myCalls = useMyCalls();

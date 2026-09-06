@@ -47,22 +47,20 @@ export const MapPanel = memo(function MapPanel({
       .catch((e) => console.warn("cty entities failed to load", e));
   }, []);
 
-  const allSpots = useVisibleSpots();
+  // `active` is threaded into these hooks: while the Map tab is hidden the
+  // underlying `store.spots` scan is frozen, so a busy skimmer feed doesn't
+  // keep re-filtering thousands of rows for a map nobody is looking at. The
+  // memo-wrapped, SVG-heavy `WorldMap` then bails on stable props. Everything
+  // catches up the instant the tab is shown again.
+  const allSpots = useVisibleSpots(active);
   const spots = useMemo(
     () => (reachOnly ? [] : allSpots.slice(0, MAX_MARKERS)),
     [allSpots, reachOnly],
   );
-  const reports = useMyReports();
+  const reports = useMyReports(active);
   const actions = useSpotActions();
   const home = useMemo(() => locatorToLonLat(homeLocator), [homeLocator]);
   const shownEntities = labels ? entities : NO_ENTITIES;
-
-  // Freeze what actually reaches the (memo-wrapped, SVG-heavy) WorldMap while
-  // this tab isn't the visible one — it stays mounted (pan/zoom state
-  // survives), it just stops redoing its layers on every spot in the
-  // background. Catches up the instant the tab is shown again.
-  const frozenSpots = useFrozenWhenInactive(spots, active);
-  const frozenReports = useFrozenWhenInactive(reports, active);
   const frozenEntities = useFrozenWhenInactive(shownEntities, active);
 
   return (
@@ -131,8 +129,8 @@ export const MapPanel = memo(function MapPanel({
       </div>
 
       <WorldMap
-        spots={frozenSpots}
-        reports={frozenReports}
+        spots={spots}
+        reports={reports}
         actions={actions}
         home={home}
         entities={frozenEntities}

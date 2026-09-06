@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useCluster } from "@/store/useCluster";
 import { compileQuery } from "./query";
 import { spotPasses } from "./filter";
+import { useFrozenWhenInactive } from "./util";
 import type { EnrichedSpot } from "./types";
 
 /**
@@ -9,9 +10,16 @@ import type { EnrichedSpot } from "./types";
  * Spots, Bandmap and Map panels show exactly the same set: skimmer / WSJT-X
  * toggles, the quick-filter band + mode chips (`spotBands` / `spotModes`,
  * empty = all), the search query and the saved node filters.
+ *
+ * `active` (default true) — pass the panel's tab-visible flag. While false the
+ * `spots` input is frozen at its last value, so the filter below (a scan of up
+ * to `MAX_SPOTS` rows, run again on every ~200 ms spot flush) doesn't re-run for
+ * a tab nobody is looking at. Spots stays `active` unconditionally — its match
+ * timestamp feeds the cross-tab "new activity" dot.
  */
-export function useVisibleSpots(): EnrichedSpot[] {
-  const spots = useCluster((s) => s.spots);
+export function useVisibleSpots(active = true): EnrichedSpot[] {
+  const liveSpots = useCluster((s) => s.spots);
+  const spots = useFrozenWhenInactive(liveSpots, active);
   const filters = useCluster((s) => s.filters);
   const filtersEnabled = useCluster((s) => s.filtersEnabled);
   const query = useCluster((s) => s.spotQuery);

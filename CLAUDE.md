@@ -76,15 +76,18 @@ _Raw terminal_ tab exists for power users.
     busy RBN feed can otherwise fire many `set()`s a second, each one
     re-rendering every mounted panel.
   - `MapPanel` / `BandmapPanel` additionally take an `active` prop from
-    `App.tsx` (`tab === "map"` / `"bandmap"`) and run the spots/reports/
-    entities they hand to `WorldMap`/`Bandmap` through
-    `useFrozenWhenInactive()` (`src/lib/util.ts`) — while inactive the prop
-    stays referentially frozen at its last value, so the memo on the SVG/DOM-
-    heavy child actually bails instead of redoing its layout for a tab nobody
-    is looking at; it catches up instantly on switching back. Don't apply this
-    to `SpotsPanel`'s own list — its newest-match timestamp feeds the
-    cross-tab "new activity" dot (`store.spotsMatchTs`) and must stay live
-    even when that tab isn't the active one.
+    `App.tsx` (`tab === "map"` / `"bandmap"`) and pass it into
+    `useVisibleSpots(active)` / `useMyReports(active)`, which freeze their
+    `store.spots` input via `useFrozenWhenInactive()` (`src/lib/util.ts`) while
+    the tab is hidden — so the shared filter (a scan of up to `MAX_SPOTS`
+    = 5000 rows) and the reports scan (two regexes per match) don't re-run on
+    every ~200 ms spot flush for a tab nobody is looking at, and the memo on
+    the SVG/DOM-heavy `WorldMap`/`Bandmap` child then bails on stable props.
+    Everything catches up instantly on switching back. Don't pass `active` from
+    `SpotsPanel` — it calls `useVisibleSpots()` bare (stays live) because its
+    newest-match timestamp feeds the cross-tab "new activity" dot
+    (`store.spotsMatchTs`). `MapPanel` still freezes `entities` (not
+    spot-derived) separately.
   - Known remaining gap: `Bandmap` polls `store.rigVfo` directly for the CAT
     cursor (~1/s when CAT is connected), which isn't gated by the `active`
     freeze — low priority unless CAT users report it matters.

@@ -5,7 +5,6 @@ import { patchSettings } from "@/lib/persist";
 import { useVisibleSpots } from "@/lib/visibleSpots";
 import { useSpotActions } from "@/lib/spotActions";
 import { BANDMAP_BANDS } from "@/lib/bands";
-import { useFrozenWhenInactive } from "@/lib/util";
 import { Bandmap } from "@/components/Bandmap";
 import { QuickFilters } from "@/components/QuickFilters";
 import { QueryHelp } from "@/components/QueryHelp";
@@ -45,8 +44,9 @@ export const BandmapPanel = memo(function BandmapPanel({
       setZoom: s.setBandmapZoom,
     })),
   );
-  const liveSpots = useVisibleSpots();
-  const spots = useFrozenWhenInactive(liveSpots, active);
+  // `active` freezes the `store.spots` scan inside the hook while this tab is
+  // hidden — the lane re-grouping below then stays put too.
+  const spots = useVisibleSpots(active);
   const actions = useSpotActions();
 
   // Persist the zoom a beat after it settles (wheel / drag fire rapidly).
