@@ -19,6 +19,34 @@ export function matchTerms(hay: string, query: string): boolean {
   return true;
 }
 
+/** Does the string contain any non-ASCII character? DX cluster mail / talk is
+ *  historically a 7-bit ASCII (Latin-1 at best) medium — many nodes strip or
+ *  mangle the rest. */
+export const hasNonAscii = (s: string): boolean =>
+  // eslint-disable-next-line no-control-regex
+  /[^\x00-\x7f]/.test(s);
+
+/** Best-effort transliteration to plain ASCII: strip diacritics (á→a, ő→o,
+ *  ű→u, ü→u …), fold smart quotes / dashes, and replace anything left with
+ *  `?`. Lossy but guaranteed to survive an ASCII-only node. */
+export function toAsciiText(s: string): string {
+  return (
+    s
+      .normalize("NFKD")
+      .replace(/[̀-ͯ]/g, "") // combining diacritical marks
+      .replace(/[‘’‚‛]/g, "'")
+      .replace(/[“”„‟]/g, '"')
+      .replace(/[–—−]/g, "-")
+      .replace(/…/g, "...")
+      .replace(/ß/g, "ss")
+      .replace(/æ/g, "ae")
+      .replace(/ø/g, "o")
+      .replace(/ł/g, "l")
+      // eslint-disable-next-line no-control-regex
+      .replace(/[^\x00-\x7f]+/gu, "?")
+  );
+}
+
 /**
  * While `active`, passes `value` straight through (and remembers it). While
  * inactive, keeps returning the last value seen while active — so a prop fed

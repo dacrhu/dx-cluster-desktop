@@ -53,6 +53,8 @@ export interface AppSettings {
   wsjtxBind: string;
   /** Show WSJT-X-sourced spots in the spot views. */
   spotShowWsjtx: boolean;
+  /** Auto-poll the mailbox while online and flag new mail (tab dot + toast). */
+  mailWatchEnabled: boolean;
 
   // --- CAT (rig control) ---
   /** Drive the radio over Hamlib `rigctld`. Off unless opted in. */
@@ -114,6 +116,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   wsjtxEnabled: false,
   wsjtxBind: "127.0.0.1:2237",
   spotShowWsjtx: true,
+  mailWatchEnabled: true,
   catEnabled: false,
   catTransport: "network",
   catHost: "127.0.0.1",

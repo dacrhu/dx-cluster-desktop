@@ -256,6 +256,7 @@ export function App() {
       c().setWsjtxEnabled(settings.wsjtxEnabled ?? false);
       c().setWsjtxBind(settings.wsjtxBind ?? "127.0.0.1:2237");
       c().setSpotShowWsjtx(settings.spotShowWsjtx ?? true);
+      c().setMailWatchEnabled(settings.mailWatchEnabled ?? true);
       if (settings.wsjtxEnabled) {
         c().setWsjtxStatus("listening");
         void ipc
@@ -348,6 +349,7 @@ export function App() {
     talk: (store.talk[0]?.received_at ?? 0) * 1000,
     chat: (store.chat[0]?.received_at ?? 0) * 1000,
     alerts: store.alertHits[0]?.at ?? 0,
+    mail: store.mailNewTs,
   };
 
   // Mark the active tab seen whenever it's shown or its activity advances.

@@ -339,14 +339,21 @@ impl SpotFilter {
     /// adding to it; `FiltersPanel`'s per-rule "apply to node" button already
     /// treats each push as a single overwrite, so this needs no special
     /// handling on the frontend side. A `Reject` rule wraps the whole
-    /// expression in `not (...)`.
+    /// expression in `not (...)` — the parens are mandatory because `not`
+    /// binds tighter than `or` (manual, "Compound Filters": `and` before
+    /// `or`, left to right; `NOT Skimmer or (...)` parses as `(NOT Skimmer)
+    /// or (...)`).
     ///
-    /// Built to the documented AR-Cluster V6 filter syntax (fields, `=`,
-    /// `and`/`or`, parentheses, `*` wildcard) — like the mail parser,
-    /// unverified against a live AR-Cluster node. Prefix matching (`call:`,
-    /// `spotter:` in the GUI) is assumed to work the same wildcarded way the
-    /// manual documents for `Comment` (`comment=*iota*`); an exact call/
-    /// spotter (no trailing wildcard) would need `Call=EXACT` instead.
+    /// Built to the AR-Cluster V6 Telnet User Manual ("DX Spots" / "Set DX
+    /// Filter"). **Verified against the manual** (field names in the DX Filter
+    /// field table, `=`, `and`/`or`, parentheses grouping, empty `set/dx/filter`
+    /// to clear, `Band=<meters>` e.g. `Band=20`, `Cty`/`SpotterCty` take a
+    /// cty.dat prefix token like `Cty=JA` / `SpotterCty=K`). **Still unverified
+    /// on a live node** (only `show/dx options` readback was exercised on V6
+    /// 6.1.5123): whether a trailing `*` does a prefix match on `Call=` /
+    /// `Spotter=` — the manual only documents `*` for `Comment`
+    /// (`comment=*iota*`) and shows `Call <> *BUST*` (infix). An exact call/
+    /// spotter (no trailing wildcard) would be `Call=EXACT`.
     pub fn to_arcluster(&self) -> Option<String> {
         let mut conds: Vec<String> = Vec::new();
 
@@ -392,6 +399,12 @@ impl SpotFilter {
         let expr = conds.join(" and ");
         let expr = match self.action {
             FilterAction::Accept => expr,
+            // `not` needs the whole expression parenthesised, but a single
+            // `or`-group condition is already wrapped — reuse its parens
+            // instead of emitting `not ((A or B))`.
+            FilterAction::Reject if conds.len() == 1 && expr.starts_with('(') => {
+                format!("not {expr}")
+            }
             FilterAction::Reject => format!("not ({expr})"),
         };
         Some(format!("set/dx/filter {expr}"))
@@ -631,6 +644,7 @@ mod tests {
         };
         assert_eq!(accept.to_arcluster().unwrap(), "set/dx/filter Call=P5*");
 
+        // Single `or`-group reject: reuse the group's parens, don't double them.
         let reject = SpotFilter {
             action: FilterAction::Reject,
             spotter_call_prefixes: vec!["w3lpl".into(), "k1ttt".into()],
@@ -638,7 +652,48 @@ mod tests {
         };
         assert_eq!(
             reject.to_arcluster().unwrap(),
-            "set/dx/filter not ((Spotter=W3LPL* or Spotter=K1TTT*))"
+            "set/dx/filter not (Spotter=W3LPL* or Spotter=K1TTT*)"
+        );
+
+        // Single bare-term reject still gets one wrapping pair (harmless, and
+        // keeps `not` scoped explicitly).
+        let reject_one = SpotFilter {
+            action: FilterAction::Reject,
+            dx_dxcc: vec!["k".into()],
+            ..Default::default()
+        };
+        assert_eq!(
+            reject_one.to_arcluster().unwrap(),
+            "set/dx/filter not (Cty=K)"
+        );
+    }
+
+    #[test]
+    fn arcluster_reject_multiple_conditions() {
+        // Reject spots that are (20m or 40m) AND from a P5* call — the whole
+        // conjunction must sit inside `not (...)`.
+        let f = SpotFilter {
+            action: FilterAction::Reject,
+            bands: vec!["20m".into(), "40m".into()],
+            dx_call_prefixes: vec!["p5".into()],
+            ..Default::default()
+        };
+        assert_eq!(
+            f.to_arcluster().unwrap(),
+            "set/dx/filter not ((Band=20 or Band=40) and Call=P5*)"
+        );
+    }
+
+    #[test]
+    fn arcluster_combines_two_or_groups_with_zone() {
+        let f = SpotFilter {
+            dx_call_prefixes: vec!["p5".into(), "p6".into()],
+            spotter_cq_zones: vec![14, 15],
+            ..Default::default()
+        };
+        assert_eq!(
+            f.to_arcluster().unwrap(),
+            "set/dx/filter (Call=P5* or Call=P6*) and (SpotterCqZone=14 or SpotterCqZone=15)"
         );
     }
 

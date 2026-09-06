@@ -21,6 +21,27 @@ const BLANK: NodeProfile = {
   kind: "cluster",
 };
 
+/**
+ * Normalise a preset's free-text `software` field (`"DX Spider"`, `"AR-Cluster"`,
+ * `"CC Cluster"`, `"DxNet"`, …) to the dialect we actually generate commands for,
+ * plus a short badge label / CSS class so the preset list shows it up front.
+ * Anything that isn't recognisably AR-Cluster is driven as DXSpider (the common
+ * AK1A line format), with the real name kept on the badge so the choice is
+ * visible before you click.
+ */
+function presetDialect(software: string): {
+  software: NonNullable<NodeProfile["software"]>;
+  label: string;
+  cls: "tag-ar" | "tag-spider" | "tag-other";
+  known: boolean;
+} {
+  if (/ar-?cluster/i.test(software))
+    return { software: "ar_cluster", label: "AR-Cluster", cls: "tag-ar", known: true };
+  if (/spider/i.test(software))
+    return { software: "dx_spider", label: "DXSpider", cls: "tag-spider", known: true };
+  return { software: "dx_spider", label: software.trim() || "?", cls: "tag-other", known: false };
+}
+
 export const ConnectionPanel = memo(function ConnectionPanel() {
   const tr = useT();
   const stateLabel = (s: ConnState) => tr(`conn.state.${s}`);
@@ -88,6 +109,8 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
     presetsAutoUpdate,
     setPresetsStatus,
     setPresetsAutoUpdate,
+    mailWatchEnabled,
+    setMailWatchEnabled,
   } = useCluster(
     useShallow((s) => ({
       connections: s.connections,
@@ -153,6 +176,8 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
       presetsAutoUpdate: s.presetsAutoUpdate,
       setPresetsStatus: s.setPresetsStatus,
       setPresetsAutoUpdate: s.setPresetsAutoUpdate,
+      mailWatchEnabled: s.mailWatchEnabled,
+      setMailWatchEnabled: s.setMailWatchEnabled,
     })),
   );
   const [view, setView] = useState<"conn" | "settings">("conn");
@@ -365,7 +390,7 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
       host: p.host,
       port: p.port,
       kind: "cluster",
-      software: /ar-?cluster/i.test(p.software) ? "ar_cluster" : "dx_spider",
+      software: presetDialect(p.software).software,
     }));
   }
 
@@ -540,14 +565,27 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
                   </label>
                   {presetCountry && (
                     <ul className="preset-list">
-                      {presetNodes.map((p) => (
-                        <li key={`${p.name}@${p.host}:${p.port}`} onClick={() => applyPreset(p)}>
-                          <strong>{p.name}</strong>
-                          <span className="muted">
-                            {p.host}:{p.port} · {p.software}
-                          </span>
-                        </li>
-                      ))}
+                      {presetNodes.map((p) => {
+                        const d = presetDialect(p.software);
+                        return (
+                          <li key={`${p.name}@${p.host}:${p.port}`} onClick={() => applyPreset(p)}>
+                            <strong>{p.name}</strong>
+                            <span
+                              className={`tag ${d.cls}`}
+                              title={
+                                d.known
+                                  ? d.label
+                                  : tr("conn.presetOtherSoftware", { sw: p.software })
+                              }
+                            >
+                              {d.label}
+                            </span>
+                            <span className="muted">
+                              {p.host}:{p.port}
+                            </span>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                   <p className="field-hint">{tr("conn.presetCredit")}</p>
@@ -849,6 +887,22 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
             <p className="field-hint">
               {tr("conn.pskrStatusLabel")}: {wsjtxStatusLabel()}
             </p>
+          </details>
+
+          <details className="settings-group" name="conn-settings">
+            <summary>{tr("conn.mailSection")}</summary>
+            <p className="field-hint">{tr("conn.mailWatchHint")}</p>
+            <label className="inline">
+              <input
+                type="checkbox"
+                checked={mailWatchEnabled}
+                onChange={(e) => {
+                  setMailWatchEnabled(e.target.checked);
+                  void patchSettings({ mailWatchEnabled: e.target.checked });
+                }}
+              />
+              {tr("conn.mailWatchEnable")}
+            </label>
           </details>
 
           <details className="settings-group" name="conn-settings">

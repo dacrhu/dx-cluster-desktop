@@ -518,6 +518,10 @@ label textarea {
 .preset-list li .muted {
   font-size: 12px;
 }
+.preset-list li .tag {
+  margin-left: 0;
+  flex: none;
+}
 .profile-row {
   display: flex;
   align-items: center;
@@ -651,6 +655,21 @@ label textarea {
   background: var(--accent);
   color: var(--accent-text);
   vertical-align: middle;
+}
+/* preset dialect badges — AR-Cluster / DXSpider / anything else */
+.tag.tag-ar {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.tag.tag-spider {
+  background: var(--ok);
+  color: #fff;
+}
+.tag.tag-other {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  text-transform: none;
 }
 
 /* ---- quick filter bar ---- */
@@ -2221,6 +2240,20 @@ button.chip.active {
 /* ---- mail ---- */
 .mail-panel {
   max-width: none;
+}
+.mail-ascii-warn {
+  margin: 8px 0 0;
+  padding: 6px 9px;
+  font-size: 12px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  color: var(--text);
+}
+.mail-ascii-warn button {
+  margin-left: 6px;
+  padding: 1px 7px;
+  font-size: 11px;
 }
 .mail-layout {
   display: grid;

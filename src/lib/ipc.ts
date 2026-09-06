@@ -285,6 +285,12 @@ export interface MailDraft {
  * subject on the "Subject" prompt, then the body ending with `/EX`. Uses
  * generous fallback timers so it completes even if the prompt wording differs.
  * Returns the node's response lines.
+ *
+ * Documented DXSpider prompts (v1.5x): `Enter Subject (30 characters):` then
+ * `Enter Message /EX to send or /ABORT to exit`. The regexes below match those
+ * plus common variants; the blind fallback timer is long (8s) so a node still
+ * flushing its login banner can't trip it into dumping the subject as a raw
+ * command. Unverified: posting on a live net wasn't done.
  */
 export async function sendMail(id: string, draft: MailDraft): Promise<string[]> {
   const open = draft.replyTo
@@ -300,8 +306,12 @@ export async function sendMail(id: string, draft: MailDraft): Promise<string[]> 
   const p = new Promise<string[]>((r) => (resolveFn = r));
 
   let un: UnlistenFn | null = null;
-  let stageTimer = setTimeout(() => void sendSubject(), 2500);
-  const overall = setTimeout(() => finish(), 25000);
+  // Long blind fallback: the node may still be flushing its login banner when
+  // `open` goes out, and firing `sendSubject()` early would push the subject
+  // line as a raw cluster command. The regex path handles the normal case in
+  // well under a second.
+  let stageTimer = setTimeout(() => void sendSubject(), 8000);
+  const overall = setTimeout(() => finish(), 30000);
 
   function finish() {
     if (done) return;
@@ -324,7 +334,12 @@ export async function sendMail(id: string, draft: MailDraft): Promise<string[]> 
     if (stage !== "body") return;
     stage = "done";
     clearTimeout(stageTimer);
-    for (const line of draft.body.split("\n")) await sendRaw(id, line.length ? line : " ");
+    for (const line of draft.body.split("\n")) {
+      // A body line that is itself an editor command (`/EX`, `/ABORT`, …) would
+      // end or discard the message early — send it as literal text by padding.
+      const safe = /^\s*\/(ex|abort)\b/i.test(line) ? ` ${line}` : line;
+      await sendRaw(id, safe.length ? safe : " ");
+    }
     await sendRaw(id, "/EX");
     stageTimer = setTimeout(() => finish(), 2500);
   }
@@ -334,7 +349,10 @@ export async function sendMail(id: string, draft: MailDraft): Promise<string[]> 
     const l = e.payload[1];
     collected.push(l);
     if (stage === "subject" && /subject/i.test(l)) void sendSubject();
-    else if (stage === "body" && /(enter your message|\/ex to send|\/abort|enter text)/i.test(l))
+    else if (
+      stage === "body" &&
+      /(enter (your )?message|enter text|\/ex to send|\/abort to exit)/i.test(l)
+    )
       void sendBody();
     else if (stage === "done" && /(queued|msg.*sent|not sent|aborted|no such)/i.test(l)) finish();
   });

@@ -148,6 +148,12 @@ interface ClusterStore {
   seen: Record<string, number>;
   /** ms timestamp of the newest spot passing the Spots panel's current filter. */
   spotsMatchTs: number;
+  /** Auto-poll the mailbox while online → "new mail" tab dot + desktop toast. */
+  mailWatchEnabled: boolean;
+  /** ms timestamp of the last mailbox poll that brought in a new message. */
+  mailNewTs: number;
+  /** Highest message number a poll has recorded (0 = baseline not set yet). */
+  mailSeenMax: number;
   /** User's explicit pick for which node the send-panels target (topbar
    *  picker), shown only when more than one command-capable node is online.
    *  null = auto (prefer a cluster-kind node, first online otherwise). */
@@ -247,6 +253,13 @@ interface ClusterStore {
   markSeen: (tab: string) => void;
   markAllSeen: (tabs: string[]) => void;
   setSpotsMatchTs: (ts: number) => void;
+  setMailWatchEnabled: (on: boolean) => void;
+  /** Drop the "highest seen" baseline (call on a node switch so the next
+   *  fetch re-establishes it silently). */
+  resetMailBaseline: () => void;
+  /** Record the message numbers from a `directory` fetch. Returns true when a
+   *  message newer than the established baseline just appeared (→ notify). */
+  noteMailMsgnos: (msgnos: number[]) => boolean;
 }
 
 export const useCluster = create<ClusterStore>((set) => ({
@@ -320,6 +333,9 @@ export const useCluster = create<ClusterStore>((set) => ({
   sysLocale: null,
   seen: {},
   spotsMatchTs: 0,
+  mailWatchEnabled: true,
+  mailNewTs: 0,
+  mailSeenMax: 0,
   sendTargetId: null,
 
   upsertProfile: (p) =>
@@ -477,6 +493,20 @@ export const useCluster = create<ClusterStore>((set) => ({
     }),
   setSpotsMatchTs: (spotsMatchTs) =>
     set((st) => (spotsMatchTs !== st.spotsMatchTs ? { spotsMatchTs } : {})),
+  setMailWatchEnabled: (mailWatchEnabled) => set({ mailWatchEnabled }),
+  resetMailBaseline: () => set({ mailSeenMax: 0 }),
+  noteMailMsgnos: (msgnos: number[]): boolean => {
+    const max = msgnos.reduce((m, n) => (n > m ? n : m), 0);
+    if (max === 0) return false;
+    const mailSeenMax: number = useCluster.getState().mailSeenMax;
+    const isNew = mailSeenMax > 0 && max > mailSeenMax;
+    set(
+      isNew
+        ? { mailSeenMax: Math.max(mailSeenMax, max), mailNewTs: Date.now() }
+        : { mailSeenMax: Math.max(mailSeenMax, max) },
+    );
+    return isNew;
+  },
 }));
 
 /** Online connections capable of taking commands (the RBN feed never sends a

@@ -1,9 +1,15 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { useOnlineId } from "@/store/useCluster";
+import { useShallow } from "zustand/react/shallow";
+import { useCluster, useOnlineId } from "@/store/useCluster";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
 import { runQuery, sendMail, type MailDraft } from "@/lib/ipc";
+import { notify } from "@/lib/notify";
 import type { MailHeader, StoredMail } from "@/lib/types";
+import { hasNonAscii, toAsciiText } from "@/lib/util";
+
+/** How often to re-check the mailbox for new arrivals while online. */
+const MAIL_POLL_MS = 10 * 60 * 1000;
 
 type Scope = "new" | "own" | "recent" | "all";
 
@@ -31,6 +37,14 @@ export const MailPanel = memo(function MailPanel() {
   const [compose, setCompose] = useState<MailDraft | null>(null);
   const [sending, setSending] = useState(false);
   const autoDone = useRef(false);
+
+  const { mailWatchEnabled, noteMailMsgnos, resetMailBaseline } = useCluster(
+    useShallow((s) => ({
+      mailWatchEnabled: s.mailWatchEnabled,
+      noteMailMsgnos: s.noteMailMsgnos,
+      resetMailBaseline: s.resetMailBaseline,
+    })),
+  );
 
   // Fetch the mailbox automatically once, shortly after the first connection
   // (like the Users panel). A retry covers the case where the node is still
@@ -71,12 +85,49 @@ export const MailPanel = memo(function MailPanel() {
       const lines = await runQuery(onlineId, SCOPE_CMD[scope], 6000);
       const parsed = await ipc.parseDirectory(lines);
       setHeaders(parsed);
+      noteMailMsgnos(parsed.map((h) => h.msgno));
       if (parsed.length === 0) setStatus(tr("mail.noMsgs"));
       return parsed;
     } finally {
       setLoading(false);
     }
   }
+
+  // Re-baseline the "new mail" watcher whenever the target node changes, so the
+  // first fetch against it doesn't fire a notification for pre-existing mail.
+  useEffect(() => {
+    resetMailBaseline();
+  }, [onlineId, resetMailBaseline]);
+
+  // Don't let a background poll fire a `directory` while the interactive
+  // SP/SB/REPLY orchestration is waiting on a prompt.
+  const busyRef = useRef(false);
+  busyRef.current = compose !== null || sending;
+
+  // Periodic mailbox poll while online → tab dot + desktop toast on new mail.
+  // Kept light: no spinner / status churn, just the header list and the watcher.
+  useEffect(() => {
+    if (!onlineId || !mailWatchEnabled) return;
+    let stop = false;
+    const poll = async () => {
+      if (busyRef.current) return;
+      try {
+        const lines = await runQuery(onlineId, SCOPE_CMD[scope], 6000);
+        const parsed = await ipc.parseDirectory(lines);
+        if (stop) return;
+        setHeaders(parsed);
+        if (noteMailMsgnos(parsed.map((h) => h.msgno)))
+          void notify(tr("mail.notifyTitle"), tr("mail.notifyBody"));
+      } catch {
+        /* transient — next tick retries */
+      }
+    };
+    const iv = setInterval(poll, MAIL_POLL_MS);
+    return () => {
+      stop = true;
+      clearInterval(iv);
+    };
+  }, [onlineId, mailWatchEnabled, scope, noteMailMsgnos, tr]);
 
   async function open(h: MailHeader) {
     if (!onlineId) return;
@@ -264,6 +315,7 @@ function Composer({
   disabled: boolean;
 }) {
   const tr = useT();
+  const nonAscii = hasNonAscii(draft.subject) || hasNonAscii(draft.body);
   return (
     <div className="editor">
       <h3>{draft.replyTo ? tr("mail.replyTitle", { n: draft.replyTo }) : tr("mail.newTitle")}</h3>
@@ -309,6 +361,23 @@ function Composer({
           onChange={(e) => onChange({ ...draft, body: e.target.value })}
         />
       </label>
+      {nonAscii && (
+        <p className="mail-ascii-warn">
+          {tr("mail.asciiWarn")}{" "}
+          <button
+            type="button"
+            onClick={() =>
+              onChange({
+                ...draft,
+                subject: toAsciiText(draft.subject),
+                body: toAsciiText(draft.body),
+              })
+            }
+          >
+            {tr("mail.asciiConvert")}
+          </button>
+        </p>
+      )}
       <div className="row end">
         <button onClick={onCancel}>{tr("common.cancel")}</button>
         <button

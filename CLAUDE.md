@@ -611,7 +611,20 @@ country-files.com) and commits `[skip ci]`. Source:
 an `autoDone` ref) after `onlineId` first becomes truthy. `MailPanel` waits
 ~1.5 s and retries up to 3× (the node may still be sending its login banner when
 the first `directory` goes out and `runQuery` finishes early on the ready
-prompt). The two-pane panels (`.mail-layout` / `.talk-layout` / `.users-layout`)
+prompt).
+
+**Mail watch:** while `settings.mailWatchEnabled` (default true) and a node is
+online, `MailPanel` re-runs `directory` every `MAIL_POLL_MS` (10 min) and feeds
+the msgnos to `store.noteMailMsgnos()` — it tracks the highest number seen
+(`store.mailSeenMax`, per-node, reset via `resetMailBaseline()` on an `onlineId`
+change so a node switch never notifies for pre-existing mail) and on a genuinely
+new arrival bumps `store.mailNewTs`. `App.tsx` maps that into `activity.mail` →
+the Mail tab's "new activity" dot; the poll also fires an `os_notify` toast
+(`mail.notifyTitle`/`Body`). Manual/auto `refresh()` also calls
+`noteMailMsgnos` to keep the baseline current. Toggle: Connection panel →
+Settings → "Mail" group.
+
+The two-pane panels (`.mail-layout` / `.talk-layout` / `.users-layout`)
 stack to one column under 760px; `.mail-layout` also reflows via
 `auto-fit minmax`; `.panel-head` is `flex-wrap: wrap`. The Connection panel runs
 full width (`.conn-panel` uncaps `.editor` / `.profile-list`).
@@ -683,11 +696,17 @@ such profiles in the list. **Verified against a live AR-Cluster V6 node
 block above; `show/filter` / `sh/filter` / `show/dx/filter` are aliases for it;
 the spot line format is the common AK1A `DX de …` (skimmer `-#`, `CW 38 dB 34
 WPM` comment) — so the "assumed common across dialects" spot/WWV/WCY parsing
-holds. The `SET/DX/FILTER` command generation itself is still only exercised
-against the V6 manual (pushing a filter to the live node wasn't done). Not yet
-dialect-aware: the `ToolsPanel` `SH/DX` query (still DXSpider-only, built ad hoc
-in the frontend rather than through `commands::sh_dx` — pre-existing debt); login
-banner detection.
+holds. `SET/DX/FILTER` command generation was **re-audited against the V6 Telnet
+User Manual** (all `to_arcluster` field names match the DX Filter field table;
+`Band=<meters>`; OR-groups must be parenthesised because `and` binds before `or`;
+`not (...)` for a Reject rule is a documented form; empty `set/dx/filter` clears)
+— the one thing the manual doesn't pin down is whether a trailing `*` does a
+prefix match on `Call=` / `Spotter=` (it only documents `*` for `Comment`).
+**Pushing a generated filter to the live node still wasn't done** — see
+`docs/p0-verification.md` for the step-by-step live check. Not yet dialect-aware:
+the `ToolsPanel` `SH/DX` query (still DXSpider-only, built ad hoc in the frontend
+rather than through `commands::sh_dx` — pre-existing debt); login banner
+detection.
 
 **Next:** map polish (canvas if SVG is slow; skimmer-table coverage is ~315
 active RBN skimmers — a spot from an unlisted skimmer still uses the DXCC
@@ -703,8 +722,23 @@ body straight after, not the documented one-`Key: value`-per-line block;
 `parse_read_message` now handles both (`READ_HDR_RE` + the legacy `READ_KV_RE`),
 real rows are pinned as tests. **Still unverified:** the interactive compose
 prompt-matching in `sendMail` (posting a bulletin on a live net wasn't done) —
-built to the documented `Enter Subject:` / `Enter Message /EX to send` wording;
-fallback timers keep it from hanging if the prompts differ.
+built to the documented DXSpider prompts `Enter Subject (30 characters):` /
+`Enter Message /EX to send or /ABORT to exit` (regexes also match the `Enter
+your message` / `Enter text` variants). Hardened after the P0 audit: the blind
+fallback that fires `sendSubject()` is now 8 s (a node still flushing its login
+banner used to trip the old 2.5 s timer into sending the subject as a raw
+command), and a body line that is itself `/EX` or `/ABORT` is space-padded so it
+can't end the message early. Live check: `docs/p0-verification.md`.
+
+**Text encoding.** `telnet.rs::decode_line` reads each node line as UTF-8, or
+falls back to ISO-8859-1 (byte → `U+00xx`) when that fails, instead of
+`from_utf8_lossy`'s `U+FFFD` — so a Latin-1 node's accented comments/mail
+survive. The **outgoing** side still sends UTF-8; many cluster nodes are
+ASCII-only (some strip the C1 range `0x80..=0x9F`, which mangles exactly the
+UTF-8 for `Á`/`Ő`/`Ű` etc.), so the mail composer warns on non-ASCII input and
+offers `toAsciiText()` (`src/lib/util.ts`, NFKD + diacritic strip) to fold it
+to plain ASCII. Confirmed live: `Árvíztűrő` round-tripped through a node as
+`�rvíztűr�` — node-side loss, not ours.
 
 Parser dispatch order in `parser/mod.rs::parse_line_ctx`: spot → wwv → wcy →
 announce → chat → talk → Raw. `run_session` builds a `ParseCtx` with the profile

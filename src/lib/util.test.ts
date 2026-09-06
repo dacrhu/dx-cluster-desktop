@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { matchTerms, toggleIn } from "./util";
+import { hasNonAscii, matchTerms, toAsciiText, toggleIn } from "./util";
+
+describe("toAsciiText", () => {
+  it("flags and transliterates accented text", () => {
+    expect(hasNonAscii("Arvizturo")).toBe(false);
+    expect(hasNonAscii("Árvíztűrő")).toBe(true);
+    expect(toAsciiText("Árvíztűrő Tükörfúrógép")).toBe("Arvizturo Tukorfurogep");
+  });
+  it("folds smart quotes and dashes, replaces the rest", () => {
+    expect(toAsciiText("“quote” – dash… ß")).toBe('"quote" - dash... ss');
+    expect(toAsciiText("emoji 🚀")).toBe("emoji ?");
+  });
+  it("leaves plain ASCII untouched", () => {
+    expect(toAsciiText("DE HA5XYZ, sked?")).toBe("DE HA5XYZ, sked?");
+  });
+});
 
 describe("toggleIn", () => {
   it("adds a missing value", () => {

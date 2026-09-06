@@ -63,10 +63,10 @@ impl Decoder {
         }
     }
 
-    /// The current partially-received line as lossy UTF-8 (no newline yet).
-    /// Useful for matching prompts that the server does not terminate.
-    pub fn pending(&self) -> std::borrow::Cow<'_, str> {
-        String::from_utf8_lossy(&self.line)
+    /// The current partially-received line (no newline yet). Useful for matching
+    /// prompts that the server does not terminate.
+    pub fn pending(&self) -> String {
+        decode_line(&self.line)
     }
 
     /// Feed a chunk of bytes read from the socket.
@@ -124,9 +124,21 @@ impl Decoder {
     }
 
     fn flush_line(&mut self, out: &mut Decoded) {
-        let s = String::from_utf8_lossy(&self.line).trim_end().to_string();
+        let s = decode_line(&self.line).trim_end().to_string();
         self.line.clear();
         out.lines.push(s);
+    }
+}
+
+/// Turn a raw line of node bytes into text. A line that is valid UTF-8 is taken
+/// as such; otherwise every byte is mapped 1:1 to U+0000..=U+00FF (ISO-8859-1 /
+/// Latin-1). Cluster nodes are historically 8-bit Latin-1 at best (and many
+/// strip the C1 range 0x80..=0x9F, which mangles UTF-8), so this keeps accented
+/// text from collapsing into U+FFFD replacement characters.
+fn decode_line(bytes: &[u8]) -> String {
+    match std::str::from_utf8(bytes) {
+        Ok(s) => s.to_string(),
+        Err(_) => bytes.iter().map(|&b| b as char).collect(),
     }
 }
 
@@ -206,6 +218,22 @@ mod tests {
         let mut d = Decoder::new();
         let out = d.feed(b"DX de X: 14195.0 Y hi 1200Z\x07\x07\r\ncol1\tcol2\n");
         assert_eq!(out.lines, vec!["DX de X: 14195.0 Y hi 1200Z", "col1\tcol2"]);
+    }
+
+    #[test]
+    fn utf8_lines_pass_through() {
+        let mut d = Decoder::new();
+        let out = d.feed("Árvíztűrő Tükörfúrógép\r\n".as_bytes());
+        assert_eq!(out.lines, vec!["Árvíztűrő Tükörfúrógép"]);
+    }
+
+    #[test]
+    fn latin1_bytes_decode_without_replacement_chars() {
+        let mut d = Decoder::new();
+        // 0xFC = ü in ISO-8859-1 — not valid UTF-8 on its own.
+        let out = d.feed(b"M\xfcller\n");
+        assert_eq!(out.lines, vec!["Müller"]);
+        assert!(!out.lines[0].contains('\u{fffd}'));
     }
 
     #[test]
