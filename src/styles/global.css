@@ -1123,6 +1123,18 @@ button.chip.active {
   background: var(--alert-hit-bg);
   border: 1px solid var(--alert-hit-border);
 }
+.bm-swatch.swatch-sos,
+.bm-swatch.swatch-ibp {
+  width: 11px;
+  height: 3px;
+  border-radius: 1px;
+}
+.bm-swatch.swatch-sos {
+  background: var(--danger);
+}
+.bm-swatch.swatch-ibp {
+  background: var(--accent);
+}
 .bandmap-row {
   position: absolute;
   left: 0;
@@ -1190,6 +1202,25 @@ button.chip.active {
 .bandmap-spot-call {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* SOS / IBP marker rows: a half-height spot-alike, centred label instead of
+   a callsign, coloured border/tint per kind. */
+.bandmap-spot-special {
+  justify-content: center;
+  font-size: calc(9px * var(--bm-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border-style: dashed;
+}
+.bandmap-spot-special.special-sos {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, var(--bg-elevated));
+}
+.bandmap-spot-special.special-ibp {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-elevated));
 }
 /* "×N" badge when several skimmers reported the same signal. */
 .bandmap-spot-n {
@@ -1736,6 +1767,17 @@ button.chip.active {
 }
 .spot-pop-actions li:hover {
   background: var(--row-hover);
+}
+.spot-pop-call.special-sos {
+  color: var(--danger);
+}
+.spot-pop-call.special-ibp {
+  color: var(--accent);
+}
+.special-pop .spot-pop-comment {
+  margin-top: 3px;
+  padding-top: 0;
+  border-top: none;
 }
 .bandmap-recenter {
   padding: 0 4px;

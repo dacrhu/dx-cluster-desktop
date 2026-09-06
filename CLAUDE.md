@@ -249,7 +249,30 @@ from the store. The Bandmap's lanes are just the bands present in the resulting
 spots (it no longer has its own hide-lane chips). The context-menu actions are
 the `useSpotActions()` hook (Spots panel appends its "prepare a post" action). "Talk to the DX / spotter" set `store.pendingTalk`; `App.tsx` switches
 to the Talk tab and `TalkPanel` adopts the call. Band edges / sub-bands in
-`src/lib/bands.ts`.
+`src/lib/bands.ts`. That file also carries two frontend-only marker sets drawn
+into each lane via `specialFreqsInBand(band)`: SOS = the IARU Region 1 "global
+emergency" simplex frequencies (3760/7060/14300/18160/21360/24960/28560 kHz —
+a courtesy calling/coordination point for disaster traffic, not an official
+distress frequency), IBP = the NCDXF/IARU International Beacon Project's 5
+frequencies (14100/18110/21150/24930/28200 kHz). Both are static reference
+constants, no backend/store involvement. Each renders as its own half-height
+row (`.bandmap-spot-special`, `special-sos`/`special-ibp` — red/blue,
+theme-aware `--danger`/`--accent`) showing the frequency + "SOS"/"IBP",
+exactly like a spot row but half as tall. Rather than a floating per-kHz
+overlay, spot groups and special markers are merged into one
+frequency-ordered row list (`Lane`'s `rowsSorted`/`rowTop`/`specialTop`) so
+every item — real or marker — always gets its own slot; two fixed marker
+frequencies past the last spot can no longer quantize onto the same
+"after-the-last-row" offset and land on top of each other. `yOf(khz)` (used
+for the band-plan shading boundaries, the radio cursor and follow-scrolling)
+walks that same merged list, so it accounts for marker row heights too; an
+empty lane (no spots at all) instead places everything — ticks and markers —
+on the plain proportional scale as before. Left-click opens a minimal
+`SpecialPopover` (frequency + hint text + a single **Tune radio** button,
+hidden when CAT is off) — no context menu, no "prepare QSO", it isn't a real
+spot. Legend swatches (`.swatch-sos`/`.swatch-ibp`) in `BandmapPanel`'s legend
+strip; i18n `bandmap.sosHint|ibpHint` (per-marker tooltip / popover text) and
+`bandmap.sosLegend|ibpLegend` (legend tooltip).
 
 **Map:** `MapPanel` (tab in the "spotting" group) → `components/WorldMap.tsx`,
 an inline-SVG world map via `d3-geo` + a bundled Natural Earth outline

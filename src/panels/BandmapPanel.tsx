@@ -144,6 +144,15 @@ export const BandmapPanel = memo(function BandmapPanel({
           <span className="bm-swatch swatch-alert" />
           {tr("bandmap.legendAlert")}
         </span>
+        <span className="legend-sep">·</span>
+        <span className="legend-item" title={tr("bandmap.sosLegend")}>
+          <span className="bm-swatch swatch-sos" />
+          SOS
+        </span>
+        <span className="legend-item" title={tr("bandmap.ibpLegend")}>
+          <span className="bm-swatch swatch-ibp" />
+          IBP
+        </span>
       </div>
 
       <Bandmap spots={spots} actions={actions} bands={shownBands} zoom={zoom} onZoomBy={zoomBy} />

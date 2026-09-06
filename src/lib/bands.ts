@@ -46,6 +46,34 @@ export function bandSegments(b: BandmapBand): BandSegment[] {
   return segs;
 }
 
+export type SpecialFreqKind = "sos" | "ibp";
+
+export interface SpecialFreq {
+  khz: number;
+  kind: SpecialFreqKind;
+}
+
+// IARU Region 1 HF band-plan "global emergency" simplex frequencies: the
+// de-facto calling/coordination points for disaster and emergency traffic.
+// Not an official distress frequency (there is no such thing in the amateur
+// bands) — a courtesy marker so operators think twice before parking on one.
+const SOS_KHZ = [3760, 7060, 14300, 18160, 21360, 24960, 28560];
+
+// NCDXF/IARU International Beacon Project: 18 beacons world-wide, round-robin
+// every 10s in an endless 3-minute cycle, one transmitter at a time per
+// frequency — a quick propagation check across bands.
+const IBP_KHZ = [14100, 18110, 21150, 24930, 28200];
+
+export const SPECIAL_FREQS: SpecialFreq[] = [
+  ...SOS_KHZ.map((khz) => ({ khz, kind: "sos" as const })),
+  ...IBP_KHZ.map((khz) => ({ khz, kind: "ibp" as const })),
+];
+
+/** The SOS / IBP marker frequencies that fall inside one band's lane. */
+export function specialFreqsInBand(b: BandmapBand): SpecialFreq[] {
+  return SPECIAL_FREQS.filter((f) => f.khz >= b.lowKhz && f.khz <= b.highKhz);
+}
+
 /** Nice tick spacing (kHz) for a lane spanning `spanKhz`. */
 export function tickStepKhz(spanKhz: number): number {
   if (spanKhz <= 60) return 10;

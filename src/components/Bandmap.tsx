@@ -10,7 +10,15 @@ import {
 } from "react";
 import { matchingAlert, type AlertRule } from "@/lib/alerts";
 import { modeClass, modeLabel } from "@/lib/mode";
-import { BANDMAP_BANDS, bandSegments, tickStepKhz, type BandmapBand } from "@/lib/bands";
+import {
+  BANDMAP_BANDS,
+  bandSegments,
+  specialFreqsInBand,
+  tickStepKhz,
+  type BandmapBand,
+  type SpecialFreq,
+  type SpecialFreqKind,
+} from "@/lib/bands";
 import { useCluster } from "@/store/useCluster";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
@@ -33,6 +41,7 @@ function Lane({
   zoom,
   onPick,
   onSelect,
+  onSpecialSelect,
   radioKhz,
   active,
   dimmed,
@@ -48,6 +57,7 @@ function Lane({
   zoom: number;
   onPick: (e: MouseEvent, s: EnrichedSpot) => void;
   onSelect: (e: MouseEvent, s: EnrichedSpot) => void;
+  onSpecialSelect: (e: MouseEvent, f: SpecialFreq) => void;
   radioKhz: number | null;
   active: boolean;
   dimmed: boolean;
@@ -85,20 +95,51 @@ function Lane({
   const n = groups.length;
   const s = Math.min(zoom, 2);
   const rowH = n > 0 ? Math.max(14 * s, Math.min(34 * s, (availH / n) * zoom)) : 34 * s;
-  const laneH = Math.max(availH, n * rowH);
+  const specials = useMemo(() => specialFreqsInBand(band), [band]);
+  // SOS/IBP markers render as their own half-height row, just like a spot
+  // row. When there are real spots they're merged into one frequency-ordered
+  // list together with the spot groups — rather than positioned by a
+  // floating per-kHz line — so each item always gets its own slot: two fixed
+  // marker frequencies past the last spot can otherwise both quantize onto
+  // the same "after the last row" offset and land on top of each other.
+  const specialRowH = Math.max(10 * s, rowH / 2);
+  const { rowsSorted, rowTop, specialTop, contentH } = useMemo(() => {
+    const rows = [
+      ...groups.map((g, idx) => ({ freqKhz: g.rep.freq_khz, h: rowH, kind: "spot" as const, idx })),
+      ...specials.map((f) => ({ freqKhz: f.khz, h: specialRowH, kind: "special" as const, f })),
+    ].sort((a, b) => a.freqKhz - b.freqKhz);
+    const rowTop: number[] = new Array(groups.length);
+    const specialTop = new Map<number, number>();
+    let y = 0;
+    for (const r of rows) {
+      if (r.kind === "spot") rowTop[r.idx] = y;
+      else specialTop.set(r.f.khz, y);
+      y += r.h;
+    }
+    return { rowsSorted: rows, rowTop, specialTop, contentH: y };
+  }, [groups, specials, rowH, specialRowH]);
+  const laneH = n === 0 ? availH : Math.max(availH, contentH);
 
   const span = band.highKhz - band.lowKhz;
-  // The frequency axis is non-linear: it's the row index (spots below `khz`),
-  // so the band-plan shading stretches to follow the actual spot density. When
-  // the lane is empty it falls back to a plain proportional scale.
+  // The frequency axis is non-linear once there's at least one spot: it walks
+  // the same row layout as above (spot rows *and* SOS/IBP marker rows, so a
+  // marker's height is accounted for too), and it stretches to follow the
+  // actual density. An empty lane falls back to a plain proportional scale
+  // (also used to place the SOS/IBP markers there).
   const yOf =
     n === 0
       ? (khz: number) => ((khz - band.lowKhz) / span) * laneH
       : (khz: number) => {
-          let i = 0;
-          while (i < n && groups[i].rep.freq_khz < khz) i++;
-          return i * rowH;
+          let y = 0;
+          for (const r of rowsSorted) {
+            if (r.freqKhz >= khz) break;
+            y += r.h;
+          }
+          return y;
         };
+  // A row's own top is a plain lookup — exact and O(1), unlike the O(n) walk
+  // above needed for an arbitrary boundary (segment edges, the radio cursor).
+  const specialY = (khz: number) => (n === 0 ? yOf(khz) : (specialTop.get(khz) ?? yOf(khz)));
 
   // The station the radio is sitting on (VFO within ~0.5 kHz), if any.
   const nearKey = useMemo(() => {
@@ -193,6 +234,23 @@ function Lane({
               </div>
             );
           })}
+          {specials.map((f) => (
+            <div
+              key={`${f.kind}-${f.khz}`}
+              className="bandmap-row"
+              style={{ top: specialY(f.khz), height: specialRowH }}
+            >
+              <span className="bandmap-rowfreq mono">{f.khz.toFixed(1)}</span>
+              <button
+                className={`bandmap-spot bandmap-spot-special special-${f.kind}`}
+                title={tr(`bandmap.${f.kind}Hint`, { freq: (f.khz / 1000).toFixed(3) })}
+                onClick={(e) => onSpecialSelect(e, f)}
+                onContextMenu={(e) => e.preventDefault()}
+              >
+                {f.kind.toUpperCase()}
+              </button>
+            </div>
+          ))}
           {groups.map(({ key, list, count, rep }, i) => {
             const hit = rules.length > 0 && list.some((s) => matchingAlert(s, rules));
             const spotters = [...new Set(list.map((s) => s.spotter))];
@@ -207,7 +265,7 @@ function Lane({
               .filter(Boolean)
               .join(" · ");
             return (
-              <div key={key} className="bandmap-row" style={{ top: i * rowH, height: rowH }}>
+              <div key={key} className="bandmap-row" style={{ top: rowTop[i], height: rowH }}>
                 <span className="bandmap-rowfreq mono">{rep.freq_khz.toFixed(1)}</span>
                 <button
                   className={`bandmap-spot${hit ? " alert-hit" : ""}${
@@ -234,6 +292,81 @@ function Lane({
   );
 }
 
+/**
+ * The small fact card shown when a SOS/IBP marker row is left-clicked —
+ * unlike `SpotPopover` it isn't a real spot, so it carries no dx/spotter
+ * facts and no context-menu actions, just the frequency + a "Tune radio"
+ * button (hidden when CAT is off, like `SpotPopover`'s own).
+ */
+function SpecialPopover({
+  freqKhz,
+  kind,
+  x,
+  y,
+  catEnabled,
+  onClose,
+}: {
+  freqKhz: number;
+  kind: SpecialFreqKind;
+  x: number;
+  y: number;
+  catEnabled: boolean;
+  onClose: () => void;
+}) {
+  const tr = useT();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDoc = (e: globalThis.MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const [pos, setPos] = useState({ left: x + 8, top: y + 8 });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const { width, height } = el.getBoundingClientRect();
+    setPos({
+      left: Math.max(8, Math.min(x + 8, window.innerWidth - width - 8)),
+      top: Math.max(8, Math.min(y + 8, window.innerHeight - height - 8)),
+    });
+  }, [x, y]);
+
+  return (
+    <div className="spot-pop special-pop" ref={ref} style={{ left: pos.left, top: pos.top }}>
+      <div className="spot-pop-head">
+        <span className={`spot-pop-call special-${kind}`}>{kind.toUpperCase()}</span>
+        <button className="spot-pop-x" onClick={onClose} aria-label={tr("common.close")}>
+          ×
+        </button>
+      </div>
+      <p className="spot-pop-comment">
+        {tr(`bandmap.${kind}Hint`, { freq: (freqKhz / 1000).toFixed(3) })}
+      </p>
+      {catEnabled && (
+        <div className="spot-pop-engage">
+          <button
+            onClick={() => {
+              void ipc.rigSet(freqKhz).catch((e) => console.warn("rigSet", e));
+              onClose();
+            }}
+          >
+            {tr("spots.menu.tuneRadio")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const Bandmap = memo(function Bandmap({
   spots,
   actions,
@@ -253,8 +386,15 @@ export const Bandmap = memo(function Bandmap({
   // The radio's live VFO (whenever CAT is connected) drives the lane cursor,
   // the "active band" highlight, and the on-frequency spot marker.
   const radioKhz = useCluster((s) => (s.catEnabled && s.rigVfo ? s.rigVfo.freqHz / 1000 : null));
+  const catEnabled = useCluster((s) => s.catEnabled);
   const [menu, setMenu] = useState<{ x: number; y: number; spot: EnrichedSpot } | null>(null);
   const [pop, setPop] = useState<{ x: number; y: number; spot: EnrichedSpot } | null>(null);
+  const [specialPop, setSpecialPop] = useState<{
+    x: number;
+    y: number;
+    freqKhz: number;
+    kind: SpecialFreqKind;
+  } | null>(null);
 
   // Track the available height so quiet lanes fill the viewport at zoom 1.
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -324,6 +464,11 @@ export const Bandmap = memo(function Bandmap({
             setMenu(null);
             setPop({ x: e.clientX, y: e.clientY, spot: s });
           }}
+          onSpecialSelect={(e, f) => {
+            setMenu(null);
+            setPop(null);
+            setSpecialPop({ x: e.clientX, y: e.clientY, freqKhz: f.khz, kind: f.kind });
+          }}
           radioKhz={radioKhz}
           active={b.label === activeBand}
           dimmed={activeBand != null && b.label !== activeBand}
@@ -352,6 +497,16 @@ export const Bandmap = memo(function Bandmap({
           y={pop.y}
           actions={actions}
           onClose={() => setPop(null)}
+        />
+      )}
+      {specialPop && (
+        <SpecialPopover
+          freqKhz={specialPop.freqKhz}
+          kind={specialPop.kind}
+          x={specialPop.x}
+          y={specialPop.y}
+          catEnabled={catEnabled}
+          onClose={() => setSpecialPop(null)}
         />
       )}
       {menu && (

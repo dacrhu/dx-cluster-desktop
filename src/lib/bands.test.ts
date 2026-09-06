@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BANDMAP_BANDS, bandSegments, tickStepKhz } from "./bands";
+import { BANDMAP_BANDS, bandSegments, specialFreqsInBand, tickStepKhz } from "./bands";
 
 describe("bandSegments", () => {
   it("splits a conventional HF band into CW / DIGI / SSB", () => {
@@ -30,5 +30,19 @@ describe("tickStepKhz", () => {
     expect(tickStepKhz(50)).toBe(10);
     expect(tickStepKhz(350)).toBe(50);
     expect(tickStepKhz(1700)).toBe(250);
+  });
+});
+
+describe("specialFreqsInBand", () => {
+  it("finds the IBP beacon frequency inside 20m", () => {
+    const b20 = BANDMAP_BANDS.find((b) => b.label === "20m")!;
+    const found = specialFreqsInBand(b20);
+    expect(found).toContainEqual({ khz: 14100, kind: "ibp" });
+    expect(found).toContainEqual({ khz: 14300, kind: "sos" });
+  });
+
+  it("returns nothing for a band with no marker frequency", () => {
+    const b60 = BANDMAP_BANDS.find((b) => b.label === "60m")!;
+    expect(specialFreqsInBand(b60)).toEqual([]);
   });
 });
