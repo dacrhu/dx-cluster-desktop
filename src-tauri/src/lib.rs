@@ -531,6 +531,12 @@ fn cached_mail(
         .map_err(|e| e.to_string())
 }
 
+/// Message numbers whose body we have cached for this node (= opened in the app).
+#[tauri::command]
+fn cached_mail_ids(state: State<'_, AppState>, node_id: String) -> CmdResult<Vec<u32>> {
+    state.store.mail_msgnos(&node_id).map_err(|e| e.to_string())
+}
+
 /// Post an announcement (`ANN` / `ANN/FULL`).
 #[tauri::command]
 fn post_announce(
@@ -1737,6 +1743,7 @@ pub fn run() {
             os_notify,
             read_mail,
             cached_mail,
+            cached_mail_ids,
             apply_spot_filter,
         ])
         .run(tauri::generate_context!())

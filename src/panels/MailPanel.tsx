@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useCluster, useOnlineId } from "@/store/useCluster";
 import { useT } from "@/i18n";
@@ -77,17 +77,29 @@ export const MailPanel = memo(function MailPanel() {
     return [...list].sort((a, b) => b.msgno - a.msgno);
   }, [headers, filter]);
 
+  // Parse a directory listing and restore "read" for anything we've already
+  // opened in the app — the node keeps re-reporting some messages (bulletins
+  // especially) as unread, so its flag alone flips them back every refresh.
+  const fetchHeaders = useCallback(
+    async (id: string): Promise<MailHeader[]> => {
+      const lines = await runQuery(id, SCOPE_CMD[scope], 6000);
+      const parsed = await ipc.parseDirectory(lines);
+      const readIds = new Set(await ipc.cachedMailIds(id).catch(() => [] as number[]));
+      return parsed.map((h) => (h.read || readIds.has(h.msgno) ? { ...h, read: true } : h));
+    },
+    [scope],
+  );
+
   async function refresh(): Promise<MailHeader[]> {
     if (!onlineId) return [];
     setLoading(true);
     setStatus("");
     try {
-      const lines = await runQuery(onlineId, SCOPE_CMD[scope], 6000);
-      const parsed = await ipc.parseDirectory(lines);
-      setHeaders(parsed);
-      noteMailMsgnos(parsed.map((h) => h.msgno));
-      if (parsed.length === 0) setStatus(tr("mail.noMsgs"));
-      return parsed;
+      const rows = await fetchHeaders(onlineId);
+      setHeaders(rows);
+      noteMailMsgnos(rows.map((h) => h.msgno));
+      if (rows.length === 0) setStatus(tr("mail.noMsgs"));
+      return rows;
     } finally {
       setLoading(false);
     }
@@ -112,11 +124,10 @@ export const MailPanel = memo(function MailPanel() {
     const poll = async () => {
       if (busyRef.current) return;
       try {
-        const lines = await runQuery(onlineId, SCOPE_CMD[scope], 6000);
-        const parsed = await ipc.parseDirectory(lines);
+        const rows = await fetchHeaders(onlineId);
         if (stop) return;
-        setHeaders(parsed);
-        if (noteMailMsgnos(parsed.map((h) => h.msgno)))
+        setHeaders(rows);
+        if (noteMailMsgnos(rows.map((h) => h.msgno)))
           void notify(tr("mail.notifyTitle"), tr("mail.notifyBody"));
       } catch {
         /* transient — next tick retries */
@@ -127,7 +138,7 @@ export const MailPanel = memo(function MailPanel() {
       stop = true;
       clearInterval(iv);
     };
-  }, [onlineId, mailWatchEnabled, scope, noteMailMsgnos, tr]);
+  }, [onlineId, mailWatchEnabled, fetchHeaders, noteMailMsgnos, tr]);
 
   async function open(h: MailHeader) {
     if (!onlineId) return;

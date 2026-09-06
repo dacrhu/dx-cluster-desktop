@@ -624,6 +624,12 @@ the Mail tab's "new activity" dot; the poll also fires an `os_notify` toast
 `noteMailMsgnos` to keep the baseline current. Toggle: Connection panel →
 Settings → "Mail" group.
 
+**Read flags survive a refresh:** `MailPanel::fetchHeaders` ORs each parsed
+`MailHeader.read` with membership of `cached_mail_ids` (`store::mail_msgnos` —
+every msgno with a cached body = one the operator opened here). Nodes keep
+re-reporting messages (bulletins especially) as unread, so the node's `-` flag
+alone flips them back on every `directory`.
+
 The two-pane panels (`.mail-layout` / `.talk-layout` / `.users-layout`)
 stack to one column under 760px; `.mail-layout` also reflows via
 `auto-fit minmax`; `.panel-head` is `flex-wrap: wrap`. The Connection panel runs

@@ -543,6 +543,17 @@ impl Store {
         Ok(())
     }
 
+    /// Every message number we have a cached body for on this node — i.e. every
+    /// message the operator has opened in the app. Used to keep the directory
+    /// list's "read" flags stable across refreshes (the node may keep reporting
+    /// a message as unread, especially bulletins).
+    pub fn mail_msgnos(&self, node_id: &str) -> Result<Vec<u32>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT msgno FROM mail WHERE node_id=?1")?;
+        let rows = stmt.query_map(params![node_id], |r| r.get::<_, u32>(0))?;
+        rows.collect::<Result<Vec<_>>>()
+    }
+
     /// Fetch a cached message body.
     pub fn get_mail(&self, node_id: &str, msgno: u32) -> Result<Option<StoredMail>> {
         let conn = self.conn.lock().unwrap();
@@ -920,5 +931,11 @@ mod tests {
         assert_eq!(got.subject, "hello");
         assert_eq!(got.body, "body text");
         assert!(store.get_mail("n", 999).unwrap().is_none());
+
+        store.upsert_mail("n", &m, 100).unwrap(); // re-cache = still one row
+        let mut ids = store.mail_msgnos("n").unwrap();
+        ids.sort_unstable();
+        assert_eq!(ids, vec![7]);
+        assert!(store.mail_msgnos("other").unwrap().is_empty());
     }
 }

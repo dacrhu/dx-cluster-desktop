@@ -185,6 +185,10 @@ export const readMail = (nodeId: string, lines: string[]) =>
 export const cachedMail = (nodeId: string, msgno: number) =>
   invoke<StoredMail | null>("cached_mail", { nodeId, msgno });
 
+/** Message numbers already read (cached) in the app, to keep "read" flags
+ *  stable when the node re-reports a message as unread on refresh. */
+export const cachedMailIds = (nodeId: string) => invoke<number[]>("cached_mail_ids", { nodeId });
+
 // --- events -----------------------------------------------------------------
 
 type Pair<T> = [string, T];
