@@ -1314,6 +1314,7 @@ button.chip.active {
 .wm-country-label,
 .wm-greyband,
 .wm-aurora,
+.wm-muf-line path,
 .wm-opening {
   vector-effect: non-scaling-stroke;
 }

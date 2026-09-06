@@ -702,6 +702,7 @@ export const WorldMap = memo(function WorldMap({
         (() => {
           const s = popup.spot;
           const rep = reports.find((r) => r.spot.id === s.id);
+          const repComments = rep ? rep.members.filter((m) => m.comment) : [];
           const rows: [string, string][] = [];
           rows.push([tr("col.khz"), `${s.freq_khz.toFixed(1)}${s.band ? `  ·  ${s.band}` : ""}`]);
           rows.push([tr("col.mode"), modeLabel(s.mode, s.comment)]);
@@ -756,17 +757,14 @@ export const WorldMap = memo(function WorldMap({
                   </div>
                 ))}
               </dl>
-              {rep && rep.members.length > 1 ? (
+              {repComments.length > 1 ? (
                 <ul className="wm-popup-reports">
-                  {rep.members.map(
-                    (m) =>
-                      m.comment && (
-                        <li key={m.id}>
-                          <span className="wm-popup-report-age">{fmtAge(m.received_at)}</span>
-                          {m.comment}
-                        </li>
-                      ),
-                  )}
+                  {repComments.map((m) => (
+                    <li key={m.id}>
+                      <span className="wm-popup-report-age">{fmtAge(m.received_at)}</span>
+                      {m.comment}
+                    </li>
+                  ))}
                 </ul>
               ) : (
                 s.comment && <p className="wm-popup-comment">{s.comment}</p>
