@@ -88,6 +88,9 @@ interface ClusterStore {
   mapLabels: boolean;
   /** Map: highlight spots/paths sitting in the sunrise/sunset grey-line band. */
   mapGreyline: boolean;
+  /** Grey-line band half-width, degrees of solar elevation either side of the
+   *  terminator (9 = the classic ±9° twilight zone). */
+  mapGreylineWidth: number;
   /** Map: draw the K-index auroral-oval caps around the geomagnetic poles. */
   mapAurora: boolean;
   /** Map: solar / geomagnetic HUD card (SFI / A / K / SSN from WWV/WCY). */
@@ -216,6 +219,7 @@ interface ClusterStore {
   setMapArcs: (on: boolean) => void;
   setMapLabels: (on: boolean) => void;
   setMapGreyline: (on: boolean) => void;
+  setMapGreylineWidth: (deg: number) => void;
   setMapAurora: (on: boolean) => void;
   setMapCondHud: (on: boolean) => void;
   setMapBandRose: (on: boolean) => void;
@@ -297,6 +301,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   mapArcs: false,
   mapLabels: true,
   mapGreyline: false,
+  mapGreylineWidth: 9,
   mapAurora: false,
   mapCondHud: true,
   mapBandRose: false,
@@ -449,6 +454,8 @@ export const useCluster = create<ClusterStore>((set) => ({
   setMapArcs: (mapArcs) => set({ mapArcs }),
   setMapLabels: (mapLabels) => set({ mapLabels }),
   setMapGreyline: (mapGreyline) => set({ mapGreyline }),
+  setMapGreylineWidth: (mapGreylineWidth) =>
+    set({ mapGreylineWidth: Math.min(12, Math.max(3, Math.round(mapGreylineWidth) || 9)) }),
   setMapAurora: (mapAurora) => set({ mapAurora }),
   setMapCondHud: (mapCondHud) => set({ mapCondHud }),
   setMapBandRose: (mapBandRose) => set({ mapBandRose }),

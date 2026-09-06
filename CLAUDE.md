@@ -344,11 +344,14 @@ computed frontend-side from data already in the store (WWV/WCY numbers, the spot
 stream, the QTH) — no Rust, no external data, **except** the MUF layer's
 optional measured overlay added in phase 13 (see `store.mapMuf` below):
 
-- `store.mapGreyline` — `src/lib/grayline.ts::inGreyline` (Sun within ±9° of the
-  horizon at a point); draws a faint grey twilight annulus (`.wm-greyband`,
-  `fill-rule: evenodd` between two `geoCircle`s on the sub-solar point) and
-  rings spot dots (`.wm-spot.grey`) whose DX is in the band. Also a `grey`
-  bare flag in `compileQuery` (`src/lib/query.ts`) → Spots/Bandmap/Map filter.
+- `store.mapGreyline` — `src/lib/grayline.ts::inGreyline` (Sun within
+  ±`store.mapGreylineWidth`° — default 9, slider 3–12 in the Layers popover — of
+  the horizon at a point); draws a faint grey twilight annulus (`.wm-greyband`,
+  `fill-rule: evenodd` between two `geoCircle`s of radius `90 ± width` on the
+  sub-solar point) and rings spot dots (`.wm-spot.grey`) whose DX is in the
+  band. Also a `grey` bare flag in `compileQuery` (`src/lib/query.ts`) →
+  Spots/Bandmap/Map filter — that one stays a fixed ±9° (a search shouldn't
+  shift with a map display setting).
 - `store.mapAurora` — `src/lib/aurora.ts::auroraOvals(k)`: K-index-scaled
   colatitude caps around the geomagnetic poles (`GEOMAG_NORTH/SOUTH`).
 - `store.mapMuf` — `src/lib/muf.ts`: a MUF(3000) filled-contour layer.
@@ -404,11 +407,14 @@ optional measured overlay added in phase 13 (see `store.mapMuf` below):
   marker, under the spots (`.wm-rose-bloom*`, `rosePetals()` helper) — screen
   angle = true bearing there; the flat projection falls back to the small
   bottom-left corner rose (`.wm-rose*`).
-- `store.mapCondHud` (default on) — HTML overlay top-left showing SFI / A / K /
-  SSN from `wwv[0]`/`wcy[0]`, left border tinted by K (green/amber/red).
+- `store.mapCondHud` (default on) — a `<button className="wm-hud">` top-left
+  showing SFI / A / K / SSN from `wwv[0]`/`wcy[0]`, left border tinted by K
+  (green/amber/red); clicking it jumps to the Propagation tab
+  (`onGoToPropagation`, App → MapPanel → WorldMap).
   The `WorldMap` time `tick` interval now also runs for greyline/MUF (not just
   grayline). i18n `map.greyline`, `map.aurora`, `map.muf`, `map.openings`,
-  `map.bandRose`, `map.condHud`, `qh.grey`.
+  `map.bandRose`, `map.condHud`, `map.condHudHint`, `map.greylineWidth`,
+  `qh.grey`.
 
 **RBN feed:** `NodeProfile.kind` (`dxcluster_core::connection::NodeKind` —
 `cluster` | `rbn`, serde default `cluster`, so old saved profiles still load).
@@ -681,7 +687,10 @@ The same include/`-exclude` text filter (`matchTerms()`, now shared from
 `PropagationPanel`'s WWV/WCY history tables — one search box above both tables,
 matched against `sender`+`forecast` for WWV rows and `sender`+`sa`+`gmf`+`aurora`
 for WCY rows; an empty result shows `prop.noMatch` instead of `prop.noData` so
-"no data at all" and "filtered to nothing" read differently.
+"no data at all" and "filtered to nothing" read differently. The WCY `SA` / `GMF`
+/ `Au` shorthand (`qui` / `act` / `maj` / `no` / `yes` …) is shown decoded via
+`src/lib/wcy.ts::describeWcyCode` (i18n `prop.wcyCode.*`), with the raw code in
+the cell / stat-value `title`; the search still matches the raw `w.sa` etc.
 
 **AR-Cluster dialect (spot filters).** `NodeProfile.software` (`connection::NodeSoftware`
 — `DxSpider` | `ArCluster`, serde default `DxSpider`, mirrors `kind`'s pattern) picks
@@ -724,11 +733,24 @@ detection.
 **Next:** map polish (canvas if SVG is slow — user reports it's fine for now;
 the skimmer table now accumulates across scrapes so coverage grows past the
 ~300 currently-active, but a spot from a never-seen skimmer still uses the DXCC
-centroid); phase 12 v2 polish — adjustable grey-line band width, HUD →
-Propagation tab on click, decode the WCY `Au` text. CAT: RIT/XIT possible
-fast-follow (split is button-only today, and `catSplit` "always honour QSX on
-plain Tune" was deliberately dropped — comment QSX data is too often wrong);
-multi-radio config only if asked.
+centroid). Phase 12 v2 polish **done**: grey-line band width is a slider
+(`store.mapGreylineWidth`, ±3–12°, in the Map "Layers ▾" popover under the
+greyline toggle; feeds both the `wm-greyband` annulus radii and the
+`inGreyline` spot-ring test — the `grey:` query flag stays a fixed ±9° so
+search results don't shift with a display setting); the conditions HUD
+(`.wm-hud`) is a `<button>` → Propagation tab (`onGoToPropagation` threaded
+App → MapPanel → WorldMap); WCY `SA`/`GMF`/`Au` codes are decoded for display
+via `src/lib/wcy.ts::describeWcyCode` (`qui`→quiet, `act`→active, `maj`→major
+storm, `no`/`yes` for aurora …; raw code kept in the cell `title`, unknown /
+numeric values pass through). Still open: HUD → decode the WCY `Au` _number_
+(high-latitude auroral level) rather than just no/yes; `ToolsPanel`'s `SH/DX`
+is still DXSpider-only (ad hoc in the frontend, not `commands::sh_dx`) —
+deferred until the AR-Cluster live verification (`docs/p0-verification.md`)
+happens, since AR's `show/dx field=value` syntax and history-table output need
+checking on the same node. CAT: RIT/XIT possible fast-follow (split is
+button-only today, and `catSplit` "always honour QSX on plain Tune" was
+deliberately dropped — comment QSX data is too often wrong); multi-radio
+config only if asked.
 
 **Verified against live data (DXSpider V1.57 build 686, `hg8lxl.ham.hu`):** the
 mail `DIRECTORY` / `READ` parsers in `parser/mail.rs` — real capture showed the

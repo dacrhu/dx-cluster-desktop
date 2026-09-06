@@ -128,6 +128,7 @@ export function App() {
   // here would defeat the memo.
   const goToFilters = useCallback(() => setTab("filters"), []);
   const goToSpots = useCallback(() => setTab("spots"), []);
+  const goToPropagation = useCallback(() => setTab("propagation"), []);
 
   useEffect(() => setActiveLang(store.lang), [store.lang, store.sysLocale]);
 
@@ -236,6 +237,7 @@ export function App() {
       c().setMapArcs(settings.mapArcs ?? false);
       c().setMapLabels(settings.mapLabels ?? true);
       c().setMapGreyline(settings.mapGreyline ?? false);
+      c().setMapGreylineWidth(settings.mapGreylineWidth ?? 9);
       c().setMapAurora(settings.mapAurora ?? false);
       c().setMapCondHud(settings.mapCondHud ?? true);
       c().setMapBandRose(settings.mapBandRose ?? false);
@@ -478,7 +480,11 @@ export function App() {
         </div>
         <div hidden={tab !== "map"} className="panel-fill">
           <ErrorBoundary label={tr("tab.map")}>
-            <MapPanel onGoToFilters={goToFilters} active={tab === "map"} />
+            <MapPanel
+              onGoToFilters={goToFilters}
+              onGoToPropagation={goToPropagation}
+              active={tab === "map"}
+            />
           </ErrorBoundary>
         </div>
         <div hidden={tab !== "filters"}>

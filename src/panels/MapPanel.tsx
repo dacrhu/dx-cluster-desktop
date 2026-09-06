@@ -20,9 +20,12 @@ const NO_ENTITIES: CtyEntity[] = [];
 
 export const MapPanel = memo(function MapPanel({
   onGoToFilters,
+  onGoToPropagation,
   active,
 }: {
   onGoToFilters: () => void;
+  /** Jump to the Propagation tab — the conditions HUD is a shortcut to it. */
+  onGoToPropagation: () => void;
   /** Whether the Map tab is the one currently shown — while false, the
    *  `WorldMap` (an SVG map re-computing several layers per spot) is fed a
    *  frozen snapshot instead of live data, so it doesn't redo that work in
@@ -134,6 +137,7 @@ export const MapPanel = memo(function MapPanel({
         actions={actions}
         home={home}
         entities={frozenEntities}
+        onGoToPropagation={onGoToPropagation}
       />
     </div>
   );

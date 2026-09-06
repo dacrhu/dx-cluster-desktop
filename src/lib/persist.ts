@@ -37,6 +37,7 @@ export interface AppSettings {
   mapArcs: boolean;
   mapLabels: boolean;
   mapGreyline: boolean;
+  mapGreylineWidth: number;
   mapAurora: boolean;
   mapCondHud: boolean;
   mapBandRose: boolean;
@@ -106,6 +107,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   mapArcs: false,
   mapLabels: true,
   mapGreyline: false,
+  mapGreylineWidth: 9,
   mapAurora: false,
   mapCondHud: true,
   mapBandRose: false,

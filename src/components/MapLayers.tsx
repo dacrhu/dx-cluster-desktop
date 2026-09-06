@@ -28,6 +28,8 @@ export function MapLayers({
   const setLabels = useCluster((s) => s.setMapLabels);
   const greyline = useCluster((s) => s.mapGreyline);
   const setGreyline = useCluster((s) => s.setMapGreyline);
+  const greyWidth = useCluster((s) => s.mapGreylineWidth);
+  const setGreyWidth = useCluster((s) => s.setMapGreylineWidth);
   const auroraOn = useCluster((s) => s.mapAurora);
   const setAurora = useCluster((s) => s.setMapAurora);
   const condHud = useCluster((s) => s.mapCondHud);
@@ -109,6 +111,24 @@ export function MapLayers({
           <h4>{tr("map.grpPropagation")}</h4>
           <div className="ml-grid">
             {row(greyline, setGreyline, tr("map.greyline"), "mapGreyline")}
+            {greyline && (
+              <label className="inline ml-row ml-slider">
+                {tr("map.greylineWidth")}
+                <input
+                  type="range"
+                  min={3}
+                  max={12}
+                  step={1}
+                  value={greyWidth}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setGreyWidth(v);
+                    void patchSettings({ mapGreylineWidth: v });
+                  }}
+                />
+                <span className="mono">±{greyWidth}°</span>
+              </label>
+            )}
             {row(auroraOn, setAurora, tr("map.aurora"), "mapAurora")}
             {row(mufOn, setMuf, tr("map.muf"), "mapMuf")}
             {row(openingsOn, setOpenings, tr("map.openings"), "mapOpenings")}

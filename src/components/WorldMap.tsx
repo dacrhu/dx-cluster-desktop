@@ -76,6 +76,7 @@ export const WorldMap = memo(function WorldMap({
   actions,
   home,
   entities,
+  onGoToPropagation,
 }: {
   spots: EnrichedSpot[];
   reports: MyReport[];
@@ -83,12 +84,15 @@ export const WorldMap = memo(function WorldMap({
   home: LonLat | null;
   /** DXCC entities to label faintly with their prefix; empty to hide labels. */
   entities: CtyEntity[];
+  /** Jump to the Propagation tab — invoked from the conditions HUD. */
+  onGoToPropagation: () => void;
 }) {
   const tr = useT();
   const projectionKind = useCluster((s) => s.mapProjection);
   const grayline = useCluster((s) => s.mapGrayline);
   const arcs = useCluster((s) => s.mapArcs);
   const greyline = useCluster((s) => s.mapGreyline);
+  const greyWidth = useCluster((s) => s.mapGreylineWidth);
   const aurora = useCluster((s) => s.mapAurora);
   const condHud = useCluster((s) => s.mapCondHud);
   const showRose = useCluster((s) => s.mapBandRose);
@@ -254,18 +258,29 @@ export const WorldMap = memo(function WorldMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grayline, rawPath, tick]);
 
-  // Grey-line band: the annulus between "Sun 9° up" and "Sun 9° down" — i.e. two
-  // geoCircles centred on the sub-solar point, the outer minus the inner.
+  // Grey-line band: the annulus between "Sun +w° up" and "Sun -w° down" — i.e.
+  // two geoCircles centred on the sub-solar point, the outer minus the inner.
+  // `w` = `mapGreylineWidth` (default 9, the classic ±9° twilight zone).
   const greyBandPath = useMemo(() => {
     void tick;
     if (!greyline || !rawPath) return undefined;
     const c = subsolarPoint(new Date());
     // Outer + inner ring as two subpaths; `fill-rule: evenodd` carves the annulus.
-    const outer = path(geoCircle().center(c).radius(99)() as GeoAny) ?? "";
-    const inner = path(geoCircle().center(c).radius(81)() as GeoAny) ?? "";
+    const outer =
+      path(
+        geoCircle()
+          .center(c)
+          .radius(90 + greyWidth)() as GeoAny,
+      ) ?? "";
+    const inner =
+      path(
+        geoCircle()
+          .center(c)
+          .radius(90 - greyWidth)() as GeoAny,
+      ) ?? "";
     return outer && inner ? outer + inner : undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [greyline, rawPath, tick]);
+  }, [greyline, greyWidth, rawPath, tick]);
 
   const auroraPaths = useMemo(() => {
     if (!aurora || !rawPath) return [];
@@ -378,7 +393,7 @@ export const WorldMap = memo(function WorldMap({
   const isGrey = (s: EnrichedSpot): boolean => {
     if (!greyline) return false;
     const ll = spotLonLat(s);
-    return ll ? inGreyline(ll, new Date()) : false;
+    return ll ? inGreyline(ll, new Date(), greyWidth) : false;
   };
 
   /** Petal <path>s for the band rose, centred at (cx,cy) with a given reach.
@@ -679,7 +694,12 @@ export const WorldMap = memo(function WorldMap({
       )}
 
       {condHud && (latestWwv || latestWcy) && (
-        <div className={`wm-hud k${Math.min(9, Math.round(kIndex))}`}>
+        <button
+          type="button"
+          className={`wm-hud k${Math.min(9, Math.round(kIndex))}`}
+          onClick={onGoToPropagation}
+          title={tr("map.condHudHint")}
+        >
           {latestWwv && (
             <>
               <span>
@@ -696,7 +716,7 @@ export const WorldMap = memo(function WorldMap({
           <span>
             SSN <b>{ssn}</b>
           </span>
-        </div>
+        </button>
       )}
 
       {popup &&

@@ -3,14 +3,27 @@ import { useCluster, useOnlineId } from "@/store/useCluster";
 import { useShallow } from "zustand/react/shallow";
 import { fmtAge, fmtUtc } from "@/lib/format";
 import { matchTerms } from "@/lib/util";
+import { describeWcyCode } from "@/lib/wcy";
 import { useT } from "@/i18n";
 import { runQuery } from "@/lib/ipc";
 
-function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
+function Stat({
+  label,
+  value,
+  hint,
+  title,
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+  title?: string;
+}) {
   return (
     <div className="stat">
       <span className="stat-label">{label}</span>
-      <span className="stat-value">{value}</span>
+      <span className="stat-value" title={title}>
+        {value}
+      </span>
       {hint && <span className="stat-hint">{hint}</span>}
     </div>
   );
@@ -91,9 +104,23 @@ export const PropagationPanel = memo(function PropagationPanel() {
           <Stat label="A" value={latestWcy.a} />
           <Stat label="K / exp" value={`${latestWcy.k} / ${latestWcy.expk}`} />
           <Stat label="R" value={latestWcy.r} hint={tr("prop.sunspots")} />
-          <Stat label="SA" value={latestWcy.sa} hint={tr("prop.solarActivity")} />
-          <Stat label="GMF" value={latestWcy.gmf} hint={tr("prop.geomagField")} />
-          <Stat label={tr("prop.aurora")} value={latestWcy.aurora} />
+          <Stat
+            label="SA"
+            value={describeWcyCode(latestWcy.sa, tr)}
+            hint={tr("prop.solarActivity")}
+            title={latestWcy.sa}
+          />
+          <Stat
+            label="GMF"
+            value={describeWcyCode(latestWcy.gmf, tr)}
+            hint={tr("prop.geomagField")}
+            title={latestWcy.gmf}
+          />
+          <Stat
+            label={tr("prop.aurora")}
+            value={describeWcyCode(latestWcy.aurora, tr)}
+            title={latestWcy.aurora}
+          />
           <Stat label="WCY" value={latestWcy.sender} hint={fmtAge(latestWcy.received_at)} />
         </div>
       )}
@@ -176,9 +203,9 @@ export const PropagationPanel = memo(function PropagationPanel() {
                   <td>{w.a}</td>
                   <td>{w.k}</td>
                   <td>{w.r}</td>
-                  <td>{w.sa}</td>
-                  <td>{w.gmf}</td>
-                  <td>{w.aurora}</td>
+                  <td title={w.sa}>{describeWcyCode(w.sa, tr)}</td>
+                  <td title={w.gmf}>{describeWcyCode(w.gmf, tr)}</td>
+                  <td title={w.aurora}>{describeWcyCode(w.aurora, tr)}</td>
                 </tr>
               ))}
             </tbody>

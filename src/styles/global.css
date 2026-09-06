@@ -872,6 +872,18 @@ button.chip.active {
 .ml-row {
   min-width: 0;
 }
+.ml-slider {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 20px;
+  font-size: 12px;
+}
+.ml-slider input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
 .ml-edit-filters {
   margin-top: 10px;
 }
@@ -1614,7 +1626,9 @@ button.chip.active {
   top: 8px;
   left: 8px;
   display: flex;
+  align-items: baseline;
   gap: 10px;
+  margin: 0;
   padding: 4px 9px;
   font-size: 11px;
   font-family: var(--font-mono);
@@ -1623,7 +1637,17 @@ button.chip.active {
   border: 1px solid var(--border);
   border-left: 3px solid var(--ok, #22c55e);
   border-radius: 5px;
-  pointer-events: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.wm-hud:hover {
+  background: color-mix(in srgb, var(--bg-elevated) 96%, transparent);
+  border-color: var(--accent);
+}
+.wm-hud:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 .wm-hud b {
   color: var(--text);
