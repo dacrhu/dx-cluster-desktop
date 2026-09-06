@@ -52,6 +52,31 @@ jobs:
           test "$ents" -ge 200
           mv /tmp/cty.dat src-tauri/resources/cty.dat
 
+      - name: Refresh RBN skimmer positions
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 --max-time 60 \
+            "https://www.reversebeacon.net/cont_includes/status.php?t=skt" -o /tmp/skt.html
+          python3 - <<'PY'
+          import re, sys
+          html = open("/tmp/skt.html", encoding="utf-8", errors="replace").read()
+          call_re = re.compile(r"[?&]c=([A-Za-z0-9]+(?:-\d+)?)&t=de", re.I)
+          grid_re = re.compile(r"<td>\s*([A-R]{2}\d{2}(?:[A-X]{2})?)\s*</td>", re.I)
+          seen = {}
+          for row in html.split("<tr"):  # split first so a grid-less row can't borrow the next grid
+              c, g = call_re.search(row), grid_re.search(row)
+              if c and g:
+                  seen.setdefault(c.group(1).split("-")[0].upper(), g.group(1).upper())
+          if len(seen) < 100:
+              sys.exit(f"scraped page looks wrong ({len(seen)} skimmers)")
+          with open("src-tauri/resources/rbn_skimmers.tsv", "w", encoding="utf-8") as f:
+              f.write("# RBN skimmer positions — CALL<TAB>grid. Scraped from\n")
+              f.write("# reversebeacon.net/cont_includes/status.php?t=skt\n")
+              for call in sorted(seen):
+                  f.write(f"{call}\t{seen[call]}\n")
+          print(f"wrote {len(seen)} skimmer positions")
+          PY
+
       - name: Commit if changed
         run: |
           set -euo pipefail

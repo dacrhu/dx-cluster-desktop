@@ -8,6 +8,7 @@ mod cty_update;
 mod enrich;
 mod muf_update;
 mod presets_update;
+mod skimmers_update;
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicI64, Ordering};
@@ -23,7 +24,7 @@ use dxcluster_core::parser::{
     parse_sh_dx, parse_sh_station, parse_sh_users, ClusterEvent, HistSpot, MailHeader, StationInfo,
 };
 use dxcluster_core::pskr::{self, PskrEvent, PskrReport};
-use dxcluster_core::reference::CtyDb;
+use dxcluster_core::reference::{CtyDb, SkimmerDb};
 use dxcluster_core::store::{
     Store, StoredAnnounce, StoredChat, StoredMail, StoredSpot, StoredTalk, StoredWcy, StoredWwv,
 };
@@ -111,6 +112,9 @@ pub struct AppState {
     presets: RwLock<Vec<dxcluster_core::reference::ClusterPreset>>,
     presets_version: Mutex<Option<String>>,
     presets_source: Mutex<String>,
+    /// Known RBN skimmer grid squares (`rbn_skimmers.tsv`), hot-swapped on update.
+    skimmers: RwLock<SkimmerDb>,
+    skimmers_source: Mutex<String>,
     sessions: Mutex<HashMap<String, ConnSlot>>,
     home_locator: Mutex<Option<String>>,
     /// 90 s in-memory dedup window for RBN spots — `(key, unix_seconds)`.
@@ -229,9 +233,10 @@ fn recent_spots(state: State<'_, AppState>, limit: usize) -> CmdResult<Vec<Enric
     let home = state.home();
     let spots = state.store.recent_spots(limit).map_err(|e| e.to_string())?;
     let cty = state.cty.read().unwrap();
+    let skimmers = state.skimmers.read().unwrap();
     Ok(spots
         .into_iter()
-        .map(|s| enrich(&cty, s, home.as_deref()))
+        .map(|s| enrich(&cty, &skimmers, s, home.as_deref()))
         .collect())
 }
 
@@ -241,9 +246,10 @@ fn spots_since(state: State<'_, AppState>, since: i64) -> CmdResult<Vec<Enriched
     let home = state.home();
     let spots = state.store.spots_since(since).map_err(|e| e.to_string())?;
     let cty = state.cty.read().unwrap();
+    let skimmers = state.skimmers.read().unwrap();
     Ok(spots
         .into_iter()
-        .map(|s| enrich(&cty, s, home.as_deref()))
+        .map(|s| enrich(&cty, &skimmers, s, home.as_deref()))
         .collect())
 }
 
@@ -485,9 +491,10 @@ fn search_local_spots(
         )
         .map_err(|e| e.to_string())?;
     let cty = state.cty.read().unwrap();
+    let skimmers = state.skimmers.read().unwrap();
     Ok(rows
         .into_iter()
-        .map(|s| enrich(&cty, s, home.as_deref()))
+        .map(|s| enrich(&cty, &skimmers, s, home.as_deref()))
         .collect())
 }
 
@@ -682,8 +689,12 @@ fn forward_event(app: &AppHandle, node_id: &str, ev: ConnEvent) {
                         mode: spot.mode,
                         is_skimmer: spot.is_skimmer,
                     };
-                    let enriched =
-                        enrich(&state.cty.read().unwrap(), stored, state.home().as_deref());
+                    let enriched = enrich(
+                        &state.cty.read().unwrap(),
+                        &state.skimmers.read().unwrap(),
+                        stored,
+                        state.home().as_deref(),
+                    );
                     let _ = app.emit("cluster://spot", &enriched);
                     return;
                 }
@@ -706,8 +717,12 @@ fn forward_event(app: &AppHandle, node_id: &str, ev: ConnEvent) {
                             mode: spot.mode,
                             is_skimmer: spot.is_skimmer,
                         };
-                        let enriched =
-                            enrich(&state.cty.read().unwrap(), stored, state.home().as_deref());
+                        let enriched = enrich(
+                            &state.cty.read().unwrap(),
+                            &state.skimmers.read().unwrap(),
+                            stored,
+                            state.home().as_deref(),
+                        );
                         let _ = app.emit("cluster://spot", &enriched);
                     }
                     Err(e) => log::warn!("failed to persist spot: {e}"),
@@ -954,7 +969,12 @@ fn forward_pskr_report(app: &AppHandle, r: PskrReport) {
     };
 
     let home = state.home();
-    let mut enriched = enrich(&state.cty.read().unwrap(), stored, home.as_deref());
+    let mut enriched = enrich(
+        &state.cty.read().unwrap(),
+        &state.skimmers.read().unwrap(),
+        stored,
+        home.as_deref(),
+    );
     if let Some(loc) = r.receiver_locator.as_deref() {
         place_by_at_locator(&mut enriched, loc, home.as_deref());
     }
@@ -1276,7 +1296,12 @@ fn forward_wsjtx_spot(app: &AppHandle, s: WsjtxSpot) {
 
     let home = state.home();
     let cty = state.cty.read().unwrap();
-    let mut enriched = enrich(&cty, stored, home.as_deref());
+    let mut enriched = enrich(
+        &cty,
+        &state.skimmers.read().unwrap(),
+        stored,
+        home.as_deref(),
+    );
     // The "spotter" is the local operator — resolve `by` from their own
     // callsign (not the literal "WSJT-X") so spotter-side filters and the map
     // place these at the operator's QTH.
@@ -1580,6 +1605,7 @@ pub fn run() {
                 Store::open(data_dir.join("history.sqlite3")).expect("open history database");
             let (cty, cty_source) = cty_update::load(&handle);
             let (presets, presets_version, presets_source) = presets_update::load(&handle);
+            let (skimmers, skimmers_source) = skimmers_update::load(&handle);
             app.manage(AppState {
                 store,
                 cty: RwLock::new(cty),
@@ -1587,6 +1613,8 @@ pub fn run() {
                 presets: RwLock::new(presets),
                 presets_version: Mutex::new(presets_version),
                 presets_source: Mutex::new(presets_source.to_string()),
+                skimmers: RwLock::new(skimmers),
+                skimmers_source: Mutex::new(skimmers_source.to_string()),
                 sessions: Mutex::new(HashMap::new()),
                 home_locator: Mutex::new(None),
                 rbn_recent: Mutex::new(Vec::new()),
@@ -1599,6 +1627,25 @@ pub fn run() {
                 rig_cmd: Mutex::new(None),
                 muf: Mutex::new(muf_update::MufCache::default()),
             });
+            // Weekly RBN skimmer-table refresh, best effort — a scrape failure
+            // just leaves the bundled snapshot in place. Hot-swapped like cty.
+            {
+                let h = handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    match skimmers_update::maybe_update(&h).await {
+                        Ok(true) => {
+                            let (db, source) = skimmers_update::load(&h);
+                            if let Some(state) = h.try_state::<AppState>() {
+                                log::info!("skimmer table refreshed: {} positions", db.len());
+                                *state.skimmers.write().unwrap() = db;
+                                *state.skimmers_source.lock().unwrap() = source.to_string();
+                            }
+                        }
+                        Ok(false) => {}
+                        Err(e) => log::warn!("skimmer table refresh: {e}"),
+                    }
+                });
+            }
             if std::env::var("DXCD_NOTIFY_TEST").is_ok() {
                 os_notify(
                     app.handle().clone(),

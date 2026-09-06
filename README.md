@@ -110,4 +110,8 @@ startup (conditional GET, so an unchanged file costs one 304).
 - **Ionosphere data** for the map's measured MUF layer — real-time ionosonde
   measurements from [prop.kc2g.com](https://prop.kc2g.com/) (Andrew Rodland),
   sourced from GIRO and INGV. Fetched on demand, in memory only. Thank you!
+- **RBN skimmer positions** (`src-tauri/resources/rbn_skimmers.tsv`) — distilled
+  from the public skimmer status list at
+  [reversebeacon.net](https://www.reversebeacon.net/), so a skimmer's spots plot
+  at its real grid rather than a country centroid. Thank you!
 - Natural Earth 110m country outline for the map.

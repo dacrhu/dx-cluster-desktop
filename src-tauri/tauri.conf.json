@@ -35,7 +35,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": ["resources/cty.dat", "resources/dxclusters.dat"],
+    "resources": ["resources/cty.dat", "resources/dxclusters.dat", "resources/rbn_skimmers.tsv"],
     "category": "Utility",
     "shortDescription": "Ham radio DX cluster client",
     "longDescription": "User-friendly multiplatform desktop client for ham radio DX clusters over Telnet."

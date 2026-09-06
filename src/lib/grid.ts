@@ -91,8 +91,10 @@ export function spotLonLat(s: EnrichedSpot): LonLat | null {
   return s.dx ? jitteredCentroid(s.dx.lon, s.dx.lat, s.dx_call) : null;
 }
 
-/** Position of the spotter / skimmer — DXCC-entity centroid, jittered by
- *  spotter callsign (so co-located skimmers/ops spread out). */
+/** Position of the spotter / skimmer. The backend already resolves this to the
+ *  skimmer's real grid (`rbn_skimmers.tsv`) or a PSK Reporter receiver's exact
+ *  locator where known, else the DXCC-entity centroid; either way it's jittered
+ *  by spotter callsign so co-located skimmers / ops don't stack on one pixel. */
 export function spotterLonLat(s: EnrichedSpot): LonLat | null {
   return s.by ? jitteredCentroid(s.by.lon, s.by.lat, s.spotter_base) : null;
 }

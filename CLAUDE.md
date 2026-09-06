@@ -290,8 +290,21 @@ terminator-edge stroke on `.wm-night`, `store.mapGrayline`), range rings, DX-spo
 600, `modeClass` colour, age fade, `matchingAlert` ring), great-circle arcs
 (`store.mapArcs`), and "reports of me" — `src/lib/mapReports.ts::useMyReports()`
 filters `store.spots` for `baseCall(dx_call)` matching any connection's callsign,
-parses SNR/WPM from the comment, plots the skimmer (`spot.by` centroid) + a green
-arc. `collapseReports()` (same file, unit-tested) then merges reports that share
+parses SNR/WPM from the comment, plots the skimmer (`spot.by` position) + a green
+arc. **Skimmer position:** `enrich()` (`src-tauri/src/enrich.rs`) resolves a
+skimmer spot's `by` to the skimmer's real Maidenhead grid from `reference::SkimmerDb`
+(`src-tauri/resources/rbn_skimmers.tsv`, ~315 `CALL` / `grid` rows distilled from the
+`reversebeacon.net` public skimmer status page) rather than the DXCC-entity centroid
+— a US skimmer plots in Maryland, not mid-Kansas. `src-tauri/src/skimmers_update.rs`
+loads and weekly-refreshes it (mirrors `presets_update.rs`: a downloaded app-data
+copy beats the bundled snapshot beats empty; a setup task `maybe_update` scrapes the
+page and rewrites the TSV, hot-swapping `AppState.skimmers`; commands
+`skimmers_status` / `maybe_update_skimmers` / `update_skimmers`;
+`.github/workflows/data-update.yml` regenerates the bundled file too). PSK Reporter's
+exact receiver locator (`place_by_at_locator`, applied after `enrich`) still wins
+over the table; the frontend `spotterLonLat` jitters whatever position it gets by
+callsign so co-located skimmers don't stack.
+`collapseReports()` (same file, unit-tested) then merges reports that share
 `(base dx, base spotter, 0.1 kHz)` — the same skimmer hearing me on one freq
 carried by more than one feed (RBN telnet feed, PSK Reporter, and a cluster that
 also relays skimmer spots of us each dedup only within themselves) collapse to a
@@ -660,8 +673,9 @@ dialect-aware: the `ToolsPanel` `SH/DX` query (still DXSpider-only, built ad hoc
 in the frontend rather than through `commands::sh_dx` — pre-existing debt); login
 banner detection.
 
-**Next:** map polish (canvas if SVG is slow, per-skimmer coords instead of DXCC
-centroids); phase 12 v2 polish — adjustable grey-line band width, HUD →
+**Next:** map polish (canvas if SVG is slow; skimmer-table coverage is ~315
+active RBN skimmers — a spot from an unlisted skimmer still uses the DXCC
+centroid); phase 12 v2 polish — adjustable grey-line band width, HUD →
 Propagation tab on click, decode the WCY `Au` text. CAT: `rig_set` mode-follow
 toggle, per-profile radio config, split/RIT.
 
