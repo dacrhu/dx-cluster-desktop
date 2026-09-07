@@ -129,6 +129,7 @@
   "spots.editFilters": "Edit filters",
   "spots.post": "Post spot:",
   "spots.freq": "kHz",
+  "spots.useVfo": "Use the radio's VFO frequency (and keep following it)",
   "spots.call": "callsign",
   "spots.comment": "comment",
   "spots.sent": "sent: {cmd}",

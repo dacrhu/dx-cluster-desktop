@@ -129,6 +129,7 @@
   "spots.editFilters": "Filter bearbeiten",
   "spots.post": "Spot senden:",
   "spots.freq": "kHz",
+  "spots.useVfo": "VFO-Frequenz des Geräts übernehmen (und weiter folgen)",
   "spots.call": "Rufzeichen",
   "spots.comment": "Kommentar",
   "spots.sent": "gesendet: {cmd}",

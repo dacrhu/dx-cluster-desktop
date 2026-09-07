@@ -576,6 +576,12 @@ _not_ cluster transports (hardware / local-IPC).
   the state; a big snapshot/live divergence (search changed) auto-unfreezes.
   `catFollow` scrolls the table to + tints the row nearest
   `store.followFreqKhz`.
+- **Post-spot frequency follows the VFO.** While CAT is connected the
+  `SpotsPanel` post-a-spot `kHz` field mirrors `store.rigVfo` (a `freqEdited`
+  ref stops that the moment the operator types in it, or picks a spot via
+  "prepare a post"); a `VFO` chip next to the field snaps it back to the live
+  reading and clears the ref so tracking resumes. No rig → plain manual field,
+  no chip.
 
 The **Connection panel** is split by a `.seg-toggle` in its `.panel-head`:
 "Connections" (profile list + editor + preset browser) vs "Settings".

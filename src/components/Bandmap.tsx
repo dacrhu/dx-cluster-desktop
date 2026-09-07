@@ -438,6 +438,19 @@ export const Bandmap = memo(function Bandmap({
     setFollow(true);
     setFrozen(null);
   }, [activeBand]);
+  // A deliberate change to the shared quick-filter (search query, band/mode
+  // chips, skimmer/WSJT-X/saved-filter toggles, age cap) must also drop the
+  // frozen snapshot — otherwise a lane the user scrolled while following the
+  // VFO keeps showing the pre-filter spot set and the search looks broken.
+  const filterSig = useCluster(
+    (s) =>
+      `${s.spotQuery} ${s.spotBands.join(",")} ${s.spotModes.join(",")} ${s.spotShowSkimmer} ${s.spotShowWsjtx} ${s.filtersEnabled} ${s.spotMaxAgeMin}`,
+  );
+  const savedFilters = useCluster((s) => s.filters);
+  useEffect(() => {
+    setFollow(true);
+    setFrozen(null);
+  }, [filterSig, savedFilters]);
   const shown = frozen ?? spots;
 
   return (

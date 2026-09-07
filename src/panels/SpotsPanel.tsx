@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useCluster, useOnlineId } from "@/store/useCluster";
 import { useShallow } from "zustand/react/shallow";
 import { useVisibleSpots } from "@/lib/visibleSpots";
@@ -60,6 +60,14 @@ export const SpotsPanel = memo(function SpotsPanel({
   const [comment, setComment] = useState("");
   const [postMsg, setPostMsg] = useState("");
 
+  // Post frequency follows the CAT VFO until the operator edits the field (or
+  // there's no rig). The "VFO" chip snaps it back and resumes following.
+  const vfoKhz = useCluster((s) => (s.catEnabled && s.rigVfo ? s.rigVfo.freqHz / 1000 : null));
+  const freqEdited = useRef(false);
+  useEffect(() => {
+    if (!freqEdited.current && vfoKhz != null) setFreq(vfoKhz.toFixed(1));
+  }, [vfoKhz]);
+
   async function postSpot() {
     if (!onlineId) return;
     try {
@@ -78,6 +86,7 @@ export const SpotsPanel = memo(function SpotsPanel({
     {
       label: tr("spots.menu.prepPost"),
       run: (s) => {
+        freqEdited.current = true; // don't let VFO tracking overwrite the picked spot
         setFreq(String(s.freq_khz));
         setCall(s.dx_call);
       },
@@ -130,8 +139,24 @@ export const SpotsPanel = memo(function SpotsPanel({
           style={{ width: 90 }}
           placeholder={tr("spots.freq")}
           value={freq}
-          onChange={(e) => setFreq(e.target.value)}
+          onChange={(e) => {
+            freqEdited.current = true;
+            setFreq(e.target.value);
+          }}
         />
+        {vfoKhz != null && (
+          <button
+            type="button"
+            className="chip"
+            title={tr("spots.useVfo")}
+            onClick={() => {
+              freqEdited.current = false;
+              setFreq(vfoKhz.toFixed(1));
+            }}
+          >
+            VFO
+          </button>
+        )}
         <input
           className="mono"
           style={{ width: 110 }}

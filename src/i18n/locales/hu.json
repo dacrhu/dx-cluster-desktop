@@ -129,6 +129,7 @@
   "spots.editFilters": "Szűrők szerkesztése",
   "spots.post": "Spot küldése:",
   "spots.freq": "kHz",
+  "spots.useVfo": "A rádió VFO-frekvenciájának használata (és követése)",
   "spots.call": "hívójel",
   "spots.comment": "megjegyzés",
   "spots.sent": "elküldve: {cmd}",
