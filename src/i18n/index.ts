@@ -30,7 +30,8 @@ export function setSystemLocale(locale: string | null): void {
 /** Resolve a stored preference (incl. "system") to a concrete language code. */
 export function resolveLang(pref: LangPref): LangCode {
   if (pref === "en" || pref === "hu" || pref === "de") return pref;
-  const src = osLocale || navigator.language || "en";
+  const nav = typeof navigator !== "undefined" ? navigator.language : "";
+  const src = osLocale || nav || "en";
   const sys = src.slice(0, 2).toLowerCase();
   return sys === "hu" || sys === "de" ? sys : "en";
 }

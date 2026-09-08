@@ -1601,10 +1601,11 @@ static NOTIFY_HANDLES: Mutex<Vec<notify_rust::NotificationHandle>> = Mutex::new(
 fn os_notify(_app: AppHandle, title: String, body: String) -> CmdResult<()> {
     std::thread::spawn(move || {
         let mut n = notify_rust::Notification::new();
-        n.summary(&title)
-            .body(&body)
-            .appname("DX Cluster Desktop")
-            .icon("hu.dacr.dxclusterdesktop")
+        n.summary(&title).body(&body).appname("DX Cluster Desktop");
+        // `Hint` / an app-id icon are freedesktop-only; see the doc comment
+        // above for why GNOME needs the `desktop-entry` hint.
+        #[cfg(target_os = "linux")]
+        n.icon("hu.dacr.dxclusterdesktop")
             .hint(notify_rust::Hint::DesktopEntry(
                 "hu.dacr.dxclusterdesktop".into(),
             ));
