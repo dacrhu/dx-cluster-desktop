@@ -23,10 +23,13 @@ jobs:
             args: ""
           - platform: windows-latest # Windows — .msi / .exe (NSIS)
             args: ""
-          - platform: macos-13 # macOS Intel — .dmg
-            args: "--target x86_64-apple-darwin"
+          # Both macOS builds run on Apple-Silicon runners (plentiful; the Intel
+          # `macos-13` queue is unreliable and being retired). The Intel slice is
+          # a cross-compile to x86_64-apple-darwin.
           - platform: macos-14 # macOS Apple Silicon — .dmg
             args: "--target aarch64-apple-darwin"
+          - platform: macos-14 # macOS Intel — .dmg (cross-compiled)
+            args: "--target x86_64-apple-darwin"
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -50,7 +53,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || matrix.platform == 'macos-14' && 'aarch64-apple-darwin' || '' }}
+          targets: ${{ contains(matrix.args, 'x86_64-apple-darwin') && 'x86_64-apple-darwin' || contains(matrix.args, 'aarch64-apple-darwin') && 'aarch64-apple-darwin' || '' }}
 
       - uses: Swatinem/rust-cache@v2
         with:
