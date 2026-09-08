@@ -242,15 +242,30 @@ pub fn parse_bind(s: &str) -> Option<SocketAddr> {
     })
 }
 
-/// Build the receive socket. `SO_REUSEADDR` (not `SO_REUSEPORT`) lets several
-/// programs on the machine (WSJT-X's own tools: JTAlert, GridTracker, QLog…)
-/// each get a full copy of the multicast stream — `SO_REUSEPORT` would instead
-/// load-balance datagrams between them, so we'd only see a fraction. For a
-/// multicast address we bind the wildcard and join the group on every local
-/// interface (matching what Qt-based tools do).
+/// Build the receive socket so several programs on the machine (WSJT-X's own
+/// tools: JTAlert, GridTracker, QLog…) can each get a full copy of the multicast
+/// stream.
+///
+/// - **Linux:** `SO_REUSEADDR` only. `SO_REUSEPORT` there would *load-balance*
+///   datagrams between the sharers, so we'd see only a fraction.
+/// - **macOS / *BSD:** `SO_REUSEPORT` as well — it is *required* for a second
+///   socket to bind the same port, and unlike Linux it does not load-balance
+///   (every bound socket gets a copy). This matches Qt's `ShareAddress`.
+///
+/// For a multicast address we bind the wildcard and join the group on every
+/// local interface (matching what Qt-based tools do).
 fn open_socket(want: SocketAddr) -> io::Result<UdpSocket> {
     let sock = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
     sock.set_reuse_address(true)?;
+    #[cfg(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd",
+        target_os = "dragonfly"
+    ))]
+    sock.set_reuse_port(true)?;
     sock.set_nonblocking(true)?;
 
     let multicast = want.ip().is_multicast();

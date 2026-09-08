@@ -117,10 +117,20 @@ async fn multicast_shared_with_another_listener() {
     let port = 22_370u16;
     let grp_addr = SocketAddr::from((group, port));
 
-    // Stand-in for QLog: SO_REUSEADDR only (like Qt's ShareAddress), bound to
-    // the wildcard, joined to the group.
+    // Stand-in for QLog (Qt's `ShareAddress`): `SO_REUSEADDR`, plus
+    // `SO_REUSEPORT` on macOS/*BSD where Qt sets it too and it is required for a
+    // second bind. Bound to the wildcard, joined to the group.
     let other = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP)).unwrap();
     other.set_reuse_address(true).unwrap();
+    #[cfg(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd",
+        target_os = "dragonfly"
+    ))]
+    other.set_reuse_port(true).unwrap();
     other
         .bind(&SocketAddr::from((Ipv4Addr::UNSPECIFIED, port)).into())
         .unwrap();
