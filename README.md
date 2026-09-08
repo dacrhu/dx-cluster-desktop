@@ -1,117 +1,201 @@
 # DX Cluster Desktop
 
-User-friendly, multiplatform desktop client for ham radio **DX clusters** over
-**Telnet**. Everything is done through lists, clickable rows, tables and forms —
-no need to type cluster commands by hand. A secondary _Raw terminal_ tab is
-available for power users.
+**A friendly, modern desktop client for ham-radio DX clusters — no cluster
+commands to memorise, ever.**
 
-- **Backend:** Rust + [Tauri 2](https://tauri.app) (tokio async)
-- **Frontend:** React + TypeScript + Vite
-- **Storage:** SQLite (spot history / search) + Tauri store (profiles, settings)
-- **Reference data:** bundled `cty.dat` (callsign → DXCC / CQ zone / ITU zone /
-  continent / coordinates), optional periodic auto-update
-- **Languages:** English, Hungarian, German — community-translatable without
-  coding, see [`TRANSLATING.md`](TRANSLATING.md)
+DX clusters are one of the most useful tools in DXing and contesting, but the
+classic way to use them is a Telnet window and a cheat-sheet of cryptic
+commands. DX Cluster Desktop replaces that with clickable tables, a live
+bandmap, a propagation-aware world map, alerts, and a full mail/talk/chat
+client — all driven from the GUI. Point-and-click to spot a station, tune your
+radio, or set up a rare-DX alert.
 
-See [`FELADAT.md`](FELADAT.md) for the original brief and the plan file under
-`~/.claude/plans/` for the full phased roadmap.
+Runs on **Windows, macOS and Linux**. Free and open source (MIT).
 
-## Status
+➡️ **[Download the latest release](https://github.com/dacrhu/dx-cluster-desktop/releases)**
+· **[User manual](user-manual/README.md)** · **[Help translate it](TRANSLATING.md)**
 
-**Phase 1 — MVP.** Connect to a DXSpider/AR-Cluster node over Telnet (login
-state machine handles prompted and promptless nodes), live virtualized spot
-table with band/mode/text quick filters, DXCC/CQ-zone/continent enrichment and
-beam heading from `cty.dat`, spot history in SQLite, a GUI filter builder that
-generates DXSpider `accept/reject spot` commands and filters locally, a spot
-post form, and a secondary raw-terminal tab. Phase 0 scaffold + CI is in place.
+---
 
-Next: announcements / WWV / WCY / WX, then talk + users, then the mail &
-bulletin subsystem — see the plan file.
+![Spot table](assets/screenshot-spots.png)
+
+## Why you'll like it
+
+- **Everything is point-and-click.** Every cluster feature — spots, filters,
+  announcements, WWV/WCY, talk, chat, mail and bulletins — is a table, a form or
+  a clickable row. A raw terminal is there too, for when you want it.
+- **A spot table that keeps up.** Virtualised, instant local filtering, a proper
+  [search query language](user-manual/search-query.md) (`dx:VP8 band:20m cw`,
+  `re:/MM$`), freeze-on-scroll so incoming spots never move what you're reading,
+  mode colour-coding with real sub-modes (FT8, RTTY, SSTV…).
+- **A real bandmap.** One lane per band, stations laid out by frequency, band-plan
+  shading, many-skimmer spots collapsed into one row, SOS and beacon-project
+  reference markers.
+- **A world map that shows propagation.** Grey-line, aurora, a measured-MUF layer
+  blending a solar model with live ionosonde data, band openings, a bearing
+  rose, and a **"who is hearing me right now"** layer.
+- **Alerts that find the DX for you.** Watch lists → desktop notification + sound,
+  a logged hit list, live-row tinting. De-duped so a pileup of skimmer spots
+  notifies once.
+- **Full messaging.** Talk threads, group chat/conference, and a complete
+  mail & bulletin client (read, compose, reply, delete) with a local cache.
+- **Rig control and logging hand-off.** Full CAT rig control over serial/USB or
+  a network link — tune to a spot, split-aware, follow the radio on the
+  bandmap; plus a one-click "Prepare QSO" that pre-fills QLog / Log4OM /
+  JTAlert / GridTracker. It drives the rig through Hamlib's `rigctld` (the one
+  piece you install yourself); on a serial rig the app starts and supervises it
+  for you.
+- **Extra ears, if you want them.** Optional read-only feeds: the Reverse Beacon
+  Network, PSK Reporter ("who hears me"), and a local WSJT-X UDP listener
+  ("what my radio hears").
+- **Speaks your language.** English, Hungarian and German out of the box, and
+  [community-translatable](TRANSLATING.md) without writing code.
+- **Self-contained.** One installer per platform, built by the release workflow.
+  Every library, the web runtime and all reference data are inside it — nothing
+  else to install to run the app. (The single exception is `rigctld`, the
+  Hamlib program that CAT rig control drives — a separate program, not a
+  library. [Details below](#rig-control-needs-hamlib-rigctld-not-bundled).)
+
+## Screenshots
+
+|                                                       |                                                   |
+| ----------------------------------------------------- | ------------------------------------------------- |
+| ![Bandmap](assets/screenshot-bandmap.png)             | ![World map](assets/screenshot-map.png)           |
+| _Per-band bandmap with band-plan shading_             | _Propagation-aware world map_                     |
+| ![Alerts](assets/screenshot-alerts.png)               | ![Mail](assets/screenshot-mail.png)               |
+| _Watch-list alerts and hit log_                       | _Mail & bulletin client_                          |
+| ![Announcements](assets/screenshot-announcements.png) | ![Propagation](assets/screenshot-propagation.png) |
+| _Announcements with include/exclude search_           | _Solar-terrestrial data: WWV & WCY_               |
+
+## Install
+
+Download the build for your platform from the
+**[Releases page](https://github.com/dacrhu/dx-cluster-desktop/releases)**:
+
+| Platform                      | File                          |
+| ----------------------------- | ----------------------------- |
+| Windows 10/11                 | `.msi` or `.exe`              |
+| macOS (Apple Silicon / Intel) | `.dmg`                        |
+| Linux                         | `.AppImage`, `.deb` or `.rpm` |
+
+Each build is self-contained — the Rust backend, the UI, the web runtime
+(WebView2 on Windows, the system WebView on macOS, WebKitGTK on Linux) and all
+reference data ride along in the installer. See
+[Getting started](user-manual/getting-started.md) for per-platform notes.
+
+### Rig control needs Hamlib (`rigctld` not bundled)
+
+CAT rig control is a full feature of the app — over a serial/USB cable or a
+network link. It drives the radio through **`rigctld`** from
+[Hamlib](https://hamlib.github.io/), and that is the **one** component not
+shipped in the installer. `rigctld` is not a library the app links against — it
+is a standalone program that owns the connection to your radio, and the app
+talks to it over a local socket. So install Hamlib yourself
+(`dnf install hamlib` / `apt install libhamlib-utils` / `brew install hamlib` /
+Hamlib for Windows).
+
+For a **serial-connected radio** that's all you need — pick your rig model, the
+serial port and the baud rate in the app, and it launches and manages its own
+`rigctld` in the background. If you already run `rigctld` yourself (or reach the
+rig over the network), point the app at its host and port instead.
+
+Rig control is off until you switch it on in Settings, and nothing else in the
+app depends on Hamlib. Details in
+[Rig control and logging](user-manual/rig-and-logging.md).
+
+## Documentation
+
+The full **[user manual](user-manual/README.md)** covers every panel. You can
+also read it inside the app — the **Help** tab renders the same pages (live from
+GitHub, with an offline copy in the release).
+
+## Translating
+
+The entire interface is translatable by editing text files on GitHub — no
+programming required. See **[TRANSLATING.md](TRANSLATING.md)**.
+
+---
+
+## For developers
+
+<details>
+<summary>Stack, layout, building from source</summary>
+
+### Stack
+
+- **Backend:** Rust + [Tauri 2](https://tauri.app) (tokio async). Owns the
+  Telnet connections, line parsing, command building, `cty.dat` + geo math,
+  SQLite store, alerts.
+- **Frontend:** React + TypeScript + Vite. Panels, shared widgets, Zustand
+  store, thin IPC wrappers.
+- **Storage:** SQLite (spot history / search) + Tauri store (profiles,
+  settings) + OS keyring (passwords).
 
 ### Layout
 
 - `crates/dxcluster-core/` — transport-agnostic logic (telnet framing, login
-  state machine, spot parser, band/mode heuristics, `cty.dat` + geo, SQLite
-  store, filter builder). Fast unit tests, no webview dependency.
-- `src-tauri/` — thin Tauri shell: commands + `cluster://*` events.
-- `src/` — React UI (`panels/`, `components/`, `lib/`, `store/`).
+  state machine, parsers, band/mode heuristics, `cty.dat` + geo, SQLite store,
+  filter/command builders). Fast unit tests, no webview dependency.
+- `src-tauri/` — the Tauri shell: `#[tauri::command]` surface + `cluster://*`
+  events, reference-data updaters, the optional feeds (RBN/PSKR/WSJT-X), CAT and
+  log-push.
+- `src/` — the React UI (`panels/`, `components/`, `lib/`, `store/`, `i18n/`).
 
-## Prerequisites
-
-### All platforms
+### Prerequisites
 
 - [Node.js](https://nodejs.org/) 20+ and [pnpm](https://pnpm.io/) 10+
 - [Rust](https://rustup.rs/) stable (1.77+)
+- **Linux:** WebKitGTK 4.1 + friends —
+  `sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file libappindicator-gtk3-devel librsvg2-devel libsoup3-devel javascriptcoregtk4.1-devel`
+  (Fedora) /
+  `sudo apt-get install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libsoup-3.0-dev libjavascriptcoregtk-4.1-dev`
+  (Debian/Ubuntu)
+- **Windows:** MSVC C++ Build Tools + WebView2 (preinstalled on Win 11)
+- **macOS:** Xcode Command Line Tools
 
-### Linux (Fedora)
-
-```sh
-sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file \
-  libappindicator-gtk3-devel librsvg2-devel \
-  libsoup3-devel javascriptcoregtk4.1-devel
-```
-
-### Linux (Debian/Ubuntu)
-
-```sh
-sudo apt-get install libwebkit2gtk-4.1-dev libappindicator3-dev \
-  librsvg2-dev patchelf libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
-```
-
-### Windows / macOS
-
-- Windows: [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) + WebView2 (preinstalled on Win 11)
-- macOS: Xcode Command Line Tools (`xcode-select --install`)
-
-## Develop
+### Develop / build
 
 ```sh
 pnpm install
-pnpm tauri dev
+pnpm tauri dev            # run
+pnpm tauri build          # installers for the current OS
 ```
 
-## Build
+### Checks
 
 ```sh
-pnpm tauri build          # full installers for the current OS
-pnpm tauri build --no-bundle   # just compile, no packaging
-```
-
-## Checks
-
-```sh
-pnpm lint                 # eslint + prettier
-pnpm build                # tsc --noEmit + vite build
+pnpm lint && pnpm test && pnpm build
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace
-
-# opt-in live check against a real cluster:
-DXTEST_CALL=<yourcall> cargo test -p dxcluster-core --test live_cluster -- --ignored --nocapture
 ```
 
-## Release
+### Releases
 
-Push a tag `vX.Y.Z`; the `Release` workflow builds on four native runners
+Push a tag `vX.Y.Z`; the **Release** workflow builds on four native runners
 (Linux, Windows, macOS Intel, macOS Apple Silicon) and creates a draft GitHub
-release with all installers.
+release with every installer attached.
+
+</details>
 
 ## Credits
 
-Both reference data files are bundled as a fallback, mirrored into this repo by
-the weekly `Refresh bundled data` workflow, and auto-updated in the app at
-startup (conditional GET, so an unchanged file costs one 304).
+Reference data is bundled as a fallback, mirrored into this repo by a weekly
+workflow, and auto-updated in the app (conditional GET, so an unchanged file
+costs one 304).
 
-- **DXCC country file** (`src-tauri/resources/cty.dat`) —
-  [country-files.com](https://www.country-files.com/). Thank you!
-- **Cluster node list** (`src-tauri/resources/dxclusters.dat`) — the
-  `DXCLUSTERS.DAT` database from [dxcluster.info](https://dxcluster.info/), used
-  with permission. Thank you!
-- **Ionosphere data** for the map's measured MUF layer — real-time ionosonde
+- **DXCC country file** — [country-files.com](https://www.country-files.com/).
+- **Cluster node list** — the `DXCLUSTERS.DAT` database from
+  [dxcluster.info](https://dxcluster.info/), used with permission.
+- **Ionosphere data** for the map's measured-MUF layer — real-time ionosonde
   measurements from [prop.kc2g.com](https://prop.kc2g.com/) (Andrew Rodland),
-  sourced from GIRO and INGV. Fetched on demand, in memory only. Thank you!
-- **RBN skimmer positions** (`src-tauri/resources/rbn_skimmers.tsv`) — distilled
-  from the public skimmer status list at
-  [reversebeacon.net](https://www.reversebeacon.net/), so a skimmer's spots plot
-  at its real grid rather than a country centroid. Thank you!
+  sourced from GIRO and INGV. Fetched on demand, in memory only.
+- **RBN skimmer positions** — distilled from the public skimmer status list at
+  [reversebeacon.net](https://www.reversebeacon.net/).
 - Natural Earth 110m country outline for the map.
+
+Thank you all.
+
+## License
+
+[MIT](LICENSE) © David Horvath (dacr)

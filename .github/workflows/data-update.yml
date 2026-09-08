@@ -4,9 +4,10 @@ name: Refresh bundled data
 # fallbacks stay current and clients fetch them from GitHub's CDN rather than
 # hammering the upstream servers.
 #
-# Repo variables (Settings → Secrets and variables → Actions → Variables):
-#   PRESETS_SOURCE_URL  – canonical DXCLUSTERS.DAT (from https://dxcluster.info/)
-#   CTY_SOURCE_URL      – optional override; defaults to country-files.com
+# Optional repo variables (Settings → Secrets and variables → Actions → Variables)
+# — only needed to override the built-in canonical source URLs:
+#   PRESETS_SOURCE_URL  – defaults to https://dxcluster.info/telnet/DXCLUSTERS.DAT
+#   CTY_SOURCE_URL      – defaults to https://www.country-files.com/cty/cty.dat
 
 on:
   schedule:
@@ -29,11 +30,7 @@ jobs:
       - name: Download cluster node list
         run: |
           set -euo pipefail
-          url="${{ vars.PRESETS_SOURCE_URL }}"
-          if [ -z "$url" ]; then
-            echo "::error::repo variable PRESETS_SOURCE_URL is not set"
-            exit 1
-          fi
+          url="${{ vars.PRESETS_SOURCE_URL || 'https://dxcluster.info/telnet/DXCLUSTERS.DAT' }}"
           curl -fsSL --retry 3 --max-time 60 "$url" -o /tmp/dxclusters.dat
           nodes=$(grep -c '^"[^"]*","[^"]*","[0-9]' /tmp/dxclusters.dat || true)
           echo "parsed $nodes node lines"

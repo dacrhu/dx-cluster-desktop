@@ -137,9 +137,11 @@ SP/SB/REPLY compose orchestrated from `sendMail` in `lib/ipc.ts`); phase 4
 historical, from the node or offline from the local `spots` table via
 `store::search_spots`); phase 5 (Alerts panel — watch-list → desktop
 notification + Web-Audio beep, matched in `App.tsx::checkAlerts`; `cty.dat`
-auto-update in `src-tauri/src/cty_update.rs` (now a GitHub-backed mirror,
-`CTY_URL` = `dacr.hu` for now, conditional GET like `presets_update.rs`;
-canonical source country-files.com, credited via `conn.ctyCredit`), `AppState.cty`
+auto-update in `src-tauri/src/cty_update.rs` (`CTY_URL` =
+`raw.githubusercontent.com/dacrhu/dx-cluster-desktop/main/src-tauri/resources/cty.dat`,
+conditional GET like `presets_update.rs`; canonical source country-files.com
+pulled weekly into that committed copy by `data-update.yml`, credited via
+`conn.ctyCredit`), `AppState.cty`
 is now `RwLock` and hot-swapped; spot dedup across nodes in `store::insert_spot`
 — 90s window on dx_call/freq/spotter, returns `Option<i64>`).
 
@@ -611,8 +613,9 @@ scrolling up pauses it, a "↓ N" pill (`.console-jump`) resumes. `stick` state 
 public cluster nodes. `crates/…/reference/presets.rs::parse_presets` →
 `Vec<ClusterPreset>`. `src-tauri/src/presets_update.rs` mirrors `cty_update.rs`
 (downloaded > bundled > none; weekly `maybe_update` with a conditional GET —
-`If-None-Match` from a `dxclusters.dat.dat.etag` sidecar; `PRESETS_URL` is
-`dacr.hu` for now, switch to raw.githubusercontent once the repo is public).
+`If-None-Match` from a `dxclusters.dat.dat.etag` sidecar; `PRESETS_URL` =
+`raw.githubusercontent.com/dacrhu/dx-cluster-desktop/main/src-tauri/resources/dxclusters.dat`,
+the committed copy that `data-update.yml` refreshes weekly from dxcluster.info).
 `AppState.presets` is `RwLock`, hot-swapped like `cty`. Commands
 `cluster_presets` (each node's country resolved via `cty.lookup(base_call(name))`
 → `EnrichedPreset`), `presets_status`, `maybe_update_presets`, `update_presets`.
@@ -620,9 +623,10 @@ The Connection panel's new-profile editor shows a preset browser (country
 `<select>` grouped by continent → node list → click fills host/port/name; nodes
 whose callsign doesn't resolve to a DXCC are dropped); Settings has a
 `conn.presetsGroup` status/auto-update section. `.github/workflows/
-data-update.yml` re-pulls **both** `dxclusters.dat` and `cty.dat` weekly (repo
-vars `PRESETS_SOURCE_URL` and `CTY_SOURCE_URL`, the latter defaulting to
-country-files.com) and commits `[skip ci]`. Source:
+data-update.yml` re-pulls **both** `dxclusters.dat` (from
+`dxcluster.info/telnet/DXCLUSTERS.DAT`) and `cty.dat` (from country-files.com)
+weekly and commits `[skip ci]`; optional repo vars `PRESETS_SOURCE_URL` /
+`CTY_SOURCE_URL` override those source URLs. Source:
 [dxcluster.info](https://dxcluster.info/), used with permission
 (`conn.presetCredit` i18n key + README Credits).
 

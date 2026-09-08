@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getVersion } from "@tauri-apps/api/app";
 import * as ipc from "@/lib/ipc";
 import { useCluster, useSendTargets } from "@/store/useCluster";
 import {
@@ -31,6 +32,7 @@ import { ToolsPanel } from "@/panels/ToolsPanel";
 import { AlertsPanel } from "@/panels/AlertsPanel";
 import { UsersPanel } from "@/panels/UsersPanel";
 import { RawConsolePanel } from "@/panels/RawConsolePanel";
+import { AboutPanel } from "@/panels/AboutPanel";
 
 type TabId =
   | "connection"
@@ -46,7 +48,8 @@ type TabId =
   | "tools"
   | "alerts"
   | "users"
-  | "raw";
+  | "raw"
+  | "about";
 
 const ALERT_COOLDOWN_MS = 5 * 60_000;
 const lastAlert = new Map<string, number>();
@@ -108,11 +111,13 @@ const TAB_GROUPS: { id: string; tabs: TabId[] }[] = [
   { id: "info", tabs: ["announcements", "propagation"] },
   { id: "comms", tabs: ["talk", "chat", "mail", "users"] },
   { id: "advanced", tabs: ["tools", "raw"] },
+  { id: "help", tabs: ["about"] },
 ];
 const TAB_IDS: TabId[] = TAB_GROUPS.flatMap((g) => g.tabs);
 
 export function App() {
   const [tab, setTab] = useState<TabId>("connection");
+  const [version, setVersion] = useState("");
   const store = useCluster();
   const sendTargets = useSendTargets();
   const tr = useT();
@@ -131,6 +136,12 @@ export function App() {
   const goToPropagation = useCallback(() => setTab("propagation"), []);
 
   useEffect(() => setActiveLang(store.lang), [store.lang, store.sysLocale]);
+
+  useEffect(() => {
+    void getVersion()
+      .then(setVersion)
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (bootstrapped.current) return;
@@ -369,6 +380,15 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <strong>DX Cluster Desktop</strong>
+        {version && (
+          <button
+            className="topbar-version"
+            title={tr("tab.about")}
+            onClick={() => setTab("about")}
+          >
+            v{version}
+          </button>
+        )}
         <nav className="tabs">
           {TAB_GROUPS.map((g) => (
             <div className="tab-group" key={g.id} title={tr(`group.${g.id}`)}>
@@ -535,6 +555,11 @@ export function App() {
         <div hidden={tab !== "raw"} className="panel-fill">
           <ErrorBoundary label={tr("tab.raw")}>
             <RawConsolePanel />
+          </ErrorBoundary>
+        </div>
+        <div hidden={tab !== "about"} className="panel-fill">
+          <ErrorBoundary label={tr("tab.about")}>
+            <AboutPanel />
           </ErrorBoundary>
         </div>
       </main>

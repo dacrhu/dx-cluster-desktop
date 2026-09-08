@@ -4,8 +4,9 @@
 //! resource. [`maybe_update`] refreshes it in the background when it is older
 //! than a week (with a conditional GET — `If-None-Match` from a saved ETag —
 //! so an unchanged file costs one 304); [`force_update`] is the manual
-//! "check now". The client pulls from a GitHub-backed mirror; the weekly
-//! `data-update` workflow re-pulls the canonical file from country-files.com.
+//! "check now". The client pulls the copy committed to this repo (served by
+//! GitHub's CDN); the weekly `data-update` workflow re-pulls the canonical
+//! file from country-files.com into that copy.
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -14,8 +15,8 @@ use dxcluster_core::reference::CtyDb;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
-// TODO: switch to raw.githubusercontent.com once the repo is public.
-const CTY_URL: &str = "https://dacr.hu/cty.dat";
+const CTY_URL: &str =
+    "https://raw.githubusercontent.com/dacrhu/dx-cluster-desktop/main/src-tauri/resources/cty.dat";
 const MAX_AGE: Duration = Duration::from_secs(7 * 24 * 3600);
 
 /// Result of a `cty.dat` update / status check, surfaced to the UI.
@@ -119,7 +120,7 @@ pub async fn force_update(app: &AppHandle) -> Result<bool, String> {
     let resp = req
         .send()
         .await
-        .map_err(|e| format!("letöltés: {e}"))?
+        .map_err(|e| format!("download: {e}"))?
         .error_for_status()
         .map_err(|e| format!("HTTP: {e}"))?;
 
@@ -133,12 +134,12 @@ pub async fn force_update(app: &AppHandle) -> Result<bool, String> {
         .get(reqwest::header::ETAG)
         .and_then(|v| v.to_str().ok())
         .map(str::to_string);
-    let body = resp.text().await.map_err(|e| format!("olvasás: {e}"))?;
+    let body = resp.text().await.map_err(|e| format!("read: {e}"))?;
 
     // Sanity check: must parse to a plausible country file.
     let entities = CtyDb::parse(&body).len();
     if entities < 200 {
-        return Err(format!("a letöltött fájl gyanús ({entities} entitás)"));
+        return Err(format!("downloaded file looks wrong ({entities} entities)"));
     }
 
     let local = local_path(app);
@@ -148,7 +149,7 @@ pub async fn force_update(app: &AppHandle) -> Result<bool, String> {
     let changed = std::fs::read_to_string(&local)
         .map(|old| old.trim() != body.trim())
         .unwrap_or(true);
-    std::fs::write(&local, body.as_bytes()).map_err(|e| format!("írás: {e}"))?;
+    std::fs::write(&local, body.as_bytes()).map_err(|e| format!("write: {e}"))?;
     match new_etag {
         Some(e) => {
             let _ = std::fs::write(etag_path(app), e);

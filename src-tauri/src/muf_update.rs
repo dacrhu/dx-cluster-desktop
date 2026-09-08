@@ -91,7 +91,7 @@ fn normalize_lon(lon: f64) -> f64 {
 /// usable MUFD.
 pub fn parse_stations(text: &str) -> Result<Vec<MufStation>, String> {
     let raw: serde_json::Value = serde_json::from_str(text).map_err(|e| format!("JSON: {e}"))?;
-    let arr = raw.as_array().ok_or("váratlan JSON (nem tömb)")?;
+    let arr = raw.as_array().ok_or("unexpected JSON (not an array)")?;
     let mut out = Vec::with_capacity(arr.len());
     for r in arr {
         let cs = r.get("cs").and_then(num).unwrap_or(-1.0);
@@ -142,16 +142,16 @@ pub async fn refresh(cache: &Mutex<MufCache>, force: bool) -> Result<MufSnapshot
         .get(MUF_URL)
         .send()
         .await
-        .map_err(|e| format!("letöltés: {e}"))?
+        .map_err(|e| format!("download: {e}"))?
         .error_for_status()
         .map_err(|e| format!("HTTP: {e}"))?
         .text()
         .await
-        .map_err(|e| format!("olvasás: {e}"))?;
+        .map_err(|e| format!("read: {e}"))?;
 
     let stations = parse_stations(&text)?;
     if stations.len() < 10 {
-        return Err(format!("gyanús válasz ({} állomás)", stations.len()));
+        return Err(format!("suspicious response ({} stations)", stations.len()));
     }
 
     let mut c = cache.lock().unwrap();

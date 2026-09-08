@@ -654,7 +654,7 @@ fn forward_event(app: &AppHandle, node_id: &str, ev: ConnEvent) {
                     "cluster://error",
                     (
                         node_id,
-                        format!("a node lezárta a kapcsolatot: „{}” — fut még máshol kliens ugyanezzel a hívójellel?", line.trim()),
+                        format!("the node closed the connection: \"{}\" — is another client connected elsewhere with the same callsign?", line.trim()),
                     ),
                 );
             }
@@ -1299,6 +1299,105 @@ fn raise_window(title: String) -> CmdResult<()> {
     Err("window raising is not supported on this platform".into())
 }
 
+/// Open an `http(s)` URL in the user's default browser. Kept as a tiny local
+/// command (same `try_cmd` approach as [`raise_window`]) rather than pulling in
+/// a plugin: the Help panel only ever hands it our own GitHub links.
+#[tauri::command]
+fn open_external(url: String) -> CmdResult<()> {
+    let url = url.trim();
+    if !(url.starts_with("https://") || url.starts_with("http://")) {
+        return Err("only http(s) URLs may be opened".into());
+    }
+
+    #[cfg(target_os = "macos")]
+    let ok = try_cmd("open", &[url]);
+
+    #[cfg(windows)]
+    let ok = try_cmd("cmd", &["/C", "start", "", url]);
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let ok = try_cmd("xdg-open", &[url])
+        || try_cmd("gio", &["open", url])
+        || try_cmd("gvfs-open", &[url]);
+
+    if ok {
+        Ok(())
+    } else {
+        Err(format!("could not open {url}"))
+    }
+}
+
+/// A user-manual page: freshest wins, GitHub `main` over the bundled snapshot.
+#[derive(Debug, Clone, serde::Serialize)]
+struct DocPage {
+    /// Rendered from this Markdown by the frontend.
+    markdown: String,
+    /// `"github"` (fetched live) or `"bundled"` (offline fallback).
+    source: String,
+    /// Canonical URL of the page on GitHub, for the "Open on GitHub" link.
+    url: String,
+}
+
+const DOC_BASE_RAW: &str =
+    "https://raw.githubusercontent.com/dacrhu/dx-cluster-desktop/main/user-manual/";
+const DOC_BASE_WEB: &str = "https://github.com/dacrhu/dx-cluster-desktop/blob/main/user-manual/";
+
+/// Fetch one user-manual Markdown page. `slug` is a bare file stem
+/// (`getting-started`, `README`, …) — validated to `[A-Za-z0-9-]+` so it can
+/// never escape the `user-manual/` directory. Tries GitHub `main` first (so
+/// docs can be fixed without a release), falls back to the copy bundled as a
+/// Tauri resource.
+#[tauri::command]
+async fn get_doc(app: AppHandle, slug: String) -> CmdResult<DocPage> {
+    if slug.is_empty() || !slug.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
+        return Err("bad doc name".into());
+    }
+    let file = format!("{slug}.md");
+    let web = format!("{DOC_BASE_WEB}{file}");
+
+    let fetched = async {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(15))
+            .build()
+            .ok()?;
+        let resp = client
+            .get(format!("{DOC_BASE_RAW}{file}"))
+            .send()
+            .await
+            .ok()?
+            .error_for_status()
+            .ok()?;
+        resp.text().await.ok()
+    }
+    .await;
+
+    if let Some(markdown) = fetched {
+        return Ok(DocPage {
+            markdown,
+            source: "github".into(),
+            url: web,
+        });
+    }
+
+    let bundled = app
+        .path()
+        .resolve(
+            format!("resources/user-manual/{file}"),
+            tauri::path::BaseDirectory::Resource,
+        )
+        .ok()
+        .and_then(|p| std::fs::read_to_string(p).ok());
+
+    match bundled {
+        Some(markdown) => Ok(DocPage {
+            markdown,
+            source: "bundled".into(),
+            url: web,
+        }),
+        None => Err("this page is not available offline".into()),
+    }
+}
+
 /// Turn a WSJT-X decode into a synthetic spot (own source category, spotter
 /// `WSJT-X`, not a skimmer) and emit it.
 fn forward_wsjtx_spot(app: &AppHandle, s: WsjtxSpot) {
@@ -1725,6 +1824,8 @@ pub fn run() {
             rig_clear_split,
             log_prepare,
             raise_window,
+            open_external,
+            get_doc,
             send_raw,
             post_spot,
             post_announce,

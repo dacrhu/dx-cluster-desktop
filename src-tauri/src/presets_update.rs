@@ -4,6 +4,9 @@
 //! Mirrors `cty_update.rs`: a downloaded copy in the app data dir wins over the
 //! bundled resource. [`maybe_update`] refreshes it weekly with a conditional
 //! GET (`If-None-Match` from a saved ETag), so an unchanged file costs one 304.
+//! The client pulls the copy committed to this repo (served by GitHub's CDN);
+//! the weekly `data-update` workflow re-pulls the canonical `DXCLUSTERS.DAT`
+//! from dxcluster.info into that copy.
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -12,8 +15,8 @@ use dxcluster_core::reference::{parse_presets, ClusterPreset};
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
-// TODO: switch to raw.githubusercontent.com once the repo is public.
-const PRESETS_URL: &str = "https://dacr.hu/DXCLUSTERS.DAT";
+const PRESETS_URL: &str = "https://raw.githubusercontent.com/dacrhu/dx-cluster-desktop/\
+    main/src-tauri/resources/dxclusters.dat";
 const MAX_AGE: Duration = Duration::from_secs(7 * 24 * 3600);
 
 /// Result of a preset-list update / status check, surfaced to the UI.

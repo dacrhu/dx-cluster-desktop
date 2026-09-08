@@ -738,6 +738,7 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
                 ))}
               </select>
             </label>
+            <p className="field-hint">{tr("conn.langRestartHint")}</p>
             {lang === "system" && (
               <p className="field-hint">
                 {tr("conn.langDetected", { locale: sysLocale ?? navigator.language })}

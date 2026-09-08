@@ -9,25 +9,33 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: ubuntu-22.04
+          - platform: ubuntu-22.04 # Linux — .AppImage / .deb / .rpm
             args: ""
-          - platform: windows-latest
+          - platform: windows-latest # Windows — .msi / .exe (NSIS)
             args: ""
-          - platform: macos-13 # Intel
+          - platform: macos-13 # macOS Intel — .dmg
             args: "--target x86_64-apple-darwin"
-          - platform: macos-14 # Apple Silicon
+          - platform: macos-14 # macOS Apple Silicon — .dmg
             args: "--target aarch64-apple-darwin"
 
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
 
+      # WebKitGTK + packaging tools. Everything the app itself links is either
+      # bundled by the Tauri bundler (AppImage) or declared as a package
+      # dependency (.deb / .rpm) — nothing extra for the end user to install,
+      # except `rigctld` for optional CAT control (documented in the README).
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
@@ -66,3 +74,17 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+          releaseBody: |
+            Desktop DX cluster client for Windows, macOS and Linux.
+
+            **Install**
+            - Windows: `.msi` or `.exe`
+            - macOS: `.dmg` (Apple Silicon or Intel) — unsigned build, first launch: right-click → Open
+            - Linux: `.AppImage` (portable), `.deb` or `.rpm`
+
+            Every build is self-contained. The only optional external component
+            is **`rigctld`** (from Hamlib) for CAT rig control — it is **not**
+            bundled; install it separately if you want rig control.
+
+            See the [user manual](https://github.com/dacrhu/dx-cluster-desktop/blob/main/user-manual/README.md)
+            and the [changelog](https://github.com/dacrhu/dx-cluster-desktop/commits/${{ github.ref_name }}).

@@ -58,6 +58,14 @@ export const recentSpots = (limit: number) => invoke<EnrichedSpot[]>("recent_spo
 
 export const spotsSince = (since: number) => invoke<EnrichedSpot[]>("spots_since", { since });
 
+/** Open an http(s) URL in the user's default browser. */
+export const openExternal = (url: string) => invoke<void>("open_external", { url });
+
+export type DocPage = { markdown: string; source: "github" | "bundled"; url: string };
+
+/** Fetch one user-manual Markdown page (GitHub `main`, bundled fallback). */
+export const getDoc = (slug: string) => invoke<DocPage>("get_doc", { slug });
+
 export const connectNode = (profile: NodeProfile) => invoke<void>("connect_node", { profile });
 
 export const disconnectNode = (id: string) => invoke<void>("disconnect_node", { id });
