@@ -3,7 +3,7 @@ import { useShallow } from "zustand/react/shallow";
 import type { AlertHit, AlertRule } from "@/lib/alerts";
 import type { AlertSound } from "@/lib/notify";
 import type { LangPref } from "@/i18n";
-import type { CtyStatus, LogFormat, PresetsStatus, RigVfo } from "@/lib/types";
+import type { CtyStatus, LogFormat, PresetsStatus, RigVfo, UpdateInfo } from "@/lib/types";
 import type {
   ConnState,
   EnrichedSpot,
@@ -66,6 +66,10 @@ interface ClusterStore {
   ctyAutoUpdate: boolean;
   presetsStatus: PresetsStatus | null;
   presetsAutoUpdate: boolean;
+  /** Result of the startup GitHub-release check (null until it runs / fails). */
+  updateInfo: UpdateInfo | null;
+  /** Startup release check + popup. */
+  updateCheckEnabled: boolean;
   filters: SpotFilter[];
   filtersEnabled: boolean;
   /** Shared spot search query (Spots panel + Bandmap use the same one). */
@@ -78,6 +82,9 @@ interface ClusterStore {
   spotShowSkimmer: boolean;
   /** Bandmap vertical zoom factor (1 = fit the viewport). */
   bandmapZoom: number;
+  /** Band Activity panel: which spotters' continent the trend is scoped to.
+   *  "" = auto (derive from the QTH), "*" = anywhere, else a continent code. */
+  bandActivityFrom: string;
   /** Map projection: azimuthal-equidistant from the QTH, or flat world. */
   mapProjection: "azimuthal" | "rect";
   /** Map: draw the day/night grayline overlay. */
@@ -206,6 +213,8 @@ interface ClusterStore {
   setCtyAutoUpdate: (on: boolean) => void;
   setPresetsStatus: (s: PresetsStatus | null) => void;
   setPresetsAutoUpdate: (on: boolean) => void;
+  setUpdateInfo: (s: UpdateInfo | null) => void;
+  setUpdateCheckEnabled: (on: boolean) => void;
 
   setFilters: (f: SpotFilter[]) => void;
   setFiltersEnabled: (on: boolean) => void;
@@ -214,6 +223,7 @@ interface ClusterStore {
   setSpotModes: (m: Mode[]) => void;
   setSpotShowSkimmer: (on: boolean) => void;
   setBandmapZoom: (z: number) => void;
+  setBandActivityFrom: (v: string) => void;
   setMapProjection: (p: "azimuthal" | "rect") => void;
   setMapGrayline: (on: boolean) => void;
   setMapArcs: (on: boolean) => void;
@@ -289,6 +299,8 @@ export const useCluster = create<ClusterStore>((set) => ({
   ctyAutoUpdate: true,
   presetsStatus: null,
   presetsAutoUpdate: true,
+  updateInfo: null,
+  updateCheckEnabled: true,
   filters: [],
   filtersEnabled: true,
   spotQuery: "",
@@ -296,6 +308,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   spotModes: [],
   spotShowSkimmer: true,
   bandmapZoom: 1,
+  bandActivityFrom: "",
   mapProjection: "rect",
   mapGrayline: true,
   mapArcs: false,
@@ -441,6 +454,8 @@ export const useCluster = create<ClusterStore>((set) => ({
   setCtyAutoUpdate: (ctyAutoUpdate) => set({ ctyAutoUpdate }),
   setPresetsStatus: (presetsStatus) => set({ presetsStatus }),
   setPresetsAutoUpdate: (presetsAutoUpdate) => set({ presetsAutoUpdate }),
+  setUpdateInfo: (updateInfo) => set({ updateInfo }),
+  setUpdateCheckEnabled: (updateCheckEnabled) => set({ updateCheckEnabled }),
 
   setFilters: (filters) => set({ filters }),
   setFiltersEnabled: (filtersEnabled) => set({ filtersEnabled }),
@@ -449,6 +464,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   setSpotModes: (spotModes) => set({ spotModes }),
   setSpotShowSkimmer: (spotShowSkimmer) => set({ spotShowSkimmer }),
   setBandmapZoom: (bandmapZoom) => set({ bandmapZoom: Math.min(5, Math.max(1, bandmapZoom)) }),
+  setBandActivityFrom: (bandActivityFrom) => set({ bandActivityFrom }),
   setMapProjection: (mapProjection) => set({ mapProjection }),
   setMapGrayline: (mapGrayline) => set({ mapGrayline }),
   setMapArcs: (mapArcs) => set({ mapArcs }),

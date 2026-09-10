@@ -16,12 +16,14 @@ import { beep, notify, primeAudio, primeNotifications } from "@/lib/notify";
 import { resolvePskrCalls } from "@/lib/pskr";
 import { rigConfigFromStore } from "@/lib/engage";
 import { setActiveLang, setSystemLocale, useT } from "@/i18n";
-import type { EnrichedSpot } from "@/lib/types";
+import type { EnrichedSpot, UpdateInfo } from "@/lib/types";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { UpdateBanner } from "@/components/UpdateBanner";
 import { ConnectionPanel } from "@/panels/ConnectionPanel";
 import { SpotsPanel } from "@/panels/SpotsPanel";
 import { BandmapPanel } from "@/panels/BandmapPanel";
 import { MapPanel } from "@/panels/MapPanel";
+import { BandActivityPanel } from "@/panels/BandActivityPanel";
 import { FiltersPanel } from "@/panels/FiltersPanel";
 import { AnnouncementsPanel } from "@/panels/AnnouncementsPanel";
 import { PropagationPanel } from "@/panels/PropagationPanel";
@@ -39,6 +41,7 @@ type TabId =
   | "spots"
   | "bandmap"
   | "map"
+  | "activity"
   | "filters"
   | "announcements"
   | "propagation"
@@ -107,7 +110,7 @@ function checkAlerts(spot: EnrichedSpot) {
 // Tabs grouped by purpose; rendered as framed clusters in the top bar.
 const TAB_GROUPS: { id: string; tabs: TabId[] }[] = [
   { id: "setup", tabs: ["connection"] },
-  { id: "spotting", tabs: ["spots", "bandmap", "map", "filters", "alerts"] },
+  { id: "spotting", tabs: ["spots", "bandmap", "map", "activity", "alerts", "filters"] },
   { id: "info", tabs: ["announcements", "propagation"] },
   { id: "comms", tabs: ["talk", "chat", "mail", "users"] },
   { id: "advanced", tabs: ["tools", "raw"] },
@@ -118,6 +121,8 @@ const TAB_IDS: TabId[] = TAB_GROUPS.flatMap((g) => g.tabs);
 export function App() {
   const [tab, setTab] = useState<TabId>("connection");
   const [version, setVersion] = useState("");
+  // Set once at startup when a newer GitHub release is found; the popup clears it.
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const store = useCluster();
   const sendTargets = useSendTargets();
   const tr = useT();
@@ -243,6 +248,7 @@ export function App() {
       c().setCtyAutoUpdate(settings.ctyAutoUpdate ?? true);
       c().setLang(settings.lang ?? "system");
       c().setBandmapZoom(settings.bandmapZoom ?? 1);
+      c().setBandActivityFrom(settings.bandActivityFrom ?? "");
       c().setMapProjection(settings.mapProjection ?? "rect");
       c().setMapGrayline(settings.mapGrayline ?? true);
       c().setMapArcs(settings.mapArcs ?? false);
@@ -308,6 +314,19 @@ export function App() {
       ipc.presetsStatus().then((s) => c().setPresetsStatus(s));
       if (settings.presetsAutoUpdate ?? true) {
         void ipc.maybeUpdatePresets().then((s) => c().setPresetsStatus(s));
+      }
+      c().setUpdateCheckEnabled(settings.updateCheckEnabled ?? true);
+      if (settings.updateCheckEnabled ?? true) {
+        void ipc
+          .checkUpdate()
+          .then((info) => {
+            c().setUpdateInfo(info);
+            if (info.newer && info.latest && info.latest !== settings.updateSkippedVersion)
+              setUpdate(info);
+          })
+          .catch(() => {
+            /* offline / no releases yet / GitHub rate-limited — no popup */
+          });
       }
       await ipc.setHomeLocator(settings.homeLocator || null);
       try {
@@ -507,6 +526,11 @@ export function App() {
             />
           </ErrorBoundary>
         </div>
+        <div hidden={tab !== "activity"} className="panel-fill">
+          <ErrorBoundary label={tr("tab.activity")}>
+            <BandActivityPanel onGoToSpots={goToSpots} active={tab === "activity"} />
+          </ErrorBoundary>
+        </div>
         <div hidden={tab !== "filters"}>
           <ErrorBoundary label={tr("tab.filters")}>
             <FiltersPanel />
@@ -563,6 +587,17 @@ export function App() {
           </ErrorBoundary>
         </div>
       </main>
+
+      {update && (
+        <UpdateBanner
+          info={update}
+          onClose={() => setUpdate(null)}
+          onSkip={() => {
+            void patchSettings({ updateSkippedVersion: update.latest ?? "" });
+            setUpdate(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -111,6 +111,10 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
     setPresetsAutoUpdate,
     mailWatchEnabled,
     setMailWatchEnabled,
+    updateInfo,
+    updateCheckEnabled,
+    setUpdateInfo,
+    setUpdateCheckEnabled,
   } = useCluster(
     useShallow((s) => ({
       connections: s.connections,
@@ -178,6 +182,10 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
       setPresetsAutoUpdate: s.setPresetsAutoUpdate,
       mailWatchEnabled: s.mailWatchEnabled,
       setMailWatchEnabled: s.setMailWatchEnabled,
+      updateInfo: s.updateInfo,
+      updateCheckEnabled: s.updateCheckEnabled,
+      setUpdateInfo: s.setUpdateInfo,
+      setUpdateCheckEnabled: s.setUpdateCheckEnabled,
     })),
   );
   const [view, setView] = useState<"conn" | "settings">("conn");
@@ -185,6 +193,7 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
   const [newDraft, setNewDraft] = useState(false);
   const [ctyBusy, setCtyBusy] = useState(false);
   const [presetsBusy, setPresetsBusy] = useState(false);
+  const [updateBusy, setUpdateBusy] = useState(false);
   const [locDraft, setLocDraft] = useState<string | null>(null);
   const [pskrDraft, setPskrDraft] = useState<string | null>(null);
   const [wsjtxDraft, setWsjtxDraft] = useState<string | null>(null);
@@ -354,6 +363,17 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
       setPresets(await ipc.clusterPresets());
     } finally {
       setPresetsBusy(false);
+    }
+  }
+
+  async function checkUpdateNow() {
+    setUpdateBusy(true);
+    try {
+      setUpdateInfo(await ipc.checkUpdate());
+    } catch {
+      /* offline / no releases / rate-limited */
+    } finally {
+      setUpdateBusy(false);
     }
   }
 
@@ -829,6 +849,35 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
               <span className="grow" />
               <button disabled={presetsBusy} onClick={refreshPresets}>
                 {presetsBusy ? tr("conn.ctyUpdating") : tr("conn.ctyUpdateNow")}
+              </button>
+            </div>
+          </details>
+
+          <details className="settings-group" name="conn-settings">
+            <summary>{tr("conn.updateSection")}</summary>
+            <p className="field-hint">
+              {updateInfo
+                ? updateInfo.newer && updateInfo.latest
+                  ? tr("conn.updateAvailable", { v: updateInfo.latest })
+                  : tr("conn.updateUpToDate", { v: updateInfo.current })
+                : tr("conn.updateUnknown")}
+            </p>
+            <p className="field-hint">{tr("conn.updateCheckHint")}</p>
+            <div className="row settings-controls">
+              <label className="inline">
+                <input
+                  type="checkbox"
+                  checked={updateCheckEnabled}
+                  onChange={(e) => {
+                    setUpdateCheckEnabled(e.target.checked);
+                    void patchSettings({ updateCheckEnabled: e.target.checked });
+                  }}
+                />
+                {tr("conn.updateCheckEnable")}
+              </label>
+              <span className="grow" />
+              <button disabled={updateBusy} onClick={checkUpdateNow}>
+                {updateBusy ? tr("conn.updateChecking") : tr("conn.updateCheckNow")}
               </button>
             </div>
           </details>

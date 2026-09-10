@@ -45,8 +45,8 @@ See [Rig control and logging](rig-and-logging.md).
 - Connection profiles: the Tauri store.
 - Cluster passwords: your **OS keyring** — never written to disk in plain text.
 - Spot history, mail bodies, talk/chat history: a local SQLite database.
-- Alert hits and the map/bandmap view state: persisted separately so they
-  survive a restart.
+- Alert hits and the map / bandmap / activity view state: persisted separately
+  so they survive a restart.
 
 ## Top-bar quick settings
 

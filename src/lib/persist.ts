@@ -24,6 +24,10 @@ export interface AppSettings {
   ctyAutoUpdate: boolean;
   /** Weekly auto-update of the cluster node preset list. */
   presetsAutoUpdate: boolean;
+  /** Check GitHub for a newer release on startup and show a popup if there is one. */
+  updateCheckEnabled: boolean;
+  /** A release version the user chose to skip — no popup until something newer. */
+  updateSkippedVersion: string;
   lang: "system" | "en" | "hu" | "de";
   /** Global age cap (minutes) for spot lists + alert hits; 0 = show all.
    *  `alertHitTtlMin` is the pre-1.x name, still read on load. */
@@ -31,6 +35,9 @@ export interface AppSettings {
   alertHitTtlMin?: number;
   /** Bandmap vertical zoom factor. */
   bandmapZoom: number;
+  /** Band Activity panel: spotter-continent scope ("" = auto from QTH, "*" =
+   *  anywhere, else a continent code). */
+  bandActivityFrom: string;
   /** Map panel. */
   mapProjection: "azimuthal" | "rect";
   mapGrayline: boolean;
@@ -99,9 +106,12 @@ const DEFAULT_SETTINGS: AppSettings = {
   alertSoundStyle: "chime",
   ctyAutoUpdate: true,
   presetsAutoUpdate: true,
+  updateCheckEnabled: true,
+  updateSkippedVersion: "",
   lang: "system",
   spotMaxAgeMin: 0,
   bandmapZoom: 1,
+  bandActivityFrom: "",
   mapProjection: "rect",
   mapGrayline: true,
   mapArcs: false,

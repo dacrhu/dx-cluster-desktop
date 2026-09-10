@@ -9,6 +9,7 @@ import type {
   CtyEntity,
   CtyStatus,
   MufSnapshot,
+  UpdateInfo,
   ClusterPreset,
   PresetsStatus,
   HistRow,
@@ -49,6 +50,9 @@ export const updateCty = () => invoke<CtyStatus>("update_cty");
 /** Measured ionosonde MUF data (kc2g) for the map's MUF layer. */
 export const mufStations = (force = false) => invoke<MufSnapshot>("muf_stations", { force });
 
+/** Check GitHub for a newer release than the running build (startup popup). */
+export const checkUpdate = () => invoke<UpdateInfo>("check_update");
+
 export const clusterPresets = () => invoke<ClusterPreset[]>("cluster_presets");
 export const presetsStatus = () => invoke<PresetsStatus>("presets_status");
 export const maybeUpdatePresets = () => invoke<PresetsStatus>("maybe_update_presets");
@@ -61,10 +65,17 @@ export const spotsSince = (since: number) => invoke<EnrichedSpot[]>("spots_since
 /** Open an http(s) URL in the user's default browser. */
 export const openExternal = (url: string) => invoke<void>("open_external", { url });
 
-export type DocPage = { markdown: string; source: "github" | "bundled"; url: string };
+export type DocPage = {
+  markdown: string;
+  source: "github" | "bundled";
+  url: string;
+  /** Language actually served — may fall back to `"en"` for an untranslated page. */
+  lang: "en" | "hu" | "de";
+};
 
-/** Fetch one user-manual Markdown page (GitHub `main`, bundled fallback). */
-export const getDoc = (slug: string) => invoke<DocPage>("get_doc", { slug });
+/** Fetch one user-manual Markdown page in `lang` (GitHub `main`, bundled
+ *  fallback; a page missing in `lang` falls back to English). */
+export const getDoc = (slug: string, lang: string) => invoke<DocPage>("get_doc", { slug, lang });
 
 export const connectNode = (profile: NodeProfile) => invoke<void>("connect_node", { profile });
 

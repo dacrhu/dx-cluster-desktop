@@ -13,7 +13,7 @@ radio, or set up a rare-DX alert.
 Runs on **Windows, macOS and Linux**. Free and open source (MIT).
 
 ➡️ **[Download the latest release](https://github.com/dacrhu/dx-cluster-desktop/releases)**
-· **[User manual](user-manual/README.md)** · **[Help translate it](TRANSLATING.md)**
+· **[User manual](user-manual/en/README.md)** · **[Help translate it](TRANSLATING.md)**
 
 ---
 
@@ -25,7 +25,7 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
   announcements, WWV/WCY, talk, chat, mail and bulletins — is a table, a form or
   a clickable row. A raw terminal is there too, for when you want it.
 - **A spot table that keeps up.** Virtualised, instant local filtering, a proper
-  [search query language](user-manual/search-query.md) (`dx:VP8 band:20m cw`,
+  [search query language](user-manual/en/search-query.md) (`dx:VP8 band:20m cw`,
   `re:/MM$`), freeze-on-scroll so incoming spots never move what you're reading,
   mode colour-coding with real sub-modes (FT8, RTTY, SSTV…).
 - **A real bandmap.** One lane per band, stations laid out by frequency, band-plan
@@ -34,6 +34,11 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
 - **A world map that shows propagation.** Grey-line, aurora, a measured-MUF layer
   blending a solar model with live ionosonde data, band openings, a bearing
   rose, and a **"who is hearing me right now"** layer.
+- **A band-activity matrix.** A band × continent grid with a sparkline and
+  rising/falling trend in every cell — a 15-minute moving average of the spot
+  feed, scoped to spotters on your own continent so it reflects what's workable
+  from where you are. See at a glance that 40 m is opening to Europe while 15 m
+  to North America fades.
 - **Alerts that find the DX for you.** Watch lists → desktop notification + sound,
   a logged hit list, live-row tinting. De-duped so a pileup of skimmer spots
   notifies once.
@@ -66,6 +71,8 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
 | _Watch-list alerts and hit log_                       | _Mail & bulletin client_                          |
 | ![Announcements](assets/screenshot-announcements.png) | ![Propagation](assets/screenshot-propagation.png) |
 | _Announcements with include/exclude search_           | _Solar-terrestrial data: WWV & WCY_               |
+| ![Band activity](assets/screenshot-activity.png)      | ![Spot filters](assets/screenshot-filters.png)    |
+| _Band × continent activity matrix with trends_        | _Reusable local and node-side spot filters_       |
 
 ## Install
 
@@ -81,7 +88,7 @@ Download the build for your platform from the
 Each build is self-contained — the Rust backend, the UI, the web runtime
 (WebView2 on Windows, the system WebView on macOS, WebKitGTK on Linux) and all
 reference data ride along in the installer. See
-[Getting started](user-manual/getting-started.md) for per-platform notes.
+[Getting started](user-manual/en/getting-started.md) for per-platform notes.
 
 ### Rig control needs Hamlib (`rigctld` not bundled)
 
@@ -101,11 +108,11 @@ rig over the network), point the app at its host and port instead.
 
 Rig control is off until you switch it on in Settings, and nothing else in the
 app depends on Hamlib. Details in
-[Rig control and logging](user-manual/rig-and-logging.md).
+[Rig control and logging](user-manual/en/rig-and-logging.md).
 
 ## Documentation
 
-The full **[user manual](user-manual/README.md)** covers every panel. You can
+The full **[user manual](user-manual/en/README.md)** covers every panel. You can
 also read it inside the app — the **Help** tab renders the same pages (live from
 GitHub, with an offline copy in the release).
 

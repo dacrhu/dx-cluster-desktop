@@ -136,6 +136,15 @@ export interface PresetsStatus {
   updated: boolean;
 }
 
+/** Result of the startup GitHub-release check. */
+export interface UpdateInfo {
+  current: string;
+  latest: string | null;
+  newer: boolean;
+  url: string;
+  notes: string | null;
+}
+
 /** A preset cluster node with country resolved from its callsign. */
 export interface ClusterPreset {
   name: string;

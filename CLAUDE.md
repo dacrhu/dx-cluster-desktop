@@ -34,6 +34,15 @@ _Raw terminal_ tab exists for power users.
 - Adding a language = copy `en.json` to `xx.json`, translate the values, register
   it in `LANGUAGES` + `DICTS` + `LangCode` in `index.ts`. See `TRANSLATING.md`.
 - Keep the three files key-for-key identical (no missing / extra keys).
+- **User manual** (`user-manual/`) is localised per-directory: `user-manual/en/`
+  is the source of truth, `user-manual/hu/` + `user-manual/de/` are translations.
+  The in-app Help tab (`AboutPanel`) calls `get_doc(slug, lang)` — the Rust
+  command tries `user-manual/<lang>/<slug>.md` (GitHub `main`, then the bundled
+  Tauri resource) and **falls back to `en/` page-by-page**, so a partly
+  translated language still works; `DocPage.lang` reports what was actually
+  served and the panel shows `about.langFallback` when it differs. Bundling globs
+  in `tauri.conf.json` are per-language. Adding a manual language = new
+  `user-manual/<xx>/` dir + a bundling glob; untranslated pages just fall back.
 
 ## Conventions
 
@@ -51,7 +60,7 @@ _Raw terminal_ tab exists for power users.
   `.msg-from`, forms, raw console) keeps its own smaller sizes. The spot table's
   virtual-row height (`.spot-row` height + `estimateSize` in
   `components/SpotTable.tsx`) must stay in sync (currently 28px).
-- **Render performance (all 14 panels stay mounted, `App.tsx` only toggles
+- **Render performance (all 15 panels stay mounted, `App.tsx` only toggles
   `hidden` — never conditionally rendered — so per-panel state like fetched
   lists, scroll position or open threads survives a tab switch).** That means
   every mounted panel's own store subscription fires on every store change,
@@ -230,6 +239,28 @@ stretches to follow density, each row shows its exact frequency in the left
 gutter. Age fade, alert tint (any spot in the group), right-click → shared
 `SpotAction` menu, left-click → `SpotPopover` — all on the representative
 spot. An empty lane falls back to a plain proportional scale with MHz ticks.
+
+**Band activity matrix:** `BandActivityPanel` ("activity" tab in the "spotting"
+group) → `components/BandActivityMatrix.tsx`. A band × DX-continent grid; each
+cell = a 2 h sparkline (8 × 15 min buckets, oldest→newest) + a volume-scaled
+`--accent` glow + a 5-step trend badge (`▲▲ ▲ – ▼ ▼▼` + Δ%), where trend =
+last-15-min count vs. the preceding 15 min (`bandActivityMatrix` /
+`classifyTrend` in `src/lib/bandActivity.ts`, unit-tested). A "biggest movers"
+strip (top 3 rising / 3 falling by |Δ%|, min-traffic gated) sits above; each
+mover + each cell click → `onGoToSpots` with `spotBands=[band]` +
+`spotQuery="cont:<dx> bycont:<from>"` (both tokens already in `compileQuery`).
+**Scope:** the spots are first filtered to a spotter continent (`from`), _then_
+bucketed by DX continent — otherwise "40m rising toward NA" is a lie when every
+NA-hearing skimmer also sits in NA. `store.bandActivityFrom`
+(`settings.bandActivityFrom`, persisted): `""` = auto (QTH continent via
+`lib/continents.ts::lonLatToContinent` — rough bounding boxes, unit-tested — off
+`homeLocator`), `"*"` = anywhere, else a continent code; a `<select>` in the
+quickbar. Feeds off `useTrendSpots(active)` (`src/lib/visibleSpots.ts`) — the
+shared pipeline (QuickFilters chips, search, skimmer/WSJT-X, node filters) **minus
+the `spotMaxAgeMin` cap**, since the 2 h history must survive whatever the top-bar
+age cap is; frozen when the tab is hidden like the other heavy panels. Pure
+frontend, no Rust — same class as `openings.ts` / `bandRose.ts`. Manual page
+`user-manual/en/activity.md`.
 
 **Modes** are CW / SSB / DIGI / FM (`band::Mode`, `src/lib/types.ts`). DIGI is
 everything non-phone, non-CW — FT8/FT4/JT, RTTY, PSK, SSTV, JS8 … `guess_mode`
@@ -646,6 +677,22 @@ the Mail tab's "new activity" dot; the poll also fires an `os_notify` toast
 (`mail.notifyTitle`/`Body`). Manual/auto `refresh()` also calls
 `noteMailMsgnos` to keep the baseline current. Toggle: Connection panel →
 Settings → "Mail" group.
+
+**Startup update check:** `src-tauri/src/update_check.rs` (`check_update` command)
+does one GET to the GitHub Releases API
+(`api.github.com/repos/dacrhu/dx-cluster-desktop/releases/latest`) per launch,
+compares `tag_name` to `app.package_info().version` with a numeric-parts
+`version_gt` (pre-release suffixes ignored), and returns
+`UpdateInfo { current, latest, newer, url, notes }`. Read-only reference lookup,
+not a cluster transport (same category as the `cty.dat` HTTP updates); no
+auto-download. `App.tsx` bootstrap runs it when `settings.updateCheckEnabled`
+(default true), stores the result in `store.updateInfo`, and — if `newer` and
+`latest !== settings.updateSkippedVersion` — shows `components/UpdateBanner.tsx`,
+a one-per-launch modal popup (`.update-backdrop`/`.update-popup`) with the
+release notes + "Open download page" (`open_external` → releases page) / "Skip
+this version" (persists `updateSkippedVersion`) / "Later". A network/404/rate-
+limit failure is swallowed — no popup. Toggle + "Check now" + status live in the
+Connection panel → Settings → "App updates" group. i18n `update.*` / `conn.update*`.
 
 **Read flags survive a refresh:** `MailPanel::fetchHeaders` ORs each parsed
 `MailHeader.read` with membership of `cached_mail_ids` (`store::mail_msgnos` —

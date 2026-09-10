@@ -17,16 +17,17 @@ back to a copy bundled with the release when you are not.
 4. [The search query language](search-query.md) — `dx:` `by:` `band:` `re:` and friends
 5. [The bandmap](bandmap.md) — per-band lanes, the band plan, SOS/IBP markers
 6. [The world map](map.md) — projections, propagation layers, MUF, "who is hearing me"
-7. [Spot filters](filters.md) — local filtering and node-side filters
-8. [Alerts](alerts.md) — watch lists, desktop notifications, the hit log
-9. [Announcements, WWV/WCY and WX](bulletins.md) — the bulletin and propagation feeds
-10. [Talk, chat, mail and users](messaging.md) — every conversational feature
-11. [Tools and node queries](tools.md) — `sh/dx` history and generic `sh/*` lookups
-12. [Extra spot sources](extra-feeds.md) — RBN, PSK Reporter and WSJT-X
-13. [Rig control and logging](rig-and-logging.md) — CAT via rigctld, log-program hand-off
-14. [Settings and languages](settings.md) — every setting, plus how to change the language
-15. [The raw terminal](raw-terminal.md) — the power-user console
-16. [Troubleshooting](troubleshooting.md) — common problems and fixes
+7. [The activity matrix](activity.md) — which band is rising or falling, by continent
+8. [Spot filters](filters.md) — local filtering and node-side filters
+9. [Alerts](alerts.md) — watch lists, desktop notifications, the hit log
+10. [Announcements, WWV/WCY and WX](bulletins.md) — the bulletin and propagation feeds
+11. [Talk, chat, mail and users](messaging.md) — every conversational feature
+12. [Tools and node queries](tools.md) — `sh/dx` history and generic `sh/*` lookups
+13. [Extra spot sources](extra-feeds.md) — RBN, PSK Reporter and WSJT-X
+14. [Rig control and logging](rig-and-logging.md) — CAT via rigctld, log-program hand-off
+15. [Settings and languages](settings.md) — every setting, plus how to change the language
+16. [The raw terminal](raw-terminal.md) — the power-user console
+17. [Troubleshooting](troubleshooting.md) — common problems and fixes
 
 ## A note on scope
 

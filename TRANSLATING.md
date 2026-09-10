@@ -76,6 +76,35 @@ side by side.
      the `sys === …` line) if you want it auto-selected from the OS language.
 4. Open a pull request. A maintainer will verify the `index.ts` change builds.
 
+## Translating the user manual
+
+The user manual (the pages you read in the app's _Help_ tab, and on GitHub under
+[`user-manual/`](user-manual/)) is translated separately, one Markdown file per
+page:
+
+```
+user-manual/
+  en/   ← English — the source of truth, always complete
+  hu/   ← Hungarian
+  de/   ← German
+```
+
+- Each language directory has the **same file names** (`getting-started.md`,
+  `spots.md`, …) and its own `README.md` (the table of contents).
+- To translate a page, copy it from `user-manual/en/<page>.md` to
+  `user-manual/<code>/<page>.md` and translate the prose. **Keep the Markdown
+  structure** — headings, lists, tables, links, and anything in `` `code font` ``
+  (command names, `dx:` query tokens, setting names) stays as-is.
+- Links between pages are plain relative names (`[Spots](spots.md)`) — leave them
+  exactly as written; they resolve within the same language directory.
+- You do **not** have to translate every page at once. A page missing in your
+  language automatically falls back to the English one, and the app shows a small
+  "showing the English version" note above it.
+- No code change is needed to add manual pages for an existing UI language.
+  Adding a manual for a brand-new language also needs a one-line bundling glob in
+  `src-tauri/tauri.conf.json` (copy the `hu` / `de` lines) — a maintainer can do
+  that.
+
 ## Checking your work (optional)
 
 If you can run the project locally:

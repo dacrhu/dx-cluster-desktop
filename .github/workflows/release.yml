@@ -87,5 +87,5 @@ jobs:
             is **`rigctld`** (from Hamlib) for CAT rig control — it is **not**
             bundled; install it separately if you want rig control.
 
-            See the [user manual](https://github.com/dacrhu/dx-cluster-desktop/blob/main/user-manual/README.md)
+            See the [user manual](https://github.com/dacrhu/dx-cluster-desktop/blob/main/user-manual/en/README.md)
             and the [changelog](https://github.com/dacrhu/dx-cluster-desktop/commits/${{ github.ref_name }}).

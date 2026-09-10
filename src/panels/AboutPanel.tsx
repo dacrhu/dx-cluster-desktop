@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { useT } from "@/i18n";
+import { resolveLang, useT } from "@/i18n";
+import { useCluster } from "@/store/useCluster";
 import { getDoc, openExternal, type DocPage } from "@/lib/ipc";
 import { renderMarkdown } from "@/lib/markdown";
 
@@ -28,6 +29,11 @@ function parseNav(markdown: string): { slug: string; label: string }[] {
 
 export const AboutPanel = memo(function AboutPanel() {
   const tr = useT();
+  const langPref = useCluster((s) => s.lang);
+  // Subscribe to the OS locale too: `resolveLang` reads it (module state) when
+  // `langPref` is `system`, so a live update must re-render and re-fetch.
+  useCluster((s) => s.sysLocale);
+  const docLang = resolveLang(langPref);
   const [version, setVersion] = useState("");
   const [slug, setSlug] = useState(INDEX_SLUG);
   const [page, setPage] = useState<DocPage | null>(null);
@@ -46,7 +52,7 @@ export const AboutPanel = memo(function AboutPanel() {
     const id = ++reqId.current;
     setState("loading");
     setPage(null);
-    void getDoc(slug)
+    void getDoc(slug, docLang)
       .then((p) => {
         if (id !== reqId.current) return;
         setPage(p);
@@ -57,7 +63,7 @@ export const AboutPanel = memo(function AboutPanel() {
         if (id !== reqId.current) return;
         setState("error");
       });
-  }, [slug]);
+  }, [slug, docLang]);
 
   // Scroll the reader back to the top on every page change.
   useEffect(() => {
@@ -146,7 +152,9 @@ export const AboutPanel = memo(function AboutPanel() {
                 <button
                   className="about-gh-link"
                   onClick={() =>
-                    void openExternal(`${REPO}/blob/main/user-manual/${slug}.md`).catch(() => {})
+                    void openExternal(`${REPO}/blob/main/user-manual/${docLang}/${slug}.md`).catch(
+                      () => {},
+                    )
                   }
                 >
                   {tr("about.openOnGithub")}
@@ -155,6 +163,9 @@ export const AboutPanel = memo(function AboutPanel() {
             )}
             {state === "ready" && page && (
               <>
+                {page.lang !== docLang && docLang !== "en" && (
+                  <p className="field-hint about-doc-fallback">{tr("about.langFallback")}</p>
+                )}
                 <div
                   className="about-doc-content"
                   onClick={onBodyClick}

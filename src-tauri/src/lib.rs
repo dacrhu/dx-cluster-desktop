@@ -9,6 +9,7 @@ mod enrich;
 mod muf_update;
 mod presets_update;
 mod skimmers_update;
+mod update_check;
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicI64, Ordering};
@@ -1336,32 +1337,31 @@ struct DocPage {
     source: String,
     /// Canonical URL of the page on GitHub, for the "Open on GitHub" link.
     url: String,
+    /// Language actually served (`en` / `hu` / `de`). May differ from the
+    /// requested language when that page isn't translated yet — the frontend
+    /// shows an "showing English" hint in that case.
+    lang: String,
 }
 
 const DOC_BASE_RAW: &str =
     "https://raw.githubusercontent.com/dacrhu/dx-cluster-desktop/main/user-manual/";
 const DOC_BASE_WEB: &str = "https://github.com/dacrhu/dx-cluster-desktop/blob/main/user-manual/";
 
-/// Fetch one user-manual Markdown page. `slug` is a bare file stem
-/// (`getting-started`, `README`, …) — validated to `[A-Za-z0-9-]+` so it can
-/// never escape the `user-manual/` directory. Tries GitHub `main` first (so
-/// docs can be fixed without a release), falls back to the copy bundled as a
-/// Tauri resource.
-#[tauri::command]
-async fn get_doc(app: AppHandle, slug: String) -> CmdResult<DocPage> {
-    if slug.is_empty() || !slug.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
-        return Err("bad doc name".into());
-    }
-    let file = format!("{slug}.md");
-    let web = format!("{DOC_BASE_WEB}{file}");
+const DOC_LANGS: [&str; 3] = ["en", "hu", "de"];
 
-    let fetched = async {
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(15))
-            .build()
-            .ok()?;
+/// Try one language's copy of a page: GitHub `main` first (so docs can be fixed
+/// without a release), then the copy bundled as a Tauri resource. Returns the
+/// Markdown + whether it came from GitHub or the bundle, or `None` if that
+/// language simply doesn't have this page.
+async fn fetch_doc_lang(
+    app: &AppHandle,
+    client: &reqwest::Client,
+    lang: &str,
+    file: &str,
+) -> Option<(String, &'static str)> {
+    let remote = async {
         let resp = client
-            .get(format!("{DOC_BASE_RAW}{file}"))
+            .get(format!("{DOC_BASE_RAW}{lang}/{file}"))
             .send()
             .await
             .ok()?
@@ -1370,32 +1370,60 @@ async fn get_doc(app: AppHandle, slug: String) -> CmdResult<DocPage> {
         resp.text().await.ok()
     }
     .await;
-
-    if let Some(markdown) = fetched {
-        return Ok(DocPage {
-            markdown,
-            source: "github".into(),
-            url: web,
-        });
+    if let Some(markdown) = remote {
+        return Some((markdown, "github"));
     }
 
-    let bundled = app
-        .path()
+    app.path()
         .resolve(
-            format!("resources/user-manual/{file}"),
+            format!("resources/user-manual/{lang}/{file}"),
             tauri::path::BaseDirectory::Resource,
         )
         .ok()
-        .and_then(|p| std::fs::read_to_string(p).ok());
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .map(|markdown| (markdown, "bundled"))
+}
 
-    match bundled {
-        Some(markdown) => Ok(DocPage {
-            markdown,
-            source: "bundled".into(),
-            url: web,
-        }),
-        None => Err("this page is not available offline".into()),
+/// Fetch one user-manual Markdown page. `slug` is a bare file stem
+/// (`getting-started`, `README`, …) — validated to `[A-Za-z0-9-]+` so it can
+/// never escape the `user-manual/` directory. `lang` picks the translation
+/// (`en` / `hu` / `de`); a page missing in that language falls back to English.
+#[tauri::command]
+async fn get_doc(app: AppHandle, slug: String, lang: Option<String>) -> CmdResult<DocPage> {
+    if slug.is_empty() || !slug.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
+        return Err("bad doc name".into());
     }
+    let want = lang.as_deref().unwrap_or("en");
+    let want = if DOC_LANGS.contains(&want) {
+        want
+    } else {
+        "en"
+    };
+    let file = format!("{slug}.md");
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(15))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    // Requested language, then English as the fallback (deduped if that *is*
+    // the request).
+    let mut chain = vec![want];
+    if want != "en" {
+        chain.push("en");
+    }
+    for lang in chain {
+        if let Some((markdown, source)) = fetch_doc_lang(&app, &client, lang, &file).await {
+            return Ok(DocPage {
+                markdown,
+                source: source.into(),
+                url: format!("{DOC_BASE_WEB}{lang}/{file}"),
+                lang: lang.into(),
+            });
+        }
+    }
+
+    Err("this page is not available offline".into())
 }
 
 /// Turn a WSJT-X decode into a synthetic spot (own source category, spotter
@@ -1558,6 +1586,20 @@ fn apply_cty_update(
         let entities = state.cty.read().unwrap().len();
         let source = state.cty_source.lock().unwrap().clone();
         Ok(cty_update::status(app, entities, &source))
+    }
+}
+
+/// Check GitHub for a newer release than the running build. A network failure
+/// is not an error the UI needs to see — it just means "no popup this launch".
+#[tauri::command]
+async fn check_update(app: AppHandle) -> CmdResult<update_check::UpdateInfo> {
+    let current = app.package_info().version.to_string();
+    match update_check::check(&current).await {
+        Ok(info) => Ok(info),
+        Err(e) => {
+            log::info!("update check skipped: {e}");
+            Err(e)
+        }
     }
 }
 
@@ -1845,6 +1887,7 @@ pub fn run() {
             cty_entities,
             maybe_update_cty,
             update_cty,
+            check_update,
             muf_stations,
             cluster_presets,
             presets_status,

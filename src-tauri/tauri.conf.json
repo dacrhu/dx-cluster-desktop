@@ -39,7 +39,9 @@
       "resources/cty.dat": "resources/cty.dat",
       "resources/dxclusters.dat": "resources/dxclusters.dat",
       "resources/rbn_skimmers.tsv": "resources/rbn_skimmers.tsv",
-      "../user-manual/*.md": "resources/user-manual/"
+      "../user-manual/en/*.md": "resources/user-manual/en/",
+      "../user-manual/hu/*.md": "resources/user-manual/hu/",
+      "../user-manual/de/*.md": "resources/user-manual/de/"
     },
     "category": "Utility",
     "shortDescription": "Ham radio DX cluster client",
