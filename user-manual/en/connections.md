@@ -9,15 +9,16 @@ else). This page covers Connections.
 A profile is one saved cluster login. Click **+ Add** to create one, or click a
 profile in the list to edit it.
 
-| Field        | Meaning                                                                |
-| ------------ | ---------------------------------------------------------------------- |
-| Name         | A label for the list — free text.                                      |
-| Host / Port  | The node's Telnet address, e.g. `hg8lxl.ham.hu` / `7300`.              |
-| Callsign     | Your login callsign.                                                   |
-| Password     | Only if the node requires one. Stored in the OS keyring at runtime.    |
-| Type         | **Cluster** (a normal DX cluster) or **RBN feed** — see below.         |
-| Software     | **DXSpider** or **AR-Cluster** — picks the command dialect. See below. |
-| Auto-connect | Connect this profile automatically on startup.                         |
+| Field         | Meaning                                                                |
+| ------------- | ---------------------------------------------------------------------- |
+| Name          | A label for the list — free text.                                      |
+| Host / Port   | The node's Telnet address, e.g. `hg8lxl.ham.hu` / `7300`.              |
+| Callsign      | Your login callsign.                                                   |
+| Password      | Only if the node requires one. Stored in the OS keyring at runtime.    |
+| Type          | **Cluster** (a normal DX cluster) or **RBN feed** — see below.         |
+| Software      | **DXSpider** or **AR-Cluster** — picks the command dialect. See below. |
+| Skimmer spots | Node default / request on / request off — DXSpider only. See below.    |
+| Auto-connect  | Connect this profile automatically on startup.                         |
 
 Multiple profiles can be connected at once. Spots from all of them are merged
 and de-duplicated (a 90-second window on callsign + frequency + spotter).
@@ -57,6 +58,18 @@ so the client generates the right commands for:
 
 Spot, WWV, WCY and announcement parsing is common to both. If you are unsure,
 DXSpider is the safe default and by far the most common.
+
+## Skimmer spots
+
+Many DXSpider nodes withhold RBN-relayed skimmer spots until you opt in, or
+send them by default and expect you to opt out. The **Skimmer spots** field
+in a profile (DXSpider only) sends `SET/SKIMMER` or `UNSET/SKIMMER`
+automatically right after every login — set it once, no need to type the
+command yourself each session. A **Send now** button appears next to it while
+that profile is online, so a change applies immediately without reconnecting.
+
+The node doesn't report its current skimmer setting back, so this is a
+fire-and-forget preference, not a live status display.
 
 ## Connection state
 

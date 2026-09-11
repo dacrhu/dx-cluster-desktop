@@ -22,8 +22,9 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
 ## Why you'll like it
 
 - **Everything is point-and-click.** Every cluster feature — spots, filters,
-  announcements, WWV/WCY, talk, chat, mail and bulletins — is a table, a form or
-  a clickable row. A raw terminal is there too, for when you want it.
+  announcements, WWV/WCY, talk, chat, mail, bulletins and node preferences like
+  skimmer spots — is a table, a form or a clickable row. A raw terminal is
+  there too, for when you want it.
 - **A spot table that keeps up.** Virtualised, instant local filtering, a proper
   [search query language](user-manual/en/search-query.md) (`dx:VP8 band:20m cw`,
   `re:/MM$`), freeze-on-scroll so incoming spots never move what you're reading,

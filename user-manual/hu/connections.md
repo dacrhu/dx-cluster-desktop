@@ -9,15 +9,16 @@ válthatsz köztük: **Kapcsolatok** (profilok és a preset-böngésző) és
 Egy profil egy elmentett cluster-belépés. Kattints a **+ Hozzáadás** gombra egy
 új létrehozásához, vagy kattints egy listabeli profilra a szerkesztéséhez.
 
-| Mező             | Jelentés                                                                           |
-| ---------------- | ---------------------------------------------------------------------------------- |
-| Név              | Címke a listához — szabad szöveg.                                                  |
-| Host / Port      | A node Telnet-címe, pl. `hg8lxl.ham.hu` / `7300`.                                  |
-| Hívójel          | A belépési hívójeled.                                                              |
-| Jelszó           | Csak ha a node megköveteli. Futásidőben az OS kulcstartójában tárolódik.           |
-| Típus            | **Cluster** (normál DX cluster) vagy **RBN feed** — lásd lentebb.                  |
-| Szoftver         | **DXSpider** vagy **AR-Cluster** — a parancsdialektust választja ki. Lásd lentebb. |
-| Auto-csatlakozás | Ez a profil automatikusan csatlakozzon induláskor.                                 |
+| Mező             | Jelentés                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------- |
+| Név              | Címke a listához — szabad szöveg.                                                            |
+| Host / Port      | A node Telnet-címe, pl. `hg8lxl.ham.hu` / `7300`.                                            |
+| Hívójel          | A belépési hívójeled.                                                                        |
+| Jelszó           | Csak ha a node megköveteli. Futásidőben az OS kulcstartójában tárolódik.                     |
+| Típus            | **Cluster** (normál DX cluster) vagy **RBN feed** — lásd lentebb.                            |
+| Szoftver         | **DXSpider** vagy **AR-Cluster** — a parancsdialektust választja ki. Lásd lentebb.           |
+| Skimmer spotok   | Node alapértelmezés / bekapcsolás kérése / kikapcsolás kérése — csak DXSpider. Lásd lentebb. |
+| Auto-csatlakozás | Ez a profil automatikusan csatlakozzon induláskor.                                           |
 
 Egyszerre több profil is csatlakoztatható. Az összesük spotjai összefésülődnek
 és deduplikálódnak (90 másodperces ablak hívójel + frekvencia + spotter alapján).
@@ -57,6 +58,19 @@ A két gyakori node-típus a parancsszintaxisban tér el. Állítsd be helyesen 
 
 A spot-, WWV-, WCY- és hirdetmény-elemzés mindkettőnél közös. Ha bizonytalan
 vagy, a DXSpider a biztonságos alapértelmezés, és messze a leggyakoribb.
+
+## Skimmer spotok
+
+Sok DXSpider node-on az RBN-től érkező skimmer spotokat vagy külön be kell
+kapcsolni, vagy alapból küldi őket és neked kell kikapcsolnod. A profil
+**Skimmer spotok** mezője (csak DXSpider) minden bejelentkezés után
+automatikusan elküldi a `SET/SKIMMER` vagy `UNSET/SKIMMER` parancsot — egyszer
+állítod be, nem kell a parancsot minden alkalommal kézzel begépelned. Amíg az
+adott profil online, egy **Küldés most** gomb is megjelenik mellette, amivel a
+változtatás azonnal, újracsatlakozás nélkül érvénybe lép.
+
+A node nem küldi vissza az aktuális skimmer-állapotát, ezért ez egy egyszeri,
+visszaigazolás nélküli beállítás, nem élő állapotkijelzés.
 
 ## Kapcsolati állapot
 

@@ -196,6 +196,11 @@ export interface DxQuery {
 export const shDxCommand = (query: DxQuery, software: NodeSoftware = "dx_spider") =>
   invoke<string>("sh_dx_command", { query, software });
 
+/** Build the `SET/SKIMMER` / `UNSET/SKIMMER` command string, or `null` when
+ *  the target dialect has no equivalent (DXSpider only). */
+export const skimmerCommand = (enabled: boolean, software: NodeSoftware = "dx_spider") =>
+  invoke<string | null>("skimmer_command", { enabled, software });
+
 export const searchLocalSpots = (opts: {
   dxPrefix?: string;
   band?: string;

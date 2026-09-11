@@ -12,6 +12,14 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+### Added
+
+- Connection profiles for DXSpider nodes can now request skimmer (RBN)
+  spots on or off — no more typing `set/skimmer` / `unset/skimmer` by hand.
+  Set it once per profile and it's sent automatically right after every
+  login; a "send now" button also applies it to an already-open connection
+  without reconnecting.
+
 ## [1.2.0] - 2026-09-11
 
 ### Fixed

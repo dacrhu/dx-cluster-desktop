@@ -26,6 +26,10 @@ export interface NodeProfile {
   auto_connect?: boolean;
   kind?: NodeKind;
   software?: NodeSoftware;
+  /** Skimmer-spot preference to enforce right after login (`SET/SKIMMER` /
+   *  `UNSET/SKIMMER`). `null`/undefined = leave the node's own default
+   *  alone. DXSpider only — ignored for other dialects. */
+  skimmer?: boolean | null;
 }
 
 export interface CallInfo {

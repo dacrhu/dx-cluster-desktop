@@ -476,6 +476,15 @@ fn sh_dx_command(query: commands::DxQuery, software: NodeSoftware) -> String {
     commands::sh_dx(&query, software)
 }
 
+/// Build the `SET/SKIMMER` / `UNSET/SKIMMER` command string, or `None` when
+/// the target dialect has no equivalent (DXSpider only). Used both to preview
+/// the command in the profile editor and to send it to an already-open
+/// connection via `runQuery` without reconnecting.
+#[tauri::command]
+fn skimmer_command(enabled: bool, software: NodeSoftware) -> Option<String> {
+    matches!(software, NodeSoftware::DxSpider).then(|| commands::set_skimmer(enabled).to_string())
+}
+
 /// Offline `SH/DX`: search the local spot history.
 #[tauri::command]
 fn search_local_spots(
@@ -1882,6 +1891,7 @@ pub fn run() {
             parse_directory,
             parse_hist_spots,
             sh_dx_command,
+            skimmer_command,
             search_local_spots,
             cty_status,
             cty_entities,

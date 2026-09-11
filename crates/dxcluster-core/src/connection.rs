@@ -77,6 +77,11 @@ pub struct NodeProfile {
     /// Command dialect for a `Cluster`-kind node.
     #[serde(default)]
     pub software: NodeSoftware,
+    /// Skimmer-spot preference to enforce right after login (`SET/SKIMMER` /
+    /// `UNSET/SKIMMER`, sent before `on_login`). `None` = leave the node's
+    /// own default alone. DXSpider only — ignored for other dialects.
+    #[serde(default)]
+    pub skimmer: Option<bool>,
 }
 
 /// High-level connection state, surfaced to the UI.
@@ -396,6 +401,18 @@ async fn run_login_actions<W>(
                 emit(ConnEvent::State {
                     state: ConnState::Online,
                 });
+                if profile.kind == NodeKind::Cluster && profile.software == NodeSoftware::DxSpider {
+                    if let Some(enabled) = profile.skimmer {
+                        let cmd = crate::commands::set_skimmer(enabled);
+                        if writer
+                            .write_all(format!("{cmd}\r\n").as_bytes())
+                            .await
+                            .is_ok()
+                        {
+                            emit(ConnEvent::Sent { line: cmd.into() });
+                        }
+                    }
+                }
                 for cmd in &profile.on_login {
                     if writer
                         .write_all(format!("{}\r\n", cmd.trim_end()).as_bytes())
@@ -459,6 +476,7 @@ mod tests {
             auto_connect: false,
             kind: NodeKind::default(),
             software: NodeSoftware::default(),
+            skimmer: None,
         }
     }
 
@@ -553,6 +571,91 @@ mod tests {
         assert!(saw_online, "should have reached Online");
         assert!(saw_spot, "should have parsed the spot");
 
+        drop(cmd_tx);
+        let _ = task.await;
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn sends_skimmer_pref_before_on_login() {
+        guarded(sends_skimmer_pref_before_on_login_body()).await;
+    }
+
+    async fn sends_skimmer_pref_before_on_login_body() {
+        let (client, server) = tokio::io::duplex(4096);
+        let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
+        let (ev_tx, mut ev_rx) = mpsc::unbounded_channel();
+
+        let mut p = profile();
+        p.skimmer = Some(true);
+        let cfg = SessionConfig::default();
+        let task = tokio::spawn(async move { run_session(client, &p, &cfg, cmd_rx, ev_tx).await });
+
+        let (mut srv_r, mut srv_w) = tokio::io::split(server);
+        srv_w
+            .write_all(b"Welcome to GB7DJK\r\nlogin: ")
+            .await
+            .unwrap();
+        let mut buf = [0u8; 64];
+        let n = srv_r.read(&mut buf).await.unwrap();
+        assert_eq!(&buf[..n], b"HA5XYZ\r\n");
+        srv_w
+            .write_all(b"Hello Bela\r\nHA5XYZ de GB7DJK 12-Aug-2025 1830Z >\r\n")
+            .await
+            .unwrap();
+
+        // The skimmer preference goes out before the on_login command; both
+        // are written back-to-back with no yield in between, so the duplex
+        // stream may deliver them as one read.
+        let expected = b"SET/SKIMMER\r\nset/ft8\r\n";
+        let mut got = vec![0u8; expected.len()];
+        srv_r.read_exact(&mut got).await.unwrap();
+        assert_eq!(got, expected);
+
+        while tokio::time::timeout(Duration::from_millis(50), ev_rx.recv())
+            .await
+            .is_ok()
+        {}
+        drop(cmd_tx);
+        let _ = task.await;
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn ar_cluster_skimmer_pref_is_not_sent() {
+        guarded(ar_cluster_skimmer_pref_is_not_sent_body()).await;
+    }
+
+    async fn ar_cluster_skimmer_pref_is_not_sent_body() {
+        let (client, server) = tokio::io::duplex(4096);
+        let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
+        let (ev_tx, mut ev_rx) = mpsc::unbounded_channel();
+
+        let mut p = profile();
+        p.skimmer = Some(true);
+        p.software = NodeSoftware::ArCluster;
+        let cfg = SessionConfig::default();
+        let task = tokio::spawn(async move { run_session(client, &p, &cfg, cmd_rx, ev_tx).await });
+
+        let (mut srv_r, mut srv_w) = tokio::io::split(server);
+        srv_w
+            .write_all(b"Welcome to GB7DJK\r\nlogin: ")
+            .await
+            .unwrap();
+        let mut buf = [0u8; 64];
+        let n = srv_r.read(&mut buf).await.unwrap();
+        assert_eq!(&buf[..n], b"HA5XYZ\r\n");
+        srv_w
+            .write_all(b"Hello Bela\r\nHA5XYZ de GB7DJK 12-Aug-2025 1830Z >\r\n")
+            .await
+            .unwrap();
+
+        // AR-Cluster gets straight to on_login, no SET/SKIMMER.
+        let n = srv_r.read(&mut buf).await.unwrap();
+        assert_eq!(&buf[..n], b"set/ft8\r\n");
+
+        while tokio::time::timeout(Duration::from_millis(50), ev_rx.recv())
+            .await
+            .is_ok()
+        {}
         drop(cmd_tx);
         let _ = task.await;
     }

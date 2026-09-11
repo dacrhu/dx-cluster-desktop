@@ -10,6 +10,10 @@ import type { ClusterPreset, ConnState, LogFormat, NodeProfile, RigModel } from 
 
 const BAUD_RATES = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200];
 
+// Mirrors FiltersPanel's own copy — a reply starting with either means the
+// node didn't understand the command we just sent it.
+const UNKNOWN_CMD_RE = /^(unknown command|sorry)/i;
+
 const BLANK: NodeProfile = {
   id: "",
   host: "",
@@ -191,6 +195,7 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
   const [view, setView] = useState<"conn" | "settings">("conn");
   const [draft, setDraft] = useState<NodeProfile | null>(null);
   const [newDraft, setNewDraft] = useState(false);
+  const [skimmerNote, setSkimmerNote] = useState<string | null>(null);
   const [ctyBusy, setCtyBusy] = useState(false);
   const [presetsBusy, setPresetsBusy] = useState(false);
   const [updateBusy, setUpdateBusy] = useState(false);
@@ -422,6 +427,7 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
     setView("conn");
     setDraft({ ...BLANK, callsign: profiles.find((p) => p.callsign)?.callsign ?? "" });
     setNewDraft(true);
+    setSkimmerNote(null);
   }
   function startAddRbn(variant: "cw" | "ft8") {
     setView("conn");
@@ -434,15 +440,35 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
       kind: "rbn",
     });
     setNewDraft(false);
+    setSkimmerNote(null);
   }
   function startEdit(p: NodeProfile) {
     setView("conn");
     setDraft({ kind: "cluster", ...p, on_login: [...p.on_login] });
     setNewDraft(false);
+    setSkimmerNote(null);
   }
   function closeDraft() {
     setDraft(null);
     setNewDraft(false);
+    setSkimmerNote(null);
+  }
+
+  async function sendSkimmerNow() {
+    if (!draft || draft.skimmer == null) return;
+    setSkimmerNote(null);
+    const software = draft.software ?? "dx_spider";
+    const cmd = await ipc.skimmerCommand(draft.skimmer, software);
+    if (!cmd) {
+      setSkimmerNote(tr("conn.skimmerUnsupported"));
+      return;
+    }
+    const lines = await ipc.runQuery(draft.id, cmd, 4000).catch(() => []);
+    setSkimmerNote(
+      lines.some((l) => UNKNOWN_CMD_RE.test(l.trim()))
+        ? tr("conn.skimmerUnsupported")
+        : tr("conn.skimmerSent"),
+    );
   }
 
   async function save() {
@@ -651,6 +677,42 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
                   </label>
                 )}
               </div>
+              {(draft.kind ?? "cluster") === "cluster" && (
+                <div className="row">
+                  <label>
+                    {tr("conn.skimmerLabel")}
+                    <select
+                      value={
+                        draft.skimmer === true ? "on" : draft.skimmer === false ? "off" : "default"
+                      }
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setDraft({
+                          ...draft,
+                          skimmer: v === "on" ? true : v === "off" ? false : null,
+                        });
+                        setSkimmerNote(null);
+                      }}
+                    >
+                      <option value="default">{tr("conn.skimmerDefault")}</option>
+                      <option value="on">{tr("conn.skimmerOn")}</option>
+                      <option value="off">{tr("conn.skimmerOff")}</option>
+                    </select>
+                  </label>
+                  {draft.skimmer != null && connections[draft.id]?.state === "online" && (
+                    <button type="button" onClick={() => void sendSkimmerNow()}>
+                      {tr("conn.skimmerSend")}
+                    </button>
+                  )}
+                </div>
+              )}
+              {(draft.kind ?? "cluster") === "cluster" && draft.skimmer != null && (
+                <p className="field-hint">
+                  {tr("conn.skimmerHint")}
+                  {draft.software === "ar_cluster" && ` ${tr("conn.skimmerArUnsupported")}`}
+                </p>
+              )}
+              {skimmerNote && <p className="field-hint">{skimmerNote}</p>}
               {draft.kind === "rbn" && <p className="muted">{tr("conn.rbnEditorNote")}</p>}
               <div className="row">
                 <label className="grow">

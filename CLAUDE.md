@@ -44,6 +44,26 @@ _Raw terminal_ tab exists for power users.
   in `tauri.conf.json` are per-language. Adding a manual language = new
   `user-manual/<xx>/` dir + a bundling glob; untranslated pages just fall back.
 
+## Documentation
+
+Every change that touches the GUI and gives the user new functionality (a new
+toggle, panel, button, setting, layer, mode, …) isn't finished until it's
+introduced in two places, not just built and wired up:
+
+- **The user manual** (`user-manual/en/<page>.md`, whichever page fits — a new
+  row in an existing table, a new paragraph, a new bullet) — and the `hu`/`de`
+  translations get the _same_ addition on the same page, not just `en/`. The
+  `get_doc` fallback (see [i18n](#i18n) above) is per-page, not per-paragraph,
+  so leaving a translated page in place but stale reads as "translated" while
+  actually being incomplete — not acceptable.
+- **`README.md`** — usually a bullet under "Why you'll like it", occasionally
+  a new screenshot; whatever's proportionate to how visible the feature is.
+
+This applies to a small addition (one new field, one new toggle) exactly as
+much as to a big one — see the node-side skimmer toggle (`connections.md` in
+all three languages + the "Everything is point-and-click" bullet in
+`README.md`, alongside the feature itself) as the pattern to copy.
+
 ## Conventions
 
 - Keep `src/lib/ipc.ts` types in sync with the `#[tauri::command]` surface in
@@ -825,6 +845,26 @@ no errors, spot stream filtered as expected. The one thing not separately
 confirmed is whether a trailing `*` on `Call=` / `Spotter=` does a prefix match
 (the manual only documents `*` for `Comment`); if a future report shows a
 prefix rule matching nothing, switch `prefix_terms` to `*P5*` (infix) or exact.
+
+**Node-side skimmer toggle.** A per-profile preference (`NodeProfile.skimmer:
+Option<bool>`, `None` = leave the node's own default alone) that's enforced
+automatically — no raw command typing — right after login, before the
+`on_login` list runs: `run_login_actions`'s `Online` arm sends
+`commands::set_skimmer(enabled)` (`SET/SKIMMER` / `UNSET/SKIMMER`) when the
+profile is `NodeKind::Cluster` and `NodeSoftware::DxSpider`. DXSpider only —
+no equivalent per-user command is known for AR-Cluster (its `show/dx options`
+reply already shows skimmer inclusion is controlled through the DX filter's
+`Skimmer` field instead, a separate, unimplemented feature). The Connection
+panel's profile editor has a tri-state select (node default / request on /
+request off, only for `kind: "cluster"`) plus a "send now" button — shown
+only while that profile is online — that pushes the same command to the
+already-open session via `ipc.skimmerCommand(enabled, software)` (a pure
+command-string builder, `skimmer_command` Tauri command, `None` for
+AR-Cluster) + `ipc.runQuery`, detecting an unsupported-node reply the same
+`UNKNOWN_CMD_RE` way `FiltersPanel`/`ToolsPanel` already do. No query form for
+the node's _current_ skimmer state is known to exist, so this is
+fire-and-forget, not live-synced — same honesty level as the AR-Cluster
+dialect work above.
 
 **`SH/DX` historical query is now dialect-aware.** `commands::sh_dx(q, software)`
 dispatches: DXSpider keeps the positional `SH/DX <n> on <band> <call> by

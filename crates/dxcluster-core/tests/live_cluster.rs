@@ -22,6 +22,7 @@ async fn connects_and_parses_real_spots() {
         auto_connect: false,
         kind: Default::default(),
         software: Default::default(),
+        skimmer: None,
     };
 
     let (handle, mut events) = connect(profile, SessionConfig::default())

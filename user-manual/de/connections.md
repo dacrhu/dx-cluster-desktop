@@ -9,15 +9,16 @@ seiner Kopfzeile: **Verbindungen** (Profile und der Preset-Browser) und
 Ein Profil ist ein gespeicherter Cluster-Login. Klicke auf **+ Hinzufügen**, um
 eines anzulegen, oder klicke auf ein Profil in der Liste, um es zu bearbeiten.
 
-| Feld           | Bedeutung                                                                       |
-| -------------- | ------------------------------------------------------------------------------- |
-| Name           | Ein Label für die Liste — freier Text.                                          |
-| Host / Port    | Die Telnet-Adresse des Nodes, z. B. `hg8lxl.ham.hu` / `7300`.                   |
-| Rufzeichen     | Dein Login-Rufzeichen.                                                          |
-| Passwort       | Nur wenn der Node eines verlangt. Zur Laufzeit im OS-Schlüsselbund gespeichert. |
-| Typ            | **Cluster** (ein normales DX-Cluster) oder **RBN-Feed** — siehe unten.          |
-| Software       | **DXSpider** oder **AR-Cluster** — wählt den Befehlsdialekt. Siehe unten.       |
-| Auto-Verbinden | Dieses Profil beim Start automatisch verbinden.                                 |
+| Feld           | Bedeutung                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| Name           | Ein Label für die Liste — freier Text.                                                     |
+| Host / Port    | Die Telnet-Adresse des Nodes, z. B. `hg8lxl.ham.hu` / `7300`.                              |
+| Rufzeichen     | Dein Login-Rufzeichen.                                                                     |
+| Passwort       | Nur wenn der Node eines verlangt. Zur Laufzeit im OS-Schlüsselbund gespeichert.            |
+| Typ            | **Cluster** (ein normales DX-Cluster) oder **RBN-Feed** — siehe unten.                     |
+| Software       | **DXSpider** oder **AR-Cluster** — wählt den Befehlsdialekt. Siehe unten.                  |
+| Skimmer-Spots  | Node-Standard / Einschalten anfordern / Ausschalten anfordern — nur DXSpider. Siehe unten. |
+| Auto-Verbinden | Dieses Profil beim Start automatisch verbinden.                                            |
 
 Mehrere Profile können gleichzeitig verbunden sein. Spots von allen werden
 zusammengeführt und dedupliziert (ein 90-Sekunden-Fenster über Rufzeichen +
@@ -61,6 +62,20 @@ für:
 
 Das Parsen von Spots, WWV, WCY und Mitteilungen ist bei beiden gleich. Wenn du
 unsicher bist, ist DXSpider die sichere Vorgabe und bei Weitem am häufigsten.
+
+## Skimmer-Spots
+
+Viele DXSpider-Nodes verlangen, dass RBN-Skimmer-Spots erst aktiviert werden,
+oder senden sie standardmäßig und erwarten, dass du sie abschaltest. Das Feld
+**Skimmer-Spots** in einem Profil (nur DXSpider) sendet nach jedem Login
+automatisch `SET/SKIMMER` bzw. `UNSET/SKIMMER` — einmal eingestellt, muss der
+Befehl nicht mehr jede Sitzung von Hand eingegeben werden. Solange dieses
+Profil online ist, erscheint daneben zusätzlich eine Schaltfläche **Jetzt
+senden**, mit der eine Änderung sofort wirksam wird, ohne neu zu verbinden.
+
+Der Node meldet seinen aktuellen Skimmer-Status nicht zurück — es handelt
+sich also um eine einmalige Einstellung ohne Bestätigung, nicht um eine
+Live-Statusanzeige.
 
 ## Verbindungszustand
 

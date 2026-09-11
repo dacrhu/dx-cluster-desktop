@@ -202,6 +202,18 @@ pub fn unset_buddy(call: &str) -> String {
     format!("UNSET/BUDDY {}", call.trim().to_ascii_uppercase())
 }
 
+/// Ask the node to start/stop relaying skimmer (RBN-sourced) spots to us.
+/// DXSpider only — verified command pair `SET/SKIMMER` / `UNSET/SKIMMER`.
+/// Callers are expected to gate this on `NodeSoftware::DxSpider` themselves
+/// (see `skimmer_command` in the Tauri layer and `NodeProfile::skimmer`).
+pub fn set_skimmer(enabled: bool) -> &'static str {
+    if enabled {
+        "SET/SKIMMER"
+    } else {
+        "UNSET/SKIMMER"
+    }
+}
+
 /// How to treat CW/FT skimmer (`-#`) spots — a local-only concern.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -578,6 +590,8 @@ mod tests {
         assert_eq!(talk("ha5xyz", " hi "), "TALK HA5XYZ hi");
         assert_eq!(set_buddy("g3xyz"), "SET/BUDDY G3XYZ");
         assert_eq!(unset_buddy(" g3xyz "), "UNSET/BUDDY G3XYZ");
+        assert_eq!(set_skimmer(true), "SET/SKIMMER");
+        assert_eq!(set_skimmer(false), "UNSET/SKIMMER");
         assert_eq!(join_group("foc"), "JOIN FOC");
         assert_eq!(leave_group("#9000"), "LEAVE #9000");
         assert_eq!(chat("foc", " hi all "), "CHAT FOC hi all");
