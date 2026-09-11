@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-11
+
 ### Fixed
 
 - Panning and zooming the map is noticeably smoother — the arcs it draws
