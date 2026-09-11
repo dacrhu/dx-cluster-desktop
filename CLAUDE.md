@@ -101,6 +101,12 @@ _Raw terminal_ tab exists for power users.
     the `active` freeze, so it re-renders ~1/s while CAT is connected even when
     hidden.
 
+## Git workflow
+
+Solo project — commit straight to `main`, no feature branches, no PRs. Only
+start branching once more than one person is developing against this repo at
+the same time.
+
 ## Checks before committing
 
 ```sh
