@@ -6,6 +6,7 @@
 
 use std::path::Path;
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
@@ -138,11 +139,39 @@ impl Store {
     fn from_conn(conn: Connection) -> Result<Self> {
         conn.pragma_update(None, "journal_mode", "WAL")?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
+        // Cheap insurance: with a single Mutex<Connection> nothing else in
+        // this process can contend for the lock, but a busy_timeout costs
+        // nothing and helps if the file is ever opened externally (e.g. a
+        // technical user poking history.sqlite3 with the sqlite3 CLI while
+        // the app is running).
+        conn.busy_timeout(Duration::from_secs(5))?;
+        // Only takes effect on a freshly created database (SQLite requires a
+        // full VACUUM to change auto_vacuum on an existing file) — see the
+        // comment on `prune_expired` for why we don't run that VACUUM
+        // automatically.
+        conn.pragma_update(None, "auto_vacuum", "INCREMENTAL")?;
         let store = Self {
             conn: Mutex::new(conn),
         };
         store.migrate()?;
         Ok(store)
+    }
+
+    /// Log a warning if `f` (run under the connection lock) takes longer than
+    /// this — so a stalled WAL checkpoint or a broad scan shows up by name in
+    /// the log instead of the app just going quiet. See the long-session
+    /// freeze investigated 2026-09-11.
+    const SLOW_QUERY_WARN: Duration = Duration::from_millis(250);
+
+    fn timed<T>(&self, label: &str, f: impl FnOnce(&Connection) -> Result<T>) -> Result<T> {
+        let start = Instant::now();
+        let conn = self.conn.lock().unwrap();
+        let result = f(&conn);
+        let elapsed = start.elapsed();
+        if elapsed > Self::SLOW_QUERY_WARN {
+            log::warn!("store: {label} took {elapsed:?}");
+        }
+        result
     }
 
     fn migrate(&self) -> Result<()> {
@@ -248,58 +277,65 @@ impl Store {
     /// Window (seconds) in which the same spot from another node is a duplicate.
     const DEDUP_WINDOW: i64 = 90;
 
+    /// Default retention for spots + history tables — long enough to keep
+    /// offline SH/DX useful, short enough to bound file size across a
+    /// long-running or never-restarted session. See [`Self::prune`].
+    pub const DEFAULT_RETENTION_SECS: i64 = 30 * 24 * 3600;
+
     /// Insert a freshly received spot, unless the same spot (same DX call,
     /// frequency and spotter) already arrived within [`Self::DEDUP_WINDOW`]
     /// seconds — e.g. relayed via a second connected node. Returns the new row
     /// id, or `None` if it was a duplicate.
     pub fn insert_spot(&self, node_id: &str, spot: &Spot, received_at: i64) -> Result<Option<i64>> {
-        let conn = self.conn.lock().unwrap();
-        let dup: Option<i64> = conn
-            .query_row(
-                "SELECT id FROM spots
-                 WHERE dx_call = ?1 AND spotter_base = ?2
-                   AND ABS(freq_khz - ?3) < 0.6
-                   AND received_at >= ?4
-                 LIMIT 1",
+        self.timed("insert_spot", |conn| {
+            let dup: Option<i64> = conn
+                .query_row(
+                    "SELECT id FROM spots
+                     WHERE dx_call = ?1 AND spotter_base = ?2
+                       AND ABS(freq_khz - ?3) < 0.6
+                       AND received_at >= ?4
+                     LIMIT 1",
+                    params![
+                        spot.dx_call,
+                        spot.spotter_base,
+                        spot.freq_khz,
+                        received_at - Self::DEDUP_WINDOW
+                    ],
+                    |r| r.get(0),
+                )
+                .optional()?;
+            if dup.is_some() {
+                return Ok(None);
+            }
+
+            conn.execute(
+                r#"INSERT INTO spots
+                   (node_id, received_at, spotter, spotter_base, freq_khz, dx_call,
+                    comment, time_hhmm, grid, band, mode, is_skimmer)
+                   VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)"#,
                 params![
-                    spot.dx_call,
+                    node_id,
+                    received_at,
+                    spot.spotter,
                     spot.spotter_base,
                     spot.freq_khz,
-                    received_at - Self::DEDUP_WINDOW
+                    spot.dx_call,
+                    spot.comment,
+                    spot.time_hhmm,
+                    spot.grid,
+                    spot.band,
+                    mode_str(spot.mode),
+                    spot.is_skimmer as i64,
                 ],
-                |r| r.get(0),
-            )
-            .optional()?;
-        if dup.is_some() {
-            return Ok(None);
-        }
-
-        conn.execute(
-            r#"INSERT INTO spots
-               (node_id, received_at, spotter, spotter_base, freq_khz, dx_call,
-                comment, time_hhmm, grid, band, mode, is_skimmer)
-               VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)"#,
-            params![
-                node_id,
-                received_at,
-                spot.spotter,
-                spot.spotter_base,
-                spot.freq_khz,
-                spot.dx_call,
-                spot.comment,
-                spot.time_hhmm,
-                spot.grid,
-                spot.band,
-                mode_str(spot.mode),
-                spot.is_skimmer as i64,
-            ],
-        )?;
-        Ok(Some(conn.last_insert_rowid()))
+            )?;
+            Ok(Some(conn.last_insert_rowid()))
+        })
     }
 
     /// The most recent `limit` spots, newest first.
     pub fn recent_spots(&self, limit: usize) -> Result<Vec<StoredSpot>> {
         self.query(
+            "recent_spots",
             "SELECT * FROM spots ORDER BY received_at DESC, id DESC LIMIT ?1",
             params![limit as i64],
         )
@@ -308,6 +344,7 @@ impl Store {
     /// All spots received at or after `since` (unix seconds), oldest first.
     pub fn spots_since(&self, since: i64) -> Result<Vec<StoredSpot>> {
         self.query(
+            "spots_since",
             "SELECT * FROM spots WHERE received_at >= ?1 ORDER BY received_at ASC, id ASC",
             params![since],
         )
@@ -345,21 +382,42 @@ impl Store {
         args.push(Box::new(limit as i64));
 
         let params: Vec<&dyn rusqlite::types::ToSql> = args.iter().map(|b| b.as_ref()).collect();
-        self.query(&sql, params.as_slice())
+        self.query("search_spots", &sql, params.as_slice())
     }
 
     /// Delete rows older than `cutoff` (unix seconds) from every history table.
-    /// Returns the number of spot rows removed.
+    /// Returns the number of spot rows removed. `mail` is deliberately not
+    /// included — it's finite and user-managed (deleting a message is an
+    /// explicit user action), not an ever-growing feed like the others.
+    ///
+    /// This does not shrink the file (SQLite doesn't reclaim freed pages on a
+    /// plain DELETE): `from_conn` sets `auto_vacuum = INCREMENTAL` for
+    /// *newly created* databases, but changing that setting on an existing
+    /// file requires a one-off full `VACUUM` — a blocking, whole-file-copy
+    /// operation — which we deliberately do not run automatically here. The
+    /// growth this prunes going forward is the actual bug; disk space
+    /// already used isn't itself a problem worth that cost.
     pub fn prune(&self, cutoff: i64) -> Result<usize> {
-        let conn = self.conn.lock().unwrap();
-        let spots = conn.execute("DELETE FROM spots WHERE received_at < ?1", params![cutoff])?;
-        for t in ["announcements", "wwv", "wcy", "talk", "chat"] {
-            conn.execute(
-                &format!("DELETE FROM {t} WHERE received_at < ?1"),
-                params![cutoff],
-            )?;
-        }
-        Ok(spots)
+        self.timed("prune", |conn| {
+            let spots =
+                conn.execute("DELETE FROM spots WHERE received_at < ?1", params![cutoff])?;
+            for t in ["announcements", "wwv", "wcy", "talk", "chat"] {
+                conn.execute(
+                    &format!("DELETE FROM {t} WHERE received_at < ?1"),
+                    params![cutoff],
+                )?;
+            }
+            Ok(spots)
+        })
+    }
+
+    /// Prune everything older than [`Self::DEFAULT_RETENTION_SECS`] relative
+    /// to `now`. Called periodically from `src-tauri` so a long-running
+    /// session doesn't grow `spots` forever (it previously never did —
+    /// verified on a real database: 679,589 rows / 91.7 MB after a single
+    /// ~24.5h session).
+    pub fn prune_expired(&self, now: i64) -> Result<usize> {
+        self.prune(now - Self::DEFAULT_RETENTION_SECS)
     }
 
     // --- announcements ------------------------------------------------------
@@ -679,27 +737,28 @@ impl Store {
         rows.collect()
     }
 
-    fn query(&self, sql: &str, p: impl rusqlite::Params) -> Result<Vec<StoredSpot>> {
-        let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(sql)?;
-        let rows = stmt.query_map(p, |r| {
-            Ok(StoredSpot {
-                id: r.get("id")?,
-                node_id: r.get("node_id")?,
-                received_at: r.get("received_at")?,
-                spotter: r.get("spotter")?,
-                spotter_base: r.get("spotter_base")?,
-                freq_khz: r.get("freq_khz")?,
-                dx_call: r.get("dx_call")?,
-                comment: r.get("comment")?,
-                time_hhmm: r.get("time_hhmm")?,
-                grid: r.get("grid")?,
-                band: r.get("band")?,
-                mode: mode_from_str(&r.get::<_, String>("mode")?),
-                is_skimmer: r.get::<_, i64>("is_skimmer")? != 0,
-            })
-        })?;
-        rows.collect()
+    fn query(&self, label: &str, sql: &str, p: impl rusqlite::Params) -> Result<Vec<StoredSpot>> {
+        self.timed(label, |conn| {
+            let mut stmt = conn.prepare(sql)?;
+            let rows = stmt.query_map(p, |r| {
+                Ok(StoredSpot {
+                    id: r.get("id")?,
+                    node_id: r.get("node_id")?,
+                    received_at: r.get("received_at")?,
+                    spotter: r.get("spotter")?,
+                    spotter_base: r.get("spotter_base")?,
+                    freq_khz: r.get("freq_khz")?,
+                    dx_call: r.get("dx_call")?,
+                    comment: r.get("comment")?,
+                    time_hhmm: r.get("time_hhmm")?,
+                    grid: r.get("grid")?,
+                    band: r.get("band")?,
+                    mode: mode_from_str(&r.get::<_, String>("mode")?),
+                    is_skimmer: r.get::<_, i64>("is_skimmer")? != 0,
+                })
+            })?;
+            rows.collect()
+        })
     }
 }
 
@@ -758,6 +817,19 @@ mod tests {
         assert_eq!(store.spots_since(200).unwrap().len(), 2);
         assert_eq!(store.prune(200).unwrap(), 1);
         assert_eq!(store.recent_spots(10).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn prune_expired_uses_default_retention() {
+        let store = Store::open_in_memory().unwrap();
+        let s = spot("DX de DL1ABC:  14195.0  EA8XYZ  hi   1234Z");
+        let now = 2_000_000_000i64;
+        store
+            .insert_spot("n", &s, now - Store::DEFAULT_RETENTION_SECS - 10)
+            .unwrap(); // expired
+        store.insert_spot("n", &s, now - 10).unwrap(); // fresh
+        assert_eq!(store.prune_expired(now).unwrap(), 1);
+        assert_eq!(store.recent_spots(10).unwrap().len(), 1);
     }
 
     #[test]

@@ -230,9 +230,13 @@ fn lookup_call(state: State<'_, AppState>, call: String) -> Option<CallInfo> {
 
 /// Most recent spots from history, newest first.
 #[tauri::command]
-fn recent_spots(state: State<'_, AppState>, limit: usize) -> CmdResult<Vec<EnrichedSpot>> {
+async fn recent_spots(app: AppHandle, limit: usize) -> CmdResult<Vec<EnrichedSpot>> {
+    let spots = with_state(&app, move |state| {
+        state.store.recent_spots(limit).map_err(|e| e.to_string())
+    })
+    .await?;
+    let state = app.state::<AppState>();
     let home = state.home();
-    let spots = state.store.recent_spots(limit).map_err(|e| e.to_string())?;
     let cty = state.cty.read().unwrap();
     let skimmers = state.skimmers.read().unwrap();
     Ok(spots
@@ -243,9 +247,13 @@ fn recent_spots(state: State<'_, AppState>, limit: usize) -> CmdResult<Vec<Enric
 
 /// Spots received at or after `since` (unix seconds), oldest first.
 #[tauri::command]
-fn spots_since(state: State<'_, AppState>, since: i64) -> CmdResult<Vec<EnrichedSpot>> {
+async fn spots_since(app: AppHandle, since: i64) -> CmdResult<Vec<EnrichedSpot>> {
+    let spots = with_state(&app, move |state| {
+        state.store.spots_since(since).map_err(|e| e.to_string())
+    })
+    .await?;
+    let state = app.state::<AppState>();
     let home = state.home();
-    let spots = state.store.spots_since(since).map_err(|e| e.to_string())?;
     let cty = state.cty.read().unwrap();
     let skimmers = state.skimmers.read().unwrap();
     Ok(spots
@@ -256,14 +264,14 @@ fn spots_since(state: State<'_, AppState>, since: i64) -> CmdResult<Vec<Enriched
 
 /// Recent announcements / WX, newest first.
 #[tauri::command]
-fn recent_announcements(
-    state: State<'_, AppState>,
-    limit: usize,
-) -> CmdResult<Vec<StoredAnnounce>> {
-    state
-        .store
-        .recent_announcements(limit)
-        .map_err(|e| e.to_string())
+async fn recent_announcements(app: AppHandle, limit: usize) -> CmdResult<Vec<StoredAnnounce>> {
+    with_state(&app, move |state| {
+        state
+            .store
+            .recent_announcements(limit)
+            .map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// Result of importing `SH/ANN` history.
@@ -276,68 +284,87 @@ struct ImportResult {
 /// Parse `SH/ANN` history lines (from `runQuery` on the frontend), store any new
 /// ones, and return the refreshed recent list plus how many were new.
 #[tauri::command]
-fn import_announce_history(
-    state: State<'_, AppState>,
+async fn import_announce_history(
+    app: AppHandle,
     node_id: String,
     lines: Vec<String>,
     limit: usize,
 ) -> CmdResult<ImportResult> {
-    let mut imported = 0usize;
-    for line in &lines {
-        if let Some(h) = parse_sh_announce(line) {
-            match state
-                .store
-                .insert_announce_dedup(&node_id, &h.announce, h.at)
-            {
-                Ok(Some(_)) => imported += 1,
-                Ok(None) => {}
-                Err(e) => log::warn!("import announce failed: {e}"),
+    with_state(&app, move |state| {
+        let mut imported = 0usize;
+        for line in &lines {
+            if let Some(h) = parse_sh_announce(line) {
+                match state
+                    .store
+                    .insert_announce_dedup(&node_id, &h.announce, h.at)
+                {
+                    Ok(Some(_)) => imported += 1,
+                    Ok(None) => {}
+                    Err(e) => log::warn!("import announce failed: {e}"),
+                }
             }
         }
-    }
-    let announcements = state
-        .store
-        .recent_announcements(limit)
-        .map_err(|e| e.to_string())?;
-    Ok(ImportResult {
-        imported,
-        announcements,
+        let announcements = state
+            .store
+            .recent_announcements(limit)
+            .map_err(|e| e.to_string())?;
+        Ok(ImportResult {
+            imported,
+            announcements,
+        })
     })
+    .await
 }
 
 /// Recent WWV broadcasts, newest first.
 #[tauri::command]
-fn recent_wwv(state: State<'_, AppState>, limit: usize) -> CmdResult<Vec<StoredWwv>> {
-    state.store.recent_wwv(limit).map_err(|e| e.to_string())
+async fn recent_wwv(app: AppHandle, limit: usize) -> CmdResult<Vec<StoredWwv>> {
+    with_state(&app, move |state| {
+        state.store.recent_wwv(limit).map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// Recent WCY broadcasts, newest first.
 #[tauri::command]
-fn recent_wcy(state: State<'_, AppState>, limit: usize) -> CmdResult<Vec<StoredWcy>> {
-    state.store.recent_wcy(limit).map_err(|e| e.to_string())
+async fn recent_wcy(app: AppHandle, limit: usize) -> CmdResult<Vec<StoredWcy>> {
+    with_state(&app, move |state| {
+        state.store.recent_wcy(limit).map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// Recent talk messages, newest first (the UI groups them by peer).
 #[tauri::command]
-fn recent_talk(state: State<'_, AppState>, limit: usize) -> CmdResult<Vec<StoredTalk>> {
-    state.store.recent_talk(limit).map_err(|e| e.to_string())
+async fn recent_talk(app: AppHandle, limit: usize) -> CmdResult<Vec<StoredTalk>> {
+    with_state(&app, move |state| {
+        state.store.recent_talk(limit).map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// Send a talk message and record it as outgoing.
 #[tauri::command]
-fn send_talk(
-    app: AppHandle,
-    state: State<'_, AppState>,
-    id: String,
-    to: String,
-    text: String,
-) -> CmdResult<String> {
+async fn send_talk(app: AppHandle, id: String, to: String, text: String) -> CmdResult<String> {
     let cmd = commands::talk(&to, &text);
-    with_session(&state, &id, |h| {
-        h.send(cmd.clone()).map_err(|e| e.to_string())
-    })?;
+    {
+        let state = app.state::<AppState>();
+        with_session(&state, &id, |h| {
+            h.send(cmd.clone()).map_err(|e| e.to_string())
+        })?;
+    }
     let now = now_unix();
-    if let Ok(row_id) = state.store.insert_talk(&id, true, &to, text.trim(), now) {
+    let node_id = id.clone();
+    let peer = to.clone();
+    let text_trimmed = text.trim().to_string();
+    let inserted = with_state(&app, move |state| {
+        state
+            .store
+            .insert_talk(&node_id, true, &peer, &text_trimmed, now)
+            .map_err(|e| e.to_string())
+    })
+    .await;
+    if let Ok(row_id) = inserted {
         let _ = app.emit(
             "cluster://talk",
             StoredTalk {
@@ -355,8 +382,11 @@ fn send_talk(
 
 /// Recent chat messages, newest first (the UI groups them by group).
 #[tauri::command]
-fn recent_chat(state: State<'_, AppState>, limit: usize) -> CmdResult<Vec<StoredChat>> {
-    state.store.recent_chat(limit).map_err(|e| e.to_string())
+async fn recent_chat(app: AppHandle, limit: usize) -> CmdResult<Vec<StoredChat>> {
+    with_state(&app, move |state| {
+        state.store.recent_chat(limit).map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// Join / leave a chat group.
@@ -397,23 +427,26 @@ fn send_chat(
 
 /// Parse `SH/CHAT` history lines, store new rows, return the refreshed list.
 #[tauri::command]
-fn import_chat_history(
-    state: State<'_, AppState>,
+async fn import_chat_history(
+    app: AppHandle,
     node_id: String,
     lines: Vec<String>,
     limit: usize,
 ) -> CmdResult<Vec<StoredChat>> {
-    for line in &lines {
-        if let Some(h) = parse_sh_chat(line) {
-            if let Err(e) = state
-                .store
-                .insert_chat_dedup(&node_id, &h.group, &h.from, &h.text, h.at)
-            {
-                log::warn!("import chat failed: {e}");
+    with_state(&app, move |state| {
+        for line in &lines {
+            if let Some(h) = parse_sh_chat(line) {
+                if let Err(e) = state
+                    .store
+                    .insert_chat_dedup(&node_id, &h.group, &h.from, &h.text, h.at)
+                {
+                    log::warn!("import chat failed: {e}");
+                }
             }
         }
-    }
-    state.store.recent_chat(limit).map_err(|e| e.to_string())
+        state.store.recent_chat(limit).map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// Add / remove a buddy.
@@ -487,8 +520,8 @@ fn skimmer_command(enabled: bool, software: NodeSoftware) -> Option<String> {
 
 /// Offline `SH/DX`: search the local spot history.
 #[tauri::command]
-fn search_local_spots(
-    state: State<'_, AppState>,
+async fn search_local_spots(
+    app: AppHandle,
     dx_prefix: Option<String>,
     band: Option<String>,
     spotter_prefix: Option<String>,
@@ -496,17 +529,21 @@ fn search_local_spots(
     limit: usize,
 ) -> CmdResult<Vec<EnrichedSpot>> {
     let since = since_hours.map(|h| now_unix() - h * 3600);
+    let rows = with_state(&app, move |state| {
+        state
+            .store
+            .search_spots(
+                dx_prefix.as_deref(),
+                band.as_deref(),
+                spotter_prefix.as_deref(),
+                since,
+                limit.clamp(1, 2000),
+            )
+            .map_err(|e| e.to_string())
+    })
+    .await?;
+    let state = app.state::<AppState>();
     let home = state.home();
-    let rows = state
-        .store
-        .search_spots(
-            dx_prefix.as_deref(),
-            band.as_deref(),
-            spotter_prefix.as_deref(),
-            since,
-            limit.clamp(1, 2000),
-        )
-        .map_err(|e| e.to_string())?;
     let cty = state.cty.read().unwrap();
     let skimmers = state.skimmers.read().unwrap();
     Ok(rows
@@ -517,41 +554,46 @@ fn search_local_spots(
 
 /// Parse a `READ <msgno>` response, cache the body, and return it.
 #[tauri::command]
-fn read_mail(
-    state: State<'_, AppState>,
+async fn read_mail(
+    app: AppHandle,
     node_id: String,
     lines: Vec<String>,
 ) -> CmdResult<Option<StoredMail>> {
     let Some(msg) = parse_read_message(&lines) else {
         return Ok(None);
     };
-    state
-        .store
-        .upsert_mail(&node_id, &msg, now_unix())
-        .map_err(|e| e.to_string())?;
-    state
-        .store
-        .get_mail(&node_id, msg.msgno)
-        .map_err(|e| e.to_string())
+    with_state(&app, move |state| {
+        state
+            .store
+            .upsert_mail(&node_id, &msg, now_unix())
+            .map_err(|e| e.to_string())?;
+        state
+            .store
+            .get_mail(&node_id, msg.msgno)
+            .map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// Return a cached mail body without hitting the node.
 #[tauri::command]
-fn cached_mail(
-    state: State<'_, AppState>,
-    node_id: String,
-    msgno: u32,
-) -> CmdResult<Option<StoredMail>> {
-    state
-        .store
-        .get_mail(&node_id, msgno)
-        .map_err(|e| e.to_string())
+async fn cached_mail(app: AppHandle, node_id: String, msgno: u32) -> CmdResult<Option<StoredMail>> {
+    with_state(&app, move |state| {
+        state
+            .store
+            .get_mail(&node_id, msgno)
+            .map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// Message numbers whose body we have cached for this node (= opened in the app).
 #[tauri::command]
-fn cached_mail_ids(state: State<'_, AppState>, node_id: String) -> CmdResult<Vec<u32>> {
-    state.store.mail_msgnos(&node_id).map_err(|e| e.to_string())
+async fn cached_mail_ids(app: AppHandle, node_id: String) -> CmdResult<Vec<u32>> {
+    with_state(&app, move |state| {
+        state.store.mail_msgnos(&node_id).map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// Post an announcement (`ANN` / `ANN/FULL`).
@@ -628,7 +670,7 @@ async fn connect_node(
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         while let Some(ev) = events.recv().await {
-            forward_event(&app, &id, ev);
+            forward_event(&app, &id, ev).await;
         }
         // Channel closed -> session ended. Drop our handle, but don't clobber a
         // fresh reconnect that may already have reserved the slot.
@@ -653,7 +695,7 @@ fn is_kick_notice(line: &str) -> bool {
 }
 
 /// Push one event to the frontend, persisting spots along the way.
-fn forward_event(app: &AppHandle, node_id: &str, ev: ConnEvent) {
+async fn forward_event(app: &AppHandle, node_id: &str, ev: ConnEvent) {
     match ev {
         ConnEvent::State { state } => {
             let _ = app.emit("cluster://state", (node_id, state));
@@ -722,7 +764,16 @@ fn forward_event(app: &AppHandle, node_id: &str, ev: ConnEvent) {
                     return;
                 }
 
-                match state.store.insert_spot(node_id, &spot, received) {
+                let node_id_owned = node_id.to_string();
+                let spot_for_insert = spot.clone();
+                let inserted = with_state(app, move |state| {
+                    state
+                        .store
+                        .insert_spot(&node_id_owned, &spot_for_insert, received)
+                        .map_err(|e| e.to_string())
+                })
+                .await;
+                match inserted {
                     Ok(None) => {} // duplicate relayed from another node — skip
                     Ok(Some(id)) => {
                         let stored = dxcluster_core::store::StoredSpot {
@@ -740,6 +791,9 @@ fn forward_event(app: &AppHandle, node_id: &str, ev: ConnEvent) {
                             mode: spot.mode,
                             is_skimmer: spot.is_skimmer,
                         };
+                        let Some(state) = app.try_state::<AppState>() else {
+                            return;
+                        };
                         let enriched = enrich(
                             &state.cty.read().unwrap(),
                             &state.skimmers.read().unwrap(),
@@ -752,123 +806,180 @@ fn forward_event(app: &AppHandle, node_id: &str, ev: ConnEvent) {
                 }
             }
             ClusterEvent::Announce(a) => {
-                if let Some(state) = app.try_state::<AppState>() {
-                    let received = now_unix();
-                    match state.store.insert_announce(node_id, &a, received) {
-                        Ok(id) => {
-                            let stored = StoredAnnounce {
-                                id,
-                                node_id: node_id.to_string(),
-                                received_at: received,
-                                sender: a.from,
-                                target: a.to,
-                                text: a.text,
-                                is_wx: a.is_wx,
-                            };
-                            let _ = app.emit("cluster://announce", &stored);
-                        }
-                        Err(e) => log::warn!("failed to persist announce: {e}"),
+                if app.try_state::<AppState>().is_none() {
+                    return;
+                }
+                let received = now_unix();
+                let node_id_owned = node_id.to_string();
+                let a_for_insert = a.clone();
+                let result = with_state(app, move |state| {
+                    state
+                        .store
+                        .insert_announce(&node_id_owned, &a_for_insert, received)
+                        .map_err(|e| e.to_string())
+                })
+                .await;
+                match result {
+                    Ok(id) => {
+                        let stored = StoredAnnounce {
+                            id,
+                            node_id: node_id.to_string(),
+                            received_at: received,
+                            sender: a.from,
+                            target: a.to,
+                            text: a.text,
+                            is_wx: a.is_wx,
+                        };
+                        let _ = app.emit("cluster://announce", &stored);
                     }
+                    Err(e) => log::warn!("failed to persist announce: {e}"),
                 }
             }
             ClusterEvent::Wwv(w) => {
-                if let Some(state) = app.try_state::<AppState>() {
-                    let received = now_unix();
-                    match state.store.insert_wwv(node_id, &w, received) {
-                        Ok(id) => {
-                            let stored = StoredWwv {
-                                id,
-                                node_id: node_id.to_string(),
-                                received_at: received,
-                                sender: w.from,
-                                hour: w.hour,
-                                sfi: w.sfi,
-                                a: w.a,
-                                k: w.k,
-                                forecast: w.forecast,
-                            };
-                            let _ = app.emit("cluster://wwv", &stored);
-                        }
-                        Err(e) => log::warn!("failed to persist wwv: {e}"),
+                if app.try_state::<AppState>().is_none() {
+                    return;
+                }
+                let received = now_unix();
+                let node_id_owned = node_id.to_string();
+                let w_for_insert = w.clone();
+                let result = with_state(app, move |state| {
+                    state
+                        .store
+                        .insert_wwv(&node_id_owned, &w_for_insert, received)
+                        .map_err(|e| e.to_string())
+                })
+                .await;
+                match result {
+                    Ok(id) => {
+                        let stored = StoredWwv {
+                            id,
+                            node_id: node_id.to_string(),
+                            received_at: received,
+                            sender: w.from,
+                            hour: w.hour,
+                            sfi: w.sfi,
+                            a: w.a,
+                            k: w.k,
+                            forecast: w.forecast,
+                        };
+                        let _ = app.emit("cluster://wwv", &stored);
                     }
+                    Err(e) => log::warn!("failed to persist wwv: {e}"),
                 }
             }
             ClusterEvent::Wcy(w) => {
-                if let Some(state) = app.try_state::<AppState>() {
-                    let received = now_unix();
-                    match state.store.insert_wcy(node_id, &w, received) {
-                        Ok(id) => {
-                            let stored = StoredWcy {
-                                id,
-                                node_id: node_id.to_string(),
-                                received_at: received,
-                                sender: w.from,
-                                hour: w.hour,
-                                k: w.k,
-                                expk: w.expk,
-                                a: w.a,
-                                r: w.r,
-                                sfi: w.sfi,
-                                sa: w.sa,
-                                gmf: w.gmf,
-                                aurora: w.aurora,
-                            };
-                            let _ = app.emit("cluster://wcy", &stored);
-                        }
-                        Err(e) => log::warn!("failed to persist wcy: {e}"),
+                if app.try_state::<AppState>().is_none() {
+                    return;
+                }
+                let received = now_unix();
+                let node_id_owned = node_id.to_string();
+                let w_for_insert = w.clone();
+                let result = with_state(app, move |state| {
+                    state
+                        .store
+                        .insert_wcy(&node_id_owned, &w_for_insert, received)
+                        .map_err(|e| e.to_string())
+                })
+                .await;
+                match result {
+                    Ok(id) => {
+                        let stored = StoredWcy {
+                            id,
+                            node_id: node_id.to_string(),
+                            received_at: received,
+                            sender: w.from,
+                            hour: w.hour,
+                            k: w.k,
+                            expk: w.expk,
+                            a: w.a,
+                            r: w.r,
+                            sfi: w.sfi,
+                            sa: w.sa,
+                            gmf: w.gmf,
+                            aurora: w.aurora,
+                        };
+                        let _ = app.emit("cluster://wcy", &stored);
                     }
+                    Err(e) => log::warn!("failed to persist wcy: {e}"),
                 }
             }
             ClusterEvent::Talk(t) => {
-                if let Some(state) = app.try_state::<AppState>() {
-                    let received = now_unix();
-                    match state
+                if app.try_state::<AppState>().is_none() {
+                    return;
+                }
+                let received = now_unix();
+                let node_id_owned = node_id.to_string();
+                let t_for_insert = t.clone();
+                let result = with_state(app, move |state| {
+                    state
                         .store
-                        .insert_talk(node_id, false, &t.from, &t.text, received)
-                    {
-                        Ok(id) => {
-                            let _ = app.emit(
-                                "cluster://talk",
-                                StoredTalk {
-                                    id,
-                                    node_id: node_id.to_string(),
-                                    received_at: received,
-                                    outgoing: false,
-                                    peer: t.from.to_ascii_uppercase(),
-                                    text: t.text,
-                                },
-                            );
-                        }
-                        Err(e) => log::warn!("failed to persist talk: {e}"),
+                        .insert_talk(
+                            &node_id_owned,
+                            false,
+                            &t_for_insert.from,
+                            &t_for_insert.text,
+                            received,
+                        )
+                        .map_err(|e| e.to_string())
+                })
+                .await;
+                match result {
+                    Ok(id) => {
+                        let _ = app.emit(
+                            "cluster://talk",
+                            StoredTalk {
+                                id,
+                                node_id: node_id.to_string(),
+                                received_at: received,
+                                outgoing: false,
+                                peer: t.from.to_ascii_uppercase(),
+                                text: t.text,
+                            },
+                        );
                     }
+                    Err(e) => log::warn!("failed to persist talk: {e}"),
                 }
             }
             ClusterEvent::Chat(c) => {
-                if let Some(state) = app.try_state::<AppState>() {
-                    let received = now_unix();
-                    let outgoing = state
-                        .callsign_of(node_id)
-                        .is_some_and(|call| call.eq_ignore_ascii_case(&c.from));
-                    match state
+                let Some(state) = app.try_state::<AppState>() else {
+                    return;
+                };
+                let received = now_unix();
+                let outgoing = state
+                    .callsign_of(node_id)
+                    .is_some_and(|call| call.eq_ignore_ascii_case(&c.from));
+                let node_id_owned = node_id.to_string();
+                let c_for_insert = c.clone();
+                let result = with_state(app, move |state| {
+                    state
                         .store
-                        .insert_chat(node_id, outgoing, &c.group, &c.from, &c.text, received)
-                    {
-                        Ok(id) => {
-                            let _ = app.emit(
-                                "cluster://chat",
-                                StoredChat {
-                                    id,
-                                    node_id: node_id.to_string(),
-                                    received_at: received,
-                                    outgoing,
-                                    group: c.group.to_ascii_uppercase(),
-                                    sender: c.from.to_ascii_uppercase(),
-                                    text: c.text,
-                                },
-                            );
-                        }
-                        Err(e) => log::warn!("failed to persist chat: {e}"),
+                        .insert_chat(
+                            &node_id_owned,
+                            outgoing,
+                            &c_for_insert.group,
+                            &c_for_insert.from,
+                            &c_for_insert.text,
+                            received,
+                        )
+                        .map_err(|e| e.to_string())
+                })
+                .await;
+                match result {
+                    Ok(id) => {
+                        let _ = app.emit(
+                            "cluster://chat",
+                            StoredChat {
+                                id,
+                                node_id: node_id.to_string(),
+                                received_at: received,
+                                outgoing,
+                                group: c.group.to_ascii_uppercase(),
+                                sender: c.from.to_ascii_uppercase(),
+                                text: c.text,
+                            },
+                        );
                     }
+                    Err(e) => log::warn!("failed to persist chat: {e}"),
                 }
             }
             ClusterEvent::Raw { line } => {
@@ -1546,6 +1657,26 @@ fn with_session<T>(
     }
 }
 
+/// Run `f` with `&AppState` on Tauri's blocking-thread pool, off the
+/// invoking thread — every `Store` (SQLite) call should go through this.
+/// A non-`async` `#[tauri::command]` runs its whole body synchronously on
+/// the app's main thread, and even an async one would otherwise block
+/// whichever tokio worker calls it; a single slow SQLite operation (a WAL
+/// checkpoint stall, a broad scan) could then wedge command dispatch and
+/// repaint entirely on a long-running session. Mirrors the existing
+/// `rig_models` pattern (`tauri::async_runtime::spawn_blocking`).
+/// `AppHandle::clone()` is cheap (Arc-backed), so it can move into the
+/// `'static` blocking closure.
+async fn with_state<T: Send + 'static>(
+    app: &AppHandle,
+    f: impl FnOnce(&AppState) -> CmdResult<T> + Send + 'static,
+) -> CmdResult<T> {
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || f(&app.state::<AppState>()))
+        .await
+        .map_err(|e| format!("store worker thread panicked: {e}"))?
+}
+
 /// All DXCC entities (name, primary prefix, centroid) for the map's labels.
 #[tauri::command]
 fn cty_entities(state: State<'_, AppState>) -> Vec<dxcluster_core::reference::Entity> {
@@ -1834,6 +1965,34 @@ pub fn run() {
                         }
                         Ok(false) => {}
                         Err(e) => log::warn!("skimmer table refresh: {e}"),
+                    }
+                });
+            }
+            // Keep the spot/history tables from growing forever on a
+            // long-running session (verified on a real database: 679,589
+            // rows / 91.7 MB after a single ~24.5h session, with nothing
+            // ever pruning it). `interval`'s first tick fires immediately,
+            // so this one task also covers "prune at startup" — the pruning
+            // itself runs on the blocking pool via `with_state`, never on
+            // this task's own thread.
+            {
+                let h = handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    let mut iv = tokio::time::interval(Duration::from_secs(6 * 3600));
+                    loop {
+                        iv.tick().await;
+                        let result = with_state(&h, |state| {
+                            state
+                                .store
+                                .prune_expired(now_unix())
+                                .map_err(|e| e.to_string())
+                        })
+                        .await;
+                        match result {
+                            Ok(n) if n > 0 => log::info!("history prune: removed {n} old spots"),
+                            Ok(_) => {}
+                            Err(e) => log::warn!("history prune failed: {e}"),
+                        }
                     }
                 });
             }

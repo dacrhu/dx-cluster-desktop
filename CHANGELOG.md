@@ -12,6 +12,19 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed a long-session freeze / graphical-corruption issue on Linux with the
+  proprietary NVIDIA driver, where the window would eventually stop
+  repainting (leaving "ghost" trails when dragged) or the app would crash
+  outright after many hours of uptime — a known WebKitGTK GPU-memory issue
+  on Wayland + NVIDIA, worked around by disabling WebKitGTK's DMA-BUF
+  renderer.
+- Spot/announcement/WWV/WCY/talk/chat history now auto-prunes after 30 days
+  instead of growing forever (a single day-long session could reach
+  hundreds of thousands of rows); database access also no longer runs on
+  the main thread, so a slow query can no longer stall the whole UI.
+
 ## [1.3.0] - 2026-09-11
 
 ### Added
