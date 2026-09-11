@@ -192,6 +192,8 @@
   "map.aurora": "aurora",
   "map.muf": "MUF (modell)",
   "map.openings": "nyitások",
+  "map.openingsNearMeKm": "vevő ennyin belül",
+  "map.openingsNearMeAll": "nincs korlát",
   "map.bandRose": "sáv-rózsa",
   "map.condHud": "körülmények",
   "map.condHudHint": "Terjedés fül megnyitása",

@@ -1,7 +1,16 @@
+import { geoDistance } from "d3-geo";
 import type { EnrichedSpot } from "./types";
 
 /** `[lon, lat]` — the order d3-geo wants. */
 export type LonLat = [number, number];
+
+/** Earth radius, km — matches `crates/dxcluster-core/src/reference/geo.rs::EARTH_RADIUS_KM`. */
+export const EARTH_RADIUS_KM = 6371.0088;
+
+/** Great-circle distance between two `[lon, lat]` points, km. */
+export function distanceKm(a: LonLat, b: LonLat): number {
+  return geoDistance(a, b) * EARTH_RADIUS_KM;
+}
 
 /**
  * Maidenhead locator (4 / 6 / 8 chars) → `[lon, lat]` of the square centre.

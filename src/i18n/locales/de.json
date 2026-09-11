@@ -192,6 +192,8 @@
   "map.aurora": "Aurora",
   "map.muf": "MUF (Modell)",
   "map.openings": "Öffnungen",
+  "map.openingsNearMeKm": "Melder innerhalb",
+  "map.openingsNearMeAll": "unbegrenzt",
   "map.bandRose": "Bandrose",
   "map.condHud": "Bedingungen",
   "map.condHudHint": "Ausbreitungs-Tab öffnen",

@@ -54,3 +54,32 @@ describe("bandOpenings", () => {
     expect(bandOpenings([old, noPos], 30)).toHaveLength(0);
   });
 });
+
+describe("bandOpenings with a `near` filter", () => {
+  const home: [number, number] = [-77, 39]; // same point as the default spotter
+
+  it("keeps a spot whose spotter is within radiusKm", () => {
+    const arcs = bandOpenings([spot()], 30, { home, radiusKm: 100 });
+    expect(arcs).toHaveLength(1);
+  });
+
+  it("drops a spot whose spotter is outside radiusKm", () => {
+    const far = spot({
+      by: call({ lat: 39, lon: -77 + 90, dxcc_name: "Elsewhere", primary_prefix: "XX" }),
+    });
+    expect(bandOpenings([far], 30, { home, radiusKm: 100 })).toHaveLength(0);
+  });
+
+  it("ignores the filter entirely when near is null or omitted", () => {
+    const far = spot({
+      by: call({ lat: 39, lon: -77 + 90, dxcc_name: "Elsewhere", primary_prefix: "XX" }),
+    });
+    expect(bandOpenings([far], 30, null)).toHaveLength(1);
+    expect(bandOpenings([far], 30)).toHaveLength(1);
+  });
+
+  it("still drops a spot with no resolvable spotter position, near or not", () => {
+    const noSpotter = spot({ id: 4, by: null });
+    expect(bandOpenings([noSpotter], 30, { home, radiusKm: 20000 })).toHaveLength(0);
+  });
+});

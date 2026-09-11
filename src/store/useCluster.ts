@@ -108,6 +108,11 @@ interface ClusterStore {
   mapMuf: boolean;
   /** Map: empirical band-openings heat map from the whole spot stream. */
   mapOpenings: boolean;
+  /** Sub-filter on the openings layer — keep only arcs whose spotter is
+   *  within this many km of the QTH. At/above OPENINGS_RADIUS_MAX_KM (the
+   *  slider max) it's a no-op — no separate on/off toggle needed. No-op
+   *  either way with no QTH set. */
+  mapOpeningsNearMeKm: number;
   /** PSK Reporter "who hears me" feed: opted in? */
   pskrEnabled: boolean;
   /** Callsign(s) to watch on PSK Reporter (comma/space separated); "" = derive
@@ -235,6 +240,7 @@ interface ClusterStore {
   setMapBandRose: (on: boolean) => void;
   setMapMuf: (on: boolean) => void;
   setMapOpenings: (on: boolean) => void;
+  setMapOpeningsNearMeKm: (km: number) => void;
   setPskrEnabled: (on: boolean) => void;
   setPskrCallsigns: (calls: string) => void;
   setPskrStatus: (status: string) => void;
@@ -320,6 +326,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   mapBandRose: false,
   mapMuf: false,
   mapOpenings: false,
+  mapOpeningsNearMeKm: 20000,
   pskrEnabled: false,
   pskrCallsigns: "",
   pskrStatus: "off",
@@ -477,6 +484,10 @@ export const useCluster = create<ClusterStore>((set) => ({
   setMapBandRose: (mapBandRose) => set({ mapBandRose }),
   setMapMuf: (mapMuf) => set({ mapMuf }),
   setMapOpenings: (mapOpenings) => set({ mapOpenings }),
+  setMapOpeningsNearMeKm: (mapOpeningsNearMeKm) =>
+    set({
+      mapOpeningsNearMeKm: Math.min(20000, Math.max(500, Math.round(mapOpeningsNearMeKm) || 20000)),
+    }),
   setPskrEnabled: (pskrEnabled) => set({ pskrEnabled }),
   setPskrCallsigns: (pskrCallsigns) => set({ pskrCallsigns }),
   setPskrStatus: (pskrStatus) => set({ pskrStatus }),

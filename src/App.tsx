@@ -260,6 +260,7 @@ export function App() {
       c().setMapBandRose(settings.mapBandRose ?? false);
       c().setMapMuf(settings.mapMuf ?? false);
       c().setMapOpenings(settings.mapOpenings ?? false);
+      c().setMapOpeningsNearMeKm(settings.mapOpeningsNearMeKm ?? 20000);
       c().setPskrEnabled(settings.pskrEnabled ?? false);
       c().setPskrCallsigns(settings.pskrCallsigns ?? "");
       if (settings.pskrEnabled) {

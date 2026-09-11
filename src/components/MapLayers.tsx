@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useCluster } from "@/store/useCluster";
 import { patchSettings } from "@/lib/persist";
+import { OPENINGS_RADIUS_MAX_KM } from "@/lib/openings";
 import { useT } from "@/i18n";
 
 /** "Layers ▾" popover for the Map quickbar — collapses the long run of map-layer
@@ -40,6 +41,8 @@ export function MapLayers({
   const setMuf = useCluster((s) => s.setMapMuf);
   const openingsOn = useCluster((s) => s.mapOpenings);
   const setOpenings = useCluster((s) => s.setMapOpenings);
+  const openingsNearMeKm = useCluster((s) => s.mapOpeningsNearMeKm);
+  const setOpeningsNearMeKm = useCluster((s) => s.setMapOpeningsNearMeKm);
 
   const spotShowSkimmer = useCluster((s) => s.spotShowSkimmer);
   const setSpotShowSkimmer = useCluster((s) => s.setSpotShowSkimmer);
@@ -132,6 +135,28 @@ export function MapLayers({
             {row(auroraOn, setAurora, tr("map.aurora"), "mapAurora")}
             {row(mufOn, setMuf, tr("map.muf"), "mapMuf")}
             {row(openingsOn, setOpenings, tr("map.openings"), "mapOpenings")}
+            {openingsOn && (
+              <label className="inline ml-row ml-slider">
+                {tr("map.openingsNearMeKm")}
+                <input
+                  type="range"
+                  min={500}
+                  max={OPENINGS_RADIUS_MAX_KM}
+                  step={500}
+                  value={openingsNearMeKm}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setOpeningsNearMeKm(v);
+                    void patchSettings({ mapOpeningsNearMeKm: v });
+                  }}
+                />
+                <span className="mono">
+                  {openingsNearMeKm >= OPENINGS_RADIUS_MAX_KM
+                    ? tr("map.openingsNearMeAll")
+                    : `${openingsNearMeKm} km`}
+                </span>
+              </label>
+            )}
             {row(bandRoseOn, setBandRose, tr("map.bandRose"), "mapBandRose")}
             {row(condHud, setCondHud, tr("map.condHud"), "mapCondHud")}
           </div>

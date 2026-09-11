@@ -1,6 +1,6 @@
 import type { EnrichedSpot, Mode } from "./types";
 import type { LonLat } from "./grid";
-import { spotLonLat, spotterLonLat } from "./grid";
+import { distanceKm, spotLonLat, spotterLonLat } from "./grid";
 
 /**
  * Empirical band-openness: every recent spot is proof that its band is open
@@ -19,7 +19,22 @@ export interface OpeningArc {
   ageMin: number;
 }
 
-export function bandOpenings(spots: EnrichedSpot[], sinceMin = 30): OpeningArc[] {
+/** Restrict openings to those heard by a spotter within `radiusKm` of `home`. */
+export interface OpeningsNear {
+  home: LonLat;
+  radiusKm: number;
+}
+
+/** Slider max for the "near me" radius — at/above this the filter is a no-op
+ *  (it exceeds any possible great-circle distance on Earth, max ≈ 20015 km),
+ *  so the UI treats it as "no limit" without needing a separate on/off toggle. */
+export const OPENINGS_RADIUS_MAX_KM = 20000;
+
+export function bandOpenings(
+  spots: EnrichedSpot[],
+  sinceMin = 30,
+  near: OpeningsNear | null = null,
+): OpeningArc[] {
   const now = Date.now() / 1000;
   const cutoff = now - sinceMin * 60;
   const out: OpeningArc[] = [];
@@ -28,6 +43,7 @@ export function bandOpenings(spots: EnrichedSpot[], sinceMin = 30): OpeningArc[]
     const a = spotterLonLat(s);
     const b = spotLonLat(s);
     if (!a || !b) continue;
+    if (near && distanceKm(a, near.home) > near.radiusKm) continue;
     out.push({ a, b, band: s.band, mode: s.mode, ageMin: (now - s.received_at) / 60 });
   }
   return out;

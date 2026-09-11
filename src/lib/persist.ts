@@ -50,6 +50,7 @@ export interface AppSettings {
   mapBandRose: boolean;
   mapMuf: boolean;
   mapOpenings: boolean;
+  mapOpeningsNearMeKm: number;
   /** PSK Reporter "who hears me" feed (digital modes). Off unless opted in. */
   pskrEnabled: boolean;
   /** Callsign(s) to watch on PSK Reporter; comma/space separated. Empty = use
@@ -123,6 +124,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   mapBandRose: false,
   mapMuf: false,
   mapOpenings: false,
+  mapOpeningsNearMeKm: 20000,
   pskrEnabled: false,
   pskrCallsigns: "",
   wsjtxEnabled: false,

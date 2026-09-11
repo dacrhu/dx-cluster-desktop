@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { baseCall, locatorToLonLat, spotLonLat, spotterLonLat } from "./grid";
+import { baseCall, distanceKm, locatorToLonLat, spotLonLat, spotterLonLat } from "./grid";
 import type { CallInfo, EnrichedSpot } from "./types";
 
 function callInfo(over: Partial<CallInfo> = {}): CallInfo {
@@ -103,5 +103,19 @@ describe("spotterLonLat", () => {
     const [lon, lat] = spotterLonLat(spot())!;
     expect(lon === 18 && lat === 47).toBe(false);
     expect(Math.abs(lon - 18)).toBeLessThan(1.5);
+  });
+});
+
+describe("distanceKm", () => {
+  it("is 0 for the same point", () => {
+    expect(distanceKm([0, 0], [0, 0])).toBeCloseTo(0, 3);
+  });
+
+  it("is a quarter of Earth's circumference from equator to pole", () => {
+    expect(distanceKm([0, 0], [0, 90])).toBeCloseTo(10007.5, 0);
+  });
+
+  it("is half Earth's circumference between antipodes", () => {
+    expect(distanceKm([0, 0], [180, 0])).toBeCloseTo(20015.1, 0);
   });
 });

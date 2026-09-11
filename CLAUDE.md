@@ -442,6 +442,16 @@ optional measured overlay added in phase 13 (see `store.mapMuf` below):
 - `store.mapOpenings` — `src/lib/openings.ts::bandOpenings`: every spot from the
   last 30 min as a faint mode-coloured great-circle arc (spotter→DX); overlap =
   heat. Empirical (measured), coverage-biased to where hams are active.
+  Sub-filter `store.mapOpeningsNearMeKm` — a slider nested right under the
+  `openings` checkbox in the Layers popover (500–20000 km step 500, default
+  `OPENINGS_RADIUS_MAX_KM` = 20000) keeps only arcs whose **spotter** endpoint
+  (not DX, not midpoint) is within that great-circle distance of the QTH
+  (`src/lib/grid.ts::distanceKm`, `geoDistance` × Earth radius 6371.0088 km).
+  No separate on/off toggle: at the slider's max the filter is a no-op by
+  construction (exceeds any possible great-circle distance, max ≈ 20015 km,
+  shown as "no limit" — `WorldMap` checks `openingsNearMeKm <
+OPENINGS_RADIUS_MAX_KM` before building the filter at all); also a no-op
+  with no QTH locator set.
 - `store.mapBandRose` — `src/lib/bandRose.ts`: recent spots binned into 12
   bearing sectors (from `dx.bearing_deg`). Each petal is a **stack of
   mode-coloured segments** (base → tip, `RoseSector.modes` in `ROSE_MODE_ORDER`,
@@ -458,8 +468,8 @@ optional measured overlay added in phase 13 (see `store.mapMuf` below):
   (`onGoToPropagation`, App → MapPanel → WorldMap).
   The `WorldMap` time `tick` interval now also runs for greyline/MUF (not just
   grayline). i18n `map.greyline`, `map.aurora`, `map.muf`, `map.openings`,
-  `map.bandRose`, `map.condHud`, `map.condHudHint`, `map.greylineWidth`,
-  `qh.grey`.
+  `map.openingsNearMeKm`, `map.openingsNearMeAll`, `map.bandRose`,
+  `map.condHud`, `map.condHudHint`, `map.greylineWidth`, `qh.grey`.
 
 **RBN feed:** `NodeProfile.kind` (`dxcluster_core::connection::NodeKind` —
 `cluster` | `rbn`, serde default `cluster`, so old saved profiles still load).

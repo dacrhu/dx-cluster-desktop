@@ -192,6 +192,8 @@
   "map.aurora": "aurora",
   "map.muf": "MUF (model)",
   "map.openings": "openings",
+  "map.openingsNearMeKm": "spotter within",
+  "map.openingsNearMeAll": "no limit",
   "map.bandRose": "band rose",
   "map.condHud": "conditions",
   "map.condHudHint": "Open the Propagation tab",

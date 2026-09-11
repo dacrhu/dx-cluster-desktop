@@ -25,7 +25,7 @@ import { spotLonLat, type LonLat } from "@/lib/grid";
 import { antipode, inGreyline, subsolarPoint } from "@/lib/grayline";
 import { auroraOvals } from "@/lib/aurora";
 import { interpolateMuf, mufAt, mufBandLabels, mufContours, MUF_SCALE, sfiToSsn } from "@/lib/muf";
-import { bandOpenings } from "@/lib/openings";
+import { bandOpenings, OPENINGS_RADIUS_MAX_KM } from "@/lib/openings";
 import { bandRose, ROSE_SECTORS } from "@/lib/bandRose";
 import { fmtAge } from "@/lib/format";
 import { prepareQso, tuneSplitToSpot, tuneToSpot } from "@/lib/engage";
@@ -99,6 +99,7 @@ export const WorldMap = memo(function WorldMap({
   const showRose = useCluster((s) => s.mapBandRose);
   const showMuf = useCluster((s) => s.mapMuf);
   const showOpenings = useCluster((s) => s.mapOpenings);
+  const openingsNearMeKm = useCluster((s) => s.mapOpeningsNearMeKm);
   const catEnabled = useCluster((s) => s.catEnabled);
   const logPushEnabled = useCluster((s) => s.logPushEnabled);
   const wwv = useCluster((s) => s.wwv);
@@ -404,14 +405,18 @@ export const WorldMap = memo(function WorldMap({
 
   const openingArcs = useMemo(() => {
     if (!showOpenings) return [];
+    const near =
+      home && openingsNearMeKm < OPENINGS_RADIUS_MAX_KM
+        ? { home, radiusKm: openingsNearMeKm }
+        : null;
     const out: { d: string; mode: string; ageMin: number }[] = [];
-    for (const o of bandOpenings(spots, 30)) {
+    for (const o of bandOpenings(spots, 30, near)) {
       const d = arcPath(o.a, o.b);
       if (d) out.push({ d, mode: modeClass(o.mode), ageMin: o.ageMin });
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showOpenings, spots, projection, home]);
+  }, [showOpenings, spots, projection, home, openingsNearMeKm]);
 
   const rose = useMemo(() => (showRose ? bandRose(spots) : []), [showRose, spots]);
   const isGrey = (s: EnrichedSpot): boolean => {
