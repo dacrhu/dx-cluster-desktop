@@ -13,6 +13,7 @@ import {
   geoDistance,
   geoEquirectangular,
   geoGraticule10,
+  geoInterpolate,
   geoPath,
   type GeoProjection,
 } from "d3-geo";
@@ -244,8 +245,31 @@ export const WorldMap = memo(function WorldMap({
     if (!xy || !Number.isFinite(xy[0]) || !Number.isFinite(xy[1])) return null;
     return [xy[0], xy[1]];
   };
-  const arcPath = (a: LonLat, b: LonLat) =>
-    path({ type: "LineString", coordinates: [a, b] } as GeoAny);
+  // Great-circle arc, hand-sampled at a fixed low point count instead of
+  // routed through `path()`'s d3-geo adaptive resampler — that recurses on
+  // curvature until every segment is sub-pixel-accurate, which is expensive
+  // for a long geodesic (EU↔Pacific spans well over 100° of arc) and was
+  // redrawn on every spot batch (openings) or every pan/zoom re-render (the
+  // home/report arcs, previously computed inline in JSX with no memo at
+  // all) — the main cause of map lag with those layers on. A faint
+  // decorative line doesn't need sub-pixel precision.
+  const ARC_STEPS = 16;
+  const arcPath = (a: LonLat, b: LonLat): string | undefined => {
+    const interp = geoInterpolate(a, b);
+    let d = "";
+    let started = false;
+    for (let i = 0; i <= ARC_STEPS; i++) {
+      const ll = i === 0 ? a : i === ARC_STEPS ? b : (interp(i / ARC_STEPS) as LonLat);
+      const xy = project(ll);
+      if (!xy) {
+        started = false;
+        continue;
+      }
+      d += `${started ? "L" : "M"}${xy[0].toFixed(1)} ${xy[1].toFixed(1)} `;
+      started = true;
+    }
+    return d || undefined;
+  };
 
   const nightPath = useMemo(() => {
     void tick;
@@ -454,6 +478,34 @@ export const WorldMap = memo(function WorldMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reports, projection, home]);
 
+  // Home→DX arcs ("my" spot arcs) and report arcs: memoized like the other
+  // derived layers — previously these were built inline in JSX on every
+  // render, including every pointermove while dragging the map, redoing the
+  // great-circle sampling per frame for up to `spots.length` arcs.
+  const homeArcs = useMemo(() => {
+    if (!arcs || !home) return [];
+    const out: { id: number; d: string }[] = [];
+    for (const { s } of spotMarks) {
+      const ll = spotLonLat(s);
+      if (!ll) continue;
+      const d = arcPath(home, ll);
+      if (d) out.push({ id: s.id, d });
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arcs, home, spotMarks]);
+
+  const reportArcs = useMemo(() => {
+    if (!home) return [];
+    const out: { id: number; d: string }[] = [];
+    for (const { r } of reportMarks) {
+      const d = arcPath(home, r.lonLat);
+      if (d) out.push({ id: r.spot.id, d });
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [home, reportMarks]);
+
   // Faint DXCC prefix labels: greedily drop any that land too close (in screen
   // px) to one already placed, so the world view stays readable — zooming in
   // shrinks the exclusion radius in projected space, so more labels appear.
@@ -589,17 +641,13 @@ export const WorldMap = memo(function WorldMap({
                 />
               ))}
 
-            {arcs &&
-              home &&
-              spotMarks.map(({ s }) => {
-                const ll = spotLonLat(s)!;
-                return <path key={`a${s.id}`} className="wm-arc" d={arcPath(home, ll)} />;
-              })}
+            {homeArcs.map(({ id, d }) => (
+              <path key={`a${id}`} className="wm-arc" d={d} />
+            ))}
 
-            {home &&
-              reportMarks.map(({ r }) => (
-                <path key={`ra${r.spot.id}`} className="wm-arc rbn" d={arcPath(home, r.lonLat)} />
-              ))}
+            {reportArcs.map(({ id, d }) => (
+              <path key={`ra${id}`} className="wm-arc rbn" d={d} />
+            ))}
 
             {spotMarks.map(({ s, xy }) => {
               const hit = activeRules.length && matchingAlert(s, activeRules);

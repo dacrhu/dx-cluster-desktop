@@ -325,6 +325,18 @@ grayline (`src/lib/grayline.ts` sub-solar point → `geoCircle` night cap +
 terminator-edge stroke on `.wm-night`, `store.mapGrayline`), range rings, DX-spot dots (`useVisibleSpots()` capped at
 600, `modeClass` colour, age fade, `matchingAlert` ring), great-circle arcs
 (`store.mapArcs`), and "reports of me" — `src/lib/mapReports.ts::useMyReports()`
+`WorldMap`'s shared `arcPath(a, b)` hand-samples the great circle at a fixed 16
+points and projects each (bailing/restarting the subpath where `project()`
+clips, e.g. past the azimuthal antipode) instead of routing through d3-geo's
+`path()` adaptive curvature resampler — that recurses per arc until every
+segment is sub-pixel-accurate, which was the actual cost driver behind
+reported map lag with the openings/arcs layers on (a long geodesic like
+EU↔Pacific spans 100°+ and resamples into many points) — a faint decorative
+line doesn't need that precision. The home→DX arcs (`store.mapArcs`) and
+report arcs are also now `useMemo`'d (`homeArcs`/`reportArcs`, keyed off
+`spotMarks`/`reportMarks`, not `view`) — they used to be built inline in JSX
+and re-ran on every render, including every pointermove while dragging the
+map. `openingArcs` was already memoized the same way.
 filters `store.spots` for `baseCall(dx_call)` matching any connection's callsign,
 parses SNR/WPM from the comment, plots the skimmer (`spot.by` position) + a green
 arc. **Skimmer position:** `enrich()` (`src-tauri/src/enrich.rs`) resolves a
