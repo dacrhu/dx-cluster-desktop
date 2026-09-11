@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-09-11
+
 ### Fixed
 
 - Fixed a long-session freeze / graphical-corruption issue on Linux with the
