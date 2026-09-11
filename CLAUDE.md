@@ -107,6 +107,19 @@ Solo project — commit straight to `main`, no feature branches, no PRs. Only
 start branching once more than one person is developing against this repo at
 the same time.
 
+## Release notes
+
+`CHANGELOG.md` (Keep-a-Changelog style) is the source of the GitHub release
+body's "What's new" section — plain-English bullets, not a raw commit dump.
+An `[Unreleased]` section at the top collects entries as work lands; before
+pushing a version tag, rename it to `[<version>] - <date>` and start a fresh
+empty `[Unreleased]` above it. `.github/workflows/release.yml` runs
+`.github/scripts/extract-changelog.mjs <tag>` to pull the section matching
+the pushed tag straight into the release body (falls back to "See the commit
+history for details." if a version has no section — don't forget to rename
+`[Unreleased]`). The commit-history and user-manual links stay at the end of
+the release body regardless.
+
 ## Checks before committing
 
 ```sh

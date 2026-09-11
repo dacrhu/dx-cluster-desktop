@@ -66,6 +66,14 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
+      # Pulls the CHANGELOG.md section for this tag (see that file's header
+      # comment) into a step output, so the release notes below read like a
+      # human-written summary instead of a raw commit list.
+      - name: Extract changelog section
+        id: changelog
+        shell: bash
+        run: node .github/scripts/extract-changelog.mjs "${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -77,6 +85,10 @@ jobs:
           args: ${{ matrix.args }}
           releaseBody: |
             Desktop DX cluster client for Windows, macOS and Linux.
+
+            **What's new**
+
+            ${{ steps.changelog.outputs.notes }}
 
             **Install**
             - Windows: `.msi` or `.exe`
