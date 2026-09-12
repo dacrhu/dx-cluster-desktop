@@ -12,6 +12,14 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+### Fixed
+
+- The app's own log file could silently delete itself mid-session: the
+  default rotation (40 KB, no backup) meant a busy session's logging would
+  wipe its own history right when it was most needed to diagnose a freeze.
+  Now rotates at 5 MB and keeps the last 3 archived logs instead of
+  deleting outright.
+
 ## [1.3.2] - 2026-09-12
 
 ### Fixed

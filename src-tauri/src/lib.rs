@@ -1915,6 +1915,17 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Info)
+                // Default is 40 KB with `RotationStrategy::KeepOne` — which
+                // *deletes* (not archives) the log the moment a session's
+                // logging crosses that tiny threshold, so the exact evidence
+                // needed to diagnose a long-running freeze/crash was quietly
+                // destroyed mid-session more than once. 5 MB comfortably
+                // covers many hours of this app's actual log volume; keeping
+                // the 2 previous rotated files as well means a session that
+                // does fill it up still leaves its recent history readable
+                // instead of vanishing outright.
+                .max_file_size(5_000_000)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepSome(3))
                 .build(),
         )
         .plugin(tauri_plugin_store::Builder::new().build())
