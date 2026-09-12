@@ -1921,19 +1921,20 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let handle = app.handle().clone();
-            // Confirm the `main.rs` DMA-BUF-renderer workaround actually took —
-            // `set_var` itself can't fail, but this is the first point the
-            // logger (just above) is available to record it, so a future
-            // freeze/ghosting report can start from "was the workaround even
-            // active" instead of re-deriving it from journalctl again.
+            // Confirm the `main.rs` GPU-compositing workarounds actually
+            // took — `set_var` itself can't fail, but this is the first
+            // point the logger (just above) is available to record it, so a
+            // future freeze/ghosting report can start from "were the
+            // workarounds even active" instead of re-deriving it from
+            // journalctl again.
             #[cfg(target_os = "linux")]
-            match std::env::var("WEBKIT_DISABLE_DMABUF_RENDERER").as_deref() {
-                Ok("1") => log::info!(
-                    "WEBKIT_DISABLE_DMABUF_RENDERER=1 active (WebKitGTK DMA-BUF renderer disabled)"
-                ),
-                other => log::warn!(
-                    "WEBKIT_DISABLE_DMABUF_RENDERER not set as expected (got {other:?}) — the GPU-freeze/ghosting workaround from main.rs is NOT active"
-                ),
+            for var in ["WEBKIT_DISABLE_DMABUF_RENDERER", "WEBKIT_DISABLE_COMPOSITING_MODE"] {
+                match std::env::var(var).as_deref() {
+                    Ok("1") => log::info!("{var}=1 active (WebKitGTK GPU-compositing workaround)"),
+                    other => log::warn!(
+                        "{var} not set as expected (got {other:?}) — a GPU-freeze/ghosting workaround from main.rs is NOT active"
+                    ),
+                }
             }
             let data_dir = app.path().app_data_dir().expect("app data dir");
             std::fs::create_dir_all(&data_dir).ok();

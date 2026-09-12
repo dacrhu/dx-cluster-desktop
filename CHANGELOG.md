@@ -12,6 +12,18 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+### Fixed
+
+- The 1.3.1 fix for the Linux long-session freeze wasn't enough on its
+  own — it recurred (sooner, and without the earlier GPU-memory error,
+  just a stalled repaint), meaning WebKitGTK can wedge through more than
+  one GPU-accelerated code path on Wayland + the proprietary NVIDIA
+  driver. Now also disables WebKitGTK's GPU-accelerated compositing
+  entirely (`WEBKIT_DISABLE_COMPOSITING_MODE`) alongside the earlier
+  DMA-BUF-renderer workaround — WebKitGTK's own documented last resort for
+  this class of driver issue. Trades some rendering smoothness (map/bandmap
+  redraws) for stability.
+
 ## [1.3.1] - 2026-09-11
 
 ### Fixed
