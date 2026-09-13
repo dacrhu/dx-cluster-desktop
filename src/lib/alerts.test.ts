@@ -54,6 +54,19 @@ describe("alertMatches", () => {
     expect(alertMatches(spot(), { ...emptyAlert(), calls: ["HA7"] })).toBe(false);
   });
 
+  it("matches an exact DX callsign but not a longer one sharing the prefix", () => {
+    expect(alertMatches(spot(), { ...emptyAlert(), exactCalls: ["HA5XX"] })).toBe(true);
+    expect(
+      alertMatches(spot({ dx_call: "HA5XXY" }), { ...emptyAlert(), exactCalls: ["HA5XX"] }),
+    ).toBe(false);
+  });
+
+  it("exact callsign matching strips portable suffixes", () => {
+    const rule = { ...emptyAlert(), exactCalls: ["HA5XX"] };
+    expect(alertMatches(spot({ dx_call: "HA5XX/P" }), rule)).toBe(true);
+    expect(alertMatches(spot({ dx_call: "DL/HA5XX/MM" }), rule)).toBe(true);
+  });
+
   it("matchSpotter switches the tested side", () => {
     const rule = { ...emptyAlert(), calls: ["OM"], matchSpotter: true };
     expect(alertMatches(spot(), rule)).toBe(true);

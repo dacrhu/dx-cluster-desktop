@@ -41,8 +41,10 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
   from where you are. See at a glance that 40 m is opening to Europe while 15 m
   to North America fades.
 - **Alerts that find the DX for you.** Watch lists → desktop notification + sound,
-  a logged hit list, live-row tinting. De-duped so a pileup of skimmer spots
-  notifies once.
+  a logged hit list, live-row tinting. Match by prefix, or by an exact
+  callsign list (for hunting specific stations, e.g. an awards chase) that
+  won't misfire on a longer callsign sharing the same letters. De-duped so a
+  pileup of skimmer spots notifies once.
 - **Full messaging.** Talk threads, group chat/conference, and a complete
   mail & bulletin client (read, compose, reply, delete) with a local cache.
 - **Rig control and logging hand-off.** Full CAT rig control over serial/USB or

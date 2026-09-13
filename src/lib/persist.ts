@@ -161,7 +161,13 @@ export async function saveProfiles(profiles: NodeProfile[]): Promise<void> {
 
 export async function loadSettings(): Promise<AppSettings> {
   const s = await store();
-  return { ...DEFAULT_SETTINGS, ...((await s.get<Partial<AppSettings>>("settings")) ?? {}) };
+  const merged = {
+    ...DEFAULT_SETTINGS,
+    ...((await s.get<Partial<AppSettings>>("settings")) ?? {}),
+  };
+  // Backfill AlertRule fields added after a rule was first saved.
+  merged.alertRules = merged.alertRules.map((r) => ({ ...r, exactCalls: r.exactCalls ?? [] }));
+  return merged;
 }
 
 export async function saveSettings(settings: AppSettings): Promise<void> {

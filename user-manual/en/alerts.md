@@ -30,12 +30,19 @@ Click **+ New rule** (in this section, not the panel header). Each rule is a
 collapsible card:
 
 - **Head** — enable checkbox, name, a plain-language summary, delete.
-- **Body** — name, "match spotter too", callsign **prefixes**, an **advanced
-  query** (the [query language](search-query.md)), and **band / mode /
-  continent** chips.
+- **Body** — name, "match spotter too", callsign **prefixes**, **exact
+  callsigns**, an **advanced query** (the [query language](search-query.md)),
+  and **band / mode / continent** chips.
 
 All conditions in a rule are **ANDed**. Leave a field blank to not constrain on
 it. A rule with only prefixes set fires on any spot of those prefixes.
+
+The **exact callsigns** field is a comma-separated list matched exactly
+(portable `/P`, `/MM`, … suffixes are stripped, so `HA5XX` still fires on
+`HA5XX/P`) — unlike the prefix field, `PA5M` here never also fires on
+`PA5MB`. Use it for hunting a specific list of stations (awards, a DXCC
+needed-list); use the prefix field or the advanced query for anything
+open-ended.
 
 Rules use the one-open **accordion**; adding a rule opens just the new one.
 
@@ -45,5 +52,8 @@ Rules use the one-open **accordion**; adding a rule opens just the new one.
   `re:/P$ -mode:ft8` or `cq:2,3,4,5 band:6m`.
 - For a DXpedition, a prefix rule (`VP8`, `3Y`) plus a band chip is usually
   enough.
+- For a fixed list of specific stations (e.g. an awards chase), use the
+  **exact callsigns** field instead of prefixes — it won't misfire on an
+  unrelated longer callsign that happens to start the same way.
 - Alerts are independent of the [Filters](filters.md) panel — an alert can fire
   on a spot you have filtered out of the table.

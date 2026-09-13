@@ -266,6 +266,20 @@ export const AlertsPanel = memo(function AlertsPanel({ onGoToSpots }: { onGoToSp
                       />
                     </div>
 
+                    <div className="row">
+                      <CsvInput
+                        label={
+                          a.matchSpotter
+                            ? tr("alerts.spotterExactCalls")
+                            : tr("alerts.dxExactCalls")
+                        }
+                        value={a.exactCalls}
+                        placeholder="HA5XYZ, OM3ABC, 9A1AA"
+                        onChange={(v) => update(i, { exactCalls: v })}
+                      />
+                    </div>
+                    <p className="field-hint">{tr("alerts.exactCallsHint")}</p>
+
                     <label className="grow">
                       <span className="qh-label">
                         {tr("alerts.query")}

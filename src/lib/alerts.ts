@@ -1,4 +1,5 @@
 import { t } from "@/i18n";
+import { baseCall } from "./grid";
 import { compileQuery, type SpotPredicate } from "./query";
 import type { EnrichedSpot, Mode } from "./types";
 
@@ -9,6 +10,11 @@ export interface AlertRule {
   enabled: boolean;
   /** DX callsign prefixes (start-of-string match). */
   calls: string[];
+  /** Exact DX callsigns — matched against the base call (portable /P, /MM, …
+   *  suffixes stripped), unlike `calls` which is a prefix match. For hunting a
+   *  specific list of stations (awards, DXCCs) without accidentally matching
+   *  longer callsigns that merely start with the same letters. */
+  exactCalls: string[];
   /** DXCC primary prefixes (exact). */
   dxcc: string[];
   bands: string[];
@@ -40,6 +46,7 @@ export function emptyAlert(): AlertRule {
     label: "",
     enabled: true,
     calls: [],
+    exactCalls: [],
     dxcc: [],
     bands: [],
     modes: [],
@@ -70,6 +77,8 @@ export function describeAlert(rule: AlertRule): string {
   const side = rule.matchSpotter ? t("alerts.desc.spotterSide") : t("alerts.desc.dxSide");
   const parts: string[] = [];
   if (rule.calls.length) parts.push(t("alerts.desc.call", { side, v: rule.calls.join(" / ") }));
+  if (rule.exactCalls.length)
+    parts.push(t("alerts.desc.exactCall", { side, v: rule.exactCalls.join(" / ") }));
   if (rule.dxcc.length) parts.push(t("alerts.desc.dxcc", { side, v: rule.dxcc.join(" / ") }));
   if (rule.continents.length)
     parts.push(t("alerts.desc.cont", { side, v: rule.continents.join(" / ") }));
@@ -97,6 +106,7 @@ export function alertMatches(spot: EnrichedSpot, rule: AlertRule): boolean {
   // A rule with no conditions never matches (avoids notifying on everything).
   const hasCond =
     rule.calls.length ||
+    rule.exactCalls.length ||
     rule.dxcc.length ||
     rule.bands.length ||
     rule.modes.length ||
@@ -105,6 +115,8 @@ export function alertMatches(spot: EnrichedSpot, rule: AlertRule): boolean {
   if (!hasCond) return false;
 
   if (rule.calls.length && !rule.calls.some((c) => up(call).startsWith(up(c)))) return false;
+  if (rule.exactCalls.length && !rule.exactCalls.some((c) => baseCall(call) === up(c)))
+    return false;
   if (rule.dxcc.length && !rule.dxcc.some((d) => up(d) === up(info?.primary_prefix))) return false;
   if (rule.bands.length && !(spot.band && rule.bands.includes(spot.band))) return false;
   if (rule.modes.length && !rule.modes.includes(spot.mode)) return false;

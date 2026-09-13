@@ -35,12 +35,19 @@ Jede Regel ist eine einklappbare Karte:
 - **Kopf** — Aktivierungs-Häkchen, Name, eine Zusammenfassung in Klartext,
   Löschen.
 - **Körper** — Name, „Spotter ebenfalls abgleichen“, Rufzeichen-**Präfixe**,
-  eine **erweiterte Abfrage** (die [Suchsprache](search-query.md)) und
-  **Band-/Mode-/Kontinent**-Chips.
+  **exakte Rufzeichen**, eine **erweiterte Abfrage** (die
+  [Suchsprache](search-query.md)) und **Band-/Mode-/Kontinent**-Chips.
 
 Alle Bedingungen in einer Regel werden **UND-verknüpft**. Lasse ein Feld leer,
 um darauf nicht einzuschränken. Eine Regel mit nur gesetzten Präfixen löst bei
 jedem Spot dieser Präfixe aus.
+
+Das Feld **exakte Rufzeichen** ist eine kommagetrennte Liste mit exakter
+Übereinstimmung (Portable-Suffixe wie `/P`, `/MM`, … werden entfernt, also
+löst `HA5XX` auch bei `HA5XX/P` aus) — im Gegensatz zum Präfix-Feld löst
+`PA5M` hier nie auch bei `PA5MB` aus. Nutze es zum Jagen einer konkreten
+Stationsliste (Diplome, eine benötigte DXCC-Liste); für alles Offene das
+Präfix-Feld oder die erweiterte Abfrage.
 
 Die Regeln verwenden das Ein-offen-**Akkordeon**; eine Regel hinzuzufügen öffnet
 nur die neue.
@@ -51,5 +58,8 @@ nur die neue.
   z. B. `re:/P$ -mode:ft8` oder `cq:2,3,4,5 band:6m`.
 - Für eine DXpedition genügt eine Präfix-Regel (`VP8`, `3Y`) plus ein Band-Chip
   meist.
+- Für eine feste, konkrete Stationsliste (z. B. Diplomjagd) nutze das Feld
+  **exakte Rufzeichen** statt der Präfixe — so löst es nicht bei einem
+  ähnlich beginnenden, aber unpassenden längeren Rufzeichen aus.
 - Alarme sind unabhängig vom Panel [Filter](filters.md) — ein Alarm kann bei
   einem Spot auslösen, den du aus der Tabelle herausgefiltert hast.

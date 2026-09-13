@@ -12,6 +12,15 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+### Added
+
+- Alert rules gained an **exact callsigns** field alongside the existing
+  callsign-prefix field: a comma-separated list matched exactly (portable
+  `/P`, `/MM`, … suffixes stripped) instead of by prefix, so a long
+  hunting/awards list of specific stations no longer misfires on an unrelated
+  callsign that merely starts with the same letters (e.g. a rule for `PA5M`
+  used to also alert on `PA5MB`).
+
 ### Fixed
 
 - The query-help ("?") and Map "Layers ▾" popovers could spill off the left
