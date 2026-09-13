@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-13
+
 ### Added
 
 - Alert rules gained an **exact callsigns** field alongside the existing
