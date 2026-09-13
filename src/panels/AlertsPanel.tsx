@@ -255,7 +255,7 @@ export const AlertsPanel = memo(function AlertsPanel({ onGoToSpots }: { onGoToSp
                           a.matchSpotter ? tr("alerts.spotterPrefixes") : tr("alerts.dxPrefixes")
                         }
                         value={a.calls}
-                        placeholder="HA5XYZ, OM3, 9A"
+                        placeholder="HA, OM2, 9A"
                         onChange={(v) => update(i, { calls: v })}
                       />
                       <CsvInput
