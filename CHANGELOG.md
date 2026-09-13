@@ -14,6 +14,10 @@ every entry should already read the way it will appear there.
 
 ### Fixed
 
+- The query-help ("?") and Map "Layers ▾" popovers could spill off the left
+  edge of the window on a narrow width, clipping their own content with no
+  way to scroll to it. They now nudge themselves back on screen after
+  opening (and on resize).
 - The app's own log file could silently delete itself mid-session: the
   default rotation (40 KB, no backup) meant a busy session's logging would
   wipe its own history right when it was most needed to diagnose a freeze.

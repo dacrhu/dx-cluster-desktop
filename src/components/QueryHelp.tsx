@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useT } from "@/i18n";
+import { useClampPopover } from "@/lib/util";
 
 /** A "?" chip that opens a popover documenting the spot query mini-language.
  *  Dropped next to every input that feeds `compileQuery`. */
@@ -8,6 +9,7 @@ export function QueryHelp() {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
   const titleId = useId();
+  const { ref: popRef, style: popStyle } = useClampPopover(open);
 
   useEffect(() => {
     if (!open) return;
@@ -42,7 +44,13 @@ export function QueryHelp() {
         ?
       </button>
       {open && (
-        <div className="qh-pop" role="dialog" aria-labelledby={titleId}>
+        <div
+          className="qh-pop"
+          role="dialog"
+          aria-labelledby={titleId}
+          ref={popRef}
+          style={popStyle}
+        >
           <div className="qh-head">
             <strong id={titleId}>{tr("qh.title")}</strong>
             <button type="button" className="chip" onClick={() => setOpen(false)}>

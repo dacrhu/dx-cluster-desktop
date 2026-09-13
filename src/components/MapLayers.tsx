@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useCluster } from "@/store/useCluster";
 import { patchSettings } from "@/lib/persist";
 import { OPENINGS_RADIUS_MAX_KM } from "@/lib/openings";
+import { useClampPopover } from "@/lib/util";
 import { useT } from "@/i18n";
 
 /** "Layers ▾" popover for the Map quickbar — collapses the long run of map-layer
@@ -20,6 +21,7 @@ export function MapLayers({
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
   const titleId = useId();
+  const { ref: popRef, style: popStyle } = useClampPopover(open);
 
   const grayline = useCluster((s) => s.mapGrayline);
   const setGrayline = useCluster((s) => s.setMapGrayline);
@@ -103,7 +105,13 @@ export function MapLayers({
         {activeCount > 0 ? ` (${activeCount})` : ""} ▾
       </button>
       {open && (
-        <div className="ml-pop" role="dialog" aria-labelledby={titleId}>
+        <div
+          className="ml-pop"
+          role="dialog"
+          aria-labelledby={titleId}
+          ref={popRef}
+          style={popStyle}
+        >
           <div className="qh-head">
             <strong id={titleId}>{tr("map.layers")}</strong>
             <button type="button" className="chip" onClick={() => setOpen(false)}>

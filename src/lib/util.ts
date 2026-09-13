@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 /** Toggle a value's membership in an array (returns a new array). */
 export function toggleIn<T>(arr: T[], v: T): T[] {
@@ -59,4 +59,50 @@ export function useFrozenWhenInactive<T>(value: T, active: boolean): T {
   const frozen = useRef(value);
   if (active) frozen.current = value;
   return active ? value : frozen.current;
+}
+
+/**
+ * Keeps a popover that's CSS-anchored `right: 0` to a relatively-positioned
+ * button (`QueryHelp`'s `.qh-pop`, `MapLayers`'s `.ml-pop`, …) from spilling
+ * past the left edge of the window — that anchoring is fine while the button
+ * sits well clear of the left edge, but once the window narrows enough the
+ * popover's fixed width pushes its left side off-screen with no way to read
+ * or scroll to it. Attach the returned `ref` to the popover element and
+ * spread `style` onto it: after every paint (and on resize, since narrowing
+ * the window is exactly the failure case) it measures the box's natural
+ * position and nudges it right just far enough to clear the edge, capped so
+ * that doesn't in turn push the right side off-screen.
+ */
+export function useClampPopover(open: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shift, setShift] = useState(0);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setShift(0);
+      return;
+    }
+    const margin = 8;
+    const recalc = () => {
+      const el = ref.current;
+      if (!el) return;
+      // Measure the untransformed position — a previous shift must not bias
+      // the next measurement (e.g. the window growing back).
+      const prevTransform = el.style.transform;
+      el.style.transform = "none";
+      const rect = el.getBoundingClientRect();
+      el.style.transform = prevTransform;
+      const overflowLeft = margin - rect.left;
+      const shifted =
+        overflowLeft > 0
+          ? Math.min(overflowLeft, Math.max(0, window.innerWidth - margin - rect.right))
+          : 0;
+      setShift(shifted);
+    };
+    recalc();
+    window.addEventListener("resize", recalc);
+    return () => window.removeEventListener("resize", recalc);
+  }, [open]);
+
+  return { ref, style: shift ? { transform: `translateX(${shift}px)` } : undefined };
 }
