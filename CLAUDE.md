@@ -171,7 +171,7 @@ confirmation in between (the request itself is the go-ahead):
    landed since the last tag), then bump it in lockstep in `Cargo.toml`
    (`[workspace.package].version`), `package.json`, and
    `src-tauri/tauri.conf.json`, and let `Cargo.lock` pick it up (a `cargo
-   check`/`cargo build` regenerates its `dx-cluster-desktop` /
+check`/`cargo build` regenerates its `dx-cluster-desktop` /
    `dxcluster-core` entries). In `CHANGELOG.md`, rename `[Unreleased]` to
    `[<version>] - <date>` (today, ISO) and add a fresh empty `[Unreleased]`
    above it — see [Release notes](#release-notes) below for why. Commit this
@@ -181,7 +181,7 @@ confirmation in between (the request itself is the go-ahead):
    (this release commit plus whatever else had only been committed
    locally).
 3. **Tag** — `git tag v<version>` on that commit and `git push origin
-   v<version>`. The pushed tag is what `.github/workflows/release.yml`
+v<version>`. The pushed tag is what `.github/workflows/release.yml`
    watches for; pushing it kicks off the CI build/release jobs across all
    platforms.
 
