@@ -162,7 +162,34 @@ history for details." if a version has no section — don't forget to rename
 `[Unreleased]`). The commit-history and user-manual links stay at the end of
 the release body regardless.
 
-## Checks before committing
+## Cutting a release
+
+When asked for a release, do the whole sequence without stopping for
+confirmation in between (the request itself is the go-ahead):
+
+1. **Version bump** — pick the new version (semver bump appropriate to what
+   landed since the last tag), then bump it in lockstep in `Cargo.toml`
+   (`[workspace.package].version`), `package.json`, and
+   `src-tauri/tauri.conf.json`, and let `Cargo.lock` pick it up (a `cargo
+   check`/`cargo build` regenerates its `dx-cluster-desktop` /
+   `dxcluster-core` entries). In `CHANGELOG.md`, rename `[Unreleased]` to
+   `[<version>] - <date>` (today, ISO) and add a fresh empty `[Unreleased]`
+   above it — see [Release notes](#release-notes) below for why. Commit this
+   as its own `chore(release): bump version to <version>` commit (see
+   `a9b3649` for the shape of one).
+2. **Push** — `git push` everything on `main` not yet on `origin/main`
+   (this release commit plus whatever else had only been committed
+   locally).
+3. **Tag** — `git tag v<version>` on that commit and `git push origin
+   v<version>`. The pushed tag is what `.github/workflows/release.yml`
+   watches for; pushing it kicks off the CI build/release jobs across all
+   platforms.
+
+The exception is a pending [local AppImage test](#local-appimage-testing):
+if one hasn't been confirmed yet, ask first rather than push/tag straight
+into it.
+
+## Release notes
 
 ```sh
 pnpm lint && pnpm test && pnpm build
