@@ -127,6 +127,17 @@ Solo project — commit straight to `main`, no feature branches, no PRs. Only
 start branching once more than one person is developing against this repo at
 the same time.
 
+## Local AppImage testing
+
+When asked to build an AppImage, run `pnpm tauri build`, then copy the result
+— `target/release/bundle/appimage/DX Cluster Desktop_<version>_amd64.AppImage`
+(workspace target dir, not `src-tauri/target`) — over
+`/home/berci/Applications/DX.Cluster.Desktop_amd64.AppImage`, overwriting
+whatever is already there. This is so the user can launch and test that exact
+build locally before a release is pushed and tagged — do this only when asked,
+and don't push commits or push a version tag until the user has confirmed the
+test.
+
 ## Release notes
 
 `CHANGELOG.md` (Keep-a-Changelog style) is the source of the GitHub release
