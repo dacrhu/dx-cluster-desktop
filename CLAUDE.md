@@ -129,12 +129,23 @@ the same time.
 
 ## Local AppImage testing
 
-When asked to build an AppImage, run `pnpm tauri build`, then copy the result
-— `target/release/bundle/appimage/DX Cluster Desktop_<version>_amd64.AppImage`
-(workspace target dir, not `src-tauri/target`) — over
-`/home/berci/Applications/DX.Cluster.Desktop_amd64.AppImage`, overwriting
-whatever is already there. This is so the user can launch and test that exact
-build locally before a release is pushed and tagged — do this only when asked,
+When asked to build an AppImage, run `NO_STRIP=1 pnpm tauri build`, then copy
+the result — `target/release/bundle/appimage/DX Cluster
+Desktop_<version>_amd64.AppImage` (workspace target dir, not
+`src-tauri/target`) — over `/home/berci/Applications/DX.Cluster.Desktop_amd64.AppImage`,
+overwriting whatever is already there. `NO_STRIP=1` is required on this
+machine (Fedora 43): `linuxdeploy`'s bundled `strip` is GNU binutils 2.35
+(~2020), too old to parse the `.relr.dyn` RELR-relocation section that
+Fedora 43's own system libraries (glibc/webkit2gtk/etc., pulled into the
+AppImage) are now built with — every library it tries to strip fails with
+`unknown type [0x13] section '.relr.dyn'` and the whole bundle step aborts
+before producing a file. `NO_STRIP=1` (an env var `linuxdeploy` itself
+recognises — confirmed via `strings` on the cached
+`~/.cache/tauri/linuxdeploy-x86_64.AppImage`) skips stripping and lets
+bundling finish; without it, `pnpm tauri build` fails at the "Bundling …
+.AppImage" step with `failed to run linuxdeploy` and no file is written.
+This is so the user can launch and test that exact build locally before a
+release is pushed and tagged — do this only when asked,
 and don't push commits or push a version tag until the user has confirmed the
 test.
 
