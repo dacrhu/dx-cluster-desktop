@@ -35,6 +35,13 @@ rumqttc = { version = "0.24", default-features = false }
 socket2 = "0.6"
 if-addrs = "0.13"
 
+[profile.dev]
+# Incremental compilation's cache (target/debug/incremental) is the single
+# biggest disk hog in dev builds — it grows essentially without bound over a
+# long edit/build cycle and was the main reason target/ hit 51G. Trading a
+# little rebuild speed on small edits for not silently eating tens of GB.
+incremental = false
+
 [profile.release]
 panic = "abort"
 codegen-units = 1
