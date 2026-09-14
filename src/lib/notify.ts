@@ -109,6 +109,38 @@ const CHIME: [number, number, number][] = [
 
 // Morse "DX"  (-.. -..-)  dit = 70 ms.
 const DIT = 0.07;
+const MORSE_FREQ = 700;
+
+/** A held-then-released keying tone: square wave (the richer, buzzier
+ *  timbre), a quick attack, a hold at peak so even a short dot reads as
+ *  struck (not instantly fading like `tone()`'s continuous decay) — then a
+ *  proper exponential release that's allowed to ring out past the symbol's
+ *  nominal length, into the gap before the next one. */
+// A fixed (not length-proportional) release tail: dot and dash ring out by
+// the same amount, so the gap left before the next symbol is consistent and
+// the rhythm reads evenly instead of dashes swallowing more of their gap
+// than dots do.
+const TAIL = DIT * 0.35;
+
+function keyTone(ac: AudioContext, start: number, len: number) {
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = "square";
+  osc.frequency.value = MORSE_FREQ * PITCH;
+  const attack = Math.min(0.008, len / 5);
+  const holdEnd = start + len * 0.45;
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(0.28, start + attack);
+  gain.gain.setValueAtTime(0.28, holdEnd);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + len + TAIL);
+  osc.connect(gain).connect(ac.destination);
+  osc.start(start);
+  osc.stop(start + len + TAIL + 0.02);
+}
+
+// Standard Morse timing is a 3:1 dash:dot ratio; nudged a bit further so a
+// dash reads as unmistakably long even at this brisk a pace.
+const DAH = DIT * 3.5;
 
 function playMorse(ac: AudioContext, t0: number) {
   const pattern = "-.. -..-"; // D X
@@ -118,15 +150,15 @@ function playMorse(ac: AudioContext, t0: number) {
       at += DIT * 2; // letter gap (already had a symbol gap)
       continue;
     }
-    const len = ch === "-" ? DIT * 3 : DIT;
-    tone(ac, "square", 700, t0 + at, len, 0.28);
+    const len = ch === "-" ? DAH : DIT;
+    keyTone(ac, t0 + at, len);
     at += len + DIT; // symbol + intra-char gap
   }
 }
 
 /** Rough wall-clock length of each sound, in seconds, so overlapping alerts
  *  don't stack the same chime on top of itself. */
-const SOUND_LEN: Record<AlertSound, number> = { chime: 0.9, morse: 1.6, sweep: 0.65 };
+const SOUND_LEN: Record<AlertSound, number> = { chime: 0.9, morse: 1.7, sweep: 0.65 };
 
 /** `AudioContext.currentTime` up to which a chime is already scheduled. */
 let beepBusyUntil = 0;
