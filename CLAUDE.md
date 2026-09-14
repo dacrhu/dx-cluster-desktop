@@ -149,6 +149,36 @@ release is pushed and tagged — do this only when asked,
 and don't push commits or push a version tag until the user has confirmed the
 test.
 
+`bundle.linux.appimage.bundleMediaFramework: true` in `tauri.conf.json` makes
+the AppImage bundle GStreamer's plugins (`~15-35MB`) — without it, WebKitGTK's
+Web Audio (the alert-sound chimes) and any `<audio>`/`<video>` playback are
+silently muted in the packaged app (desktop notifications still work, so this
+is easy to miss): no plugin found → no PipeWire/PulseAudio stream ever gets
+created → no error, just silence. Confirmed live via `pactl subscribe` +
+`pactl list sink-inputs`: with the flag off, clicking Alerts → Settings →
+Test produced zero PipeWire activity; with it on, a real
+`application.name = "dx-cluster-desktop"`, `media.role = "webaudio"`
+sink-input appears. Two more Fedora-specific gaps had to be worked around to
+actually get this bundling step to run:
+
+- `patchelf` isn't installed by default on this machine — `linuxdeploy`'s
+  `linuxdeploy-plugin-gstreamer.sh` needs it to fix up the copied plugins'
+  rpaths and exits with a terse usage message (no clear "patchelf missing"
+  error) if it's absent, which `tauri build` only surfaces as the generic
+  `failed to run linuxdeploy`. One-time fix: `sudo dnf install -y patchelf`.
+- That same script guesses the GStreamer plugin/helper directories assuming a
+  Debian/Ubuntu multiarch layout (`/usr/lib/x86_64-linux-gnu/gstreamer-1.0`),
+  which doesn't exist on Fedora — Fedora keeps 64-bit plugins under
+  `/usr/lib64/gstreamer-1.0` (its `/usr/lib/gstreamer-1.0` is the _32-bit_
+  multilib copy, wrong architecture for the bundle) and helpers under
+  `/usr/libexec/gstreamer-1.0`. So the full local build command on this
+  machine is:
+  `NO_STRIP=1 GSTREAMER_PLUGINS_DIR=/usr/lib64/gstreamer-1.0
+GSTREAMER_HELPERS_DIR=/usr/libexec/gstreamer-1.0 pnpm tauri build` — without
+  the right `GSTREAMER_PLUGINS_DIR`, the script either bails with
+  `could not find plugins directory` (if even the 32-bit fallback path is
+  missing) or silently bundles unusable 32-bit `.so` files (if it isn't).
+
 ## Release notes
 
 `CHANGELOG.md` (Keep-a-Changelog style) is the source of the GitHub release

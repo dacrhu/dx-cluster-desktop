@@ -45,7 +45,12 @@
     },
     "category": "Utility",
     "shortDescription": "Ham radio DX cluster client",
-    "longDescription": "User-friendly multiplatform desktop client for ham radio DX clusters over Telnet."
+    "longDescription": "User-friendly multiplatform desktop client for ham radio DX clusters over Telnet.",
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    }
   },
   "plugins": {}
 }
