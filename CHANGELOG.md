@@ -12,6 +12,20 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-09-14
+
+### Fixed
+
+- The alert sound was silent in the Linux AppImage build: WebKitGTK plays
+  audio through GStreamer, and the bundled AppImage shipped with no
+  GStreamer plugins at all, so nothing could ever reach the speakers (the
+  desktop notification still worked, which is why this could go unnoticed).
+  The AppImage now bundles the GStreamer media framework needed for audio
+  playback.
+- Reworked the Morse alert sound: a fuller keying tone with a proper
+  attack/hold/release envelope (instead of one that started fading the
+  instant it was struck) and a more clearly long/short dash-to-dot ratio.
+
 ## [1.4.0] - 2026-09-13
 
 ### Added
