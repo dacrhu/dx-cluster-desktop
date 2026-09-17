@@ -12,6 +12,21 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-09-17
+
+### Fixed
+
+- The spot fact card's "Tune radio" / "Split — TX on …" / "Prepare QSO"
+  buttons could overlap and spill outside the popover with longer localized
+  labels (Hungarian in particular) — now stacked full-width instead of
+  squeezed into one row.
+- "Tune split" could silently transmit on the wrong frequency on Yaesu
+  rigs from the "newcat" CAT family (FT-450D and siblings): a Hamlib bug in
+  that backend's split-frequency handling meant the requested TX frequency
+  was never actually applied, leaving the rig on whatever frequency VFO B
+  last held. Split now sets the TX frequency a different way that avoids
+  the broken Hamlib code path.
+
 ## [1.4.1] - 2026-09-14
 
 ### Fixed
