@@ -5,6 +5,8 @@
 use std::time::Duration;
 
 use dxcluster_core::rigctl::{self, RigCommand, RigConfig, RigEvent, RigTransport};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
 #[tokio::test]
@@ -120,6 +122,28 @@ async fn sets_split() {
     .await
     .unwrap_or(false);
     assert!(ok, "RX VFO never reported after split");
+
+    // Regression check for the split ("TX") frequency itself: `rig_set_split_freq`
+    // (rigctld's `I` command) is a stub on Hamlib's Yaesu "newcat" backend
+    // (FT-450D and siblings) that always fails, and the frontend's VFO-swap
+    // fallback for that failure calls the very same stub again — so the split
+    // frequency silently never lands and the rig is left on whatever VFO B held
+    // before. `rigctl::run` avoids `I` entirely (plain `V`/`F` VFO swap instead),
+    // so confirm the dummy rig's actual split frequency is the one we asked for.
+    let mut raw = TcpStream::connect(("127.0.0.1", port))
+        .await
+        .expect("raw connect to rigctld");
+    raw.write_all(b"+\\get_split_freq\n").await.unwrap();
+    let mut buf = vec![0u8; 256];
+    let n = tokio::time::timeout(Duration::from_secs(2), raw.read(&mut buf))
+        .await
+        .expect("get_split_freq timed out")
+        .expect("read get_split_freq reply");
+    let reply = String::from_utf8_lossy(&buf[..n]);
+    assert!(
+        reply.contains("14025000"),
+        "split (TX) frequency did not land: {reply:?}"
+    );
 
     cmd_tx.send(RigCommand::ClearSplit).unwrap();
     tokio::time::sleep(Duration::from_millis(300)).await;

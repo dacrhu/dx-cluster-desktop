@@ -282,10 +282,10 @@ impl Link {
         check_rprt(resp.first().map(String::as_str).unwrap_or(""))
     }
 
-    /// `I <hz>` — set the split (TX) frequency.
-    async fn set_split_freq(&mut self, hz: f64) -> Result<(), String> {
+    /// `V <vfo>` — select the current VFO (`"VFOA"` / `"VFOB"`).
+    async fn set_vfo(&mut self, vfo: &str) -> Result<(), String> {
         let resp = self
-            .cmd(&format!("I {}", hz.round() as i64))
+            .cmd(&format!("V {vfo}"))
             .await
             .map_err(|e| e.to_string())?;
         check_rprt(resp.first().map(String::as_str).unwrap_or(""))
@@ -435,13 +435,28 @@ pub async fn run(
                         }
                     }
                     Some(RigCommand::SetSplit { rx_hz, tx_hz, tx_mode }) => {
+                        // `I` (rig_set_split_freq) is unusable here: Hamlib's Yaesu
+                        // "newcat" backend (FT-450D and the rest of that CAT family)
+                        // has a stub `set_split_freq` that always returns
+                        // -RIG_ENAVAIL, and the frontend's own VFO-swap fallback in
+                        // that case calls the very same stub again instead of a
+                        // plain `set_freq` — so the split ("TX") frequency is
+                        // silently never applied and the rig just keeps whatever
+                        // VFO B was last left at. Do the VFO swap ourselves with
+                        // plain `V`/`F`, which goes through the real (non-stub)
+                        // `set_freq` path on every backend.
                         let r = async {
                             link.set_freq(rx_hz).await?;
                             if let Some(m) = &tx_mode {
                                 link.set_mode(m).await?;
                             }
+                            link.set_vfo("VFOB").await?;
+                            link.set_freq(tx_hz).await?;
+                            if let Some(m) = &tx_mode {
+                                link.set_mode(m).await?;
+                            }
+                            link.set_vfo("VFOA").await?;
                             link.set_split_vfo(true).await?;
-                            link.set_split_freq(tx_hz).await?;
                             Ok::<(), String>(())
                         }
                         .await;
