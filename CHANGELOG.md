@@ -12,6 +12,23 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-09-20
+
+### Fixed
+
+- A spot popup opened while another band's lane was faded out on the
+  Bandmap (CAT tuned elsewhere) could get that neighboring lane's own
+  marker drawn over its corner, making the popup look transparent even
+  though its background was fully opaque. Spot popups and the right-click
+  menu now always render above every other panel element, so this can't
+  happen.
+
+### Changed
+
+- The "Tune radio" and "Prepare QSO" buttons on every spot popup (Spots
+  table, Bandmap, Map) are now taller, highlighted in blue, and carry a
+  small icon, so they stand out and are easier to hit.
+
 ## [1.4.2] - 2026-09-17
 
 ### Fixed
