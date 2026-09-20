@@ -80,7 +80,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "DX Cluster Desktop ${{ github.ref_name }}"
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
           releaseBody: |
