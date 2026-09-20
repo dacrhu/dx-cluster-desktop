@@ -7,6 +7,7 @@ import {
   type MouseEvent,
   type PointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   geoAzimuthalEquidistant,
   geoCircle,
@@ -30,6 +31,7 @@ import { bandRose, ROSE_SECTORS } from "@/lib/bandRose";
 import { fmtAge } from "@/lib/format";
 import { prepareQso, tuneSplitToSpot, tuneToSpot } from "@/lib/engage";
 import { qsxFromComment } from "@/lib/split";
+import { LogIcon, TuneIcon } from "@/components/SpotPopover";
 import { useCluster } from "@/store/useCluster";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
@@ -818,7 +820,9 @@ export const WorldMap = memo(function WorldMap({
           rows.push([tr("col.age"), `${fmtAge(s.received_at)}  ·  ${s.time_hhmm} UTC`]);
           const px = Math.max(8, Math.min(popup.x + 12, window.innerWidth - 276));
           const py = Math.max(8, Math.min(popup.y + 8, window.innerHeight - 240));
-          return (
+          // Portaled into <body> so it always paints above the map/HUD/legend
+          // regardless of any ancestor's own stacking context.
+          return createPortal(
             <div className="wm-popup" ref={popupRef} style={{ left: px, top: py }}>
               <div className="wm-popup-head">
                 <span className={`wm-popup-call ${modeClass(s.mode)}`}>{s.dx_call}</span>
@@ -854,7 +858,10 @@ export const WorldMap = memo(function WorldMap({
               {(catEnabled || logPushEnabled) && (
                 <div className="wm-popup-engage">
                   {catEnabled && (
-                    <button onClick={() => void tuneToSpot(s)}>{tr("spots.menu.tuneRadio")}</button>
+                    <button className="primary" onClick={() => void tuneToSpot(s)}>
+                      <TuneIcon />
+                      {tr("spots.menu.tuneRadio")}
+                    </button>
                   )}
                   {catEnabled && qsx != null && (
                     <button onClick={() => void tuneSplitToSpot(s)}>
@@ -862,7 +869,10 @@ export const WorldMap = memo(function WorldMap({
                     </button>
                   )}
                   {logPushEnabled && (
-                    <button onClick={() => void prepareQso(s)}>{tr("spots.menu.prepQso")}</button>
+                    <button className="primary" onClick={() => void prepareQso(s)}>
+                      <LogIcon />
+                      {tr("spots.menu.prepQso")}
+                    </button>
                   )}
                 </div>
               )}
@@ -877,25 +887,28 @@ export const WorldMap = memo(function WorldMap({
                   {tr("map.spotActions")} ▾
                 </button>
               )}
-            </div>
+            </div>,
+            document.body,
           );
         })()}
 
-      {menu && (
-        <ul className="context-menu" style={{ left: menu.x, top: menu.y }}>
-          {actions.map((a) => (
-            <li
-              key={a.label}
-              onClick={() => {
-                a.run(menu.spot);
-                setMenu(null);
-              }}
-            >
-              {a.label}
-            </li>
-          ))}
-        </ul>
-      )}
+      {menu &&
+        createPortal(
+          <ul className="context-menu" style={{ left: menu.x, top: menu.y }}>
+            {actions.map((a) => (
+              <li
+                key={a.label}
+                onClick={() => {
+                  a.run(menu.spot);
+                  setMenu(null);
+                }}
+              >
+                {a.label}
+              </li>
+            ))}
+          </ul>,
+          document.body,
+        )}
     </div>
   );
 });

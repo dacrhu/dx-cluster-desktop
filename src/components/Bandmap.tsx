@@ -22,7 +22,8 @@ import {
 import { useCluster } from "@/store/useCluster";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
-import { SpotPopover } from "@/components/SpotPopover";
+import { createPortal } from "react-dom";
+import { SpotPopover, TuneIcon } from "@/components/SpotPopover";
 import type { EnrichedSpot, SpotAction } from "@/lib/types";
 
 function ageClass(unix: number): string {
@@ -340,7 +341,10 @@ function SpecialPopover({
     });
   }, [x, y]);
 
-  return (
+  // Portaled into <body> for the same reason as `SpotPopover` — it must
+  // paint above every lane regardless of any lane's own stacking context
+  // (see the comment on `SpotPopover`).
+  return createPortal(
     <div className="spot-pop special-pop" ref={ref} style={{ left: pos.left, top: pos.top }}>
       <div className="spot-pop-head">
         <span className={`spot-pop-call special-${kind}`}>{kind.toUpperCase()}</span>
@@ -354,16 +358,19 @@ function SpecialPopover({
       {catEnabled && (
         <div className="spot-pop-engage">
           <button
+            className="primary"
             onClick={() => {
               void ipc.rigSet(freqKhz).catch((e) => console.warn("rigSet", e));
               onClose();
             }}
           >
+            <TuneIcon />
             {tr("spots.menu.tuneRadio")}
           </button>
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -522,21 +529,23 @@ export const Bandmap = memo(function Bandmap({
           onClose={() => setSpecialPop(null)}
         />
       )}
-      {menu && (
-        <ul className="context-menu" style={{ left: menu.x, top: menu.y }}>
-          {actions.map((a) => (
-            <li
-              key={a.label}
-              onClick={() => {
-                a.run(menu.spot);
-                setMenu(null);
-              }}
-            >
-              {a.label}
-            </li>
-          ))}
-        </ul>
-      )}
+      {menu &&
+        createPortal(
+          <ul className="context-menu" style={{ left: menu.x, top: menu.y }}>
+            {actions.map((a) => (
+              <li
+                key={a.label}
+                onClick={() => {
+                  a.run(menu.spot);
+                  setMenu(null);
+                }}
+              >
+                {a.label}
+              </li>
+            ))}
+          </ul>,
+          document.body,
+        )}
     </div>
   );
 });

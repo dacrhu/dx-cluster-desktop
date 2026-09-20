@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useT } from "@/i18n";
 import { useCluster } from "@/store/useCluster";
 import { modeClass, modeLabel } from "@/lib/mode";
@@ -81,7 +82,12 @@ export function SpotPopover({
     });
   }, [x, y]);
 
-  return (
+  // Rendered into <body> — not as a descendant of the Spots table / Bandmap
+  // lanes — so it always paints above them regardless of any ancestor's own
+  // stacking context (e.g. a Bandmap `.dimmed` lane's `opacity`, which would
+  // otherwise trap this element's z-index inside that lane's local stacking
+  // order and let a later sibling lane's markers show over its corner).
+  return createPortal(
     <div className="spot-pop" ref={ref} style={{ left: pos.left, top: pos.top }}>
       <div className="spot-pop-head">
         <span className={`spot-pop-call ${modeClass(spot.mode)}`}>{spot.dx_call}</span>
@@ -101,7 +107,10 @@ export function SpotPopover({
       {(catEnabled || logPushEnabled) && (
         <div className="spot-pop-engage">
           {catEnabled && (
-            <button onClick={() => void tuneToSpot(spot)}>{tr("spots.menu.tuneRadio")}</button>
+            <button className="primary" onClick={() => void tuneToSpot(spot)}>
+              <TuneIcon />
+              {tr("spots.menu.tuneRadio")}
+            </button>
           )}
           {catEnabled && qsx != null && (
             <button onClick={() => void tuneSplitToSpot(spot)}>
@@ -109,7 +118,10 @@ export function SpotPopover({
             </button>
           )}
           {logPushEnabled && (
-            <button onClick={() => void prepareQso(spot)}>{tr("spots.menu.prepQso")}</button>
+            <button className="primary" onClick={() => void prepareQso(spot)}>
+              <LogIcon />
+              {tr("spots.menu.prepQso")}
+            </button>
           )}
         </div>
       )}
@@ -128,6 +140,48 @@ export function SpotPopover({
           ))}
         </ul>
       )}
-    </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** Antenna broadcasting a signal — used on the "Tune radio" button. */
+export function TuneIcon() {
+  return (
+    <svg
+      className="spot-pop-btn-icon"
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    >
+      <circle cx="8" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <path d="M8 12V7" />
+      <path d="M5 9a4 4 0 0 1 6 0" />
+      <path d="M3 7a7 7 0 0 1 10 0" />
+    </svg>
+  );
+}
+
+/** Paper with an outbound arrow — used on the "Prepare QSO" button (pushes to the logger). */
+export function LogIcon() {
+  return (
+    <svg
+      className="spot-pop-btn-icon"
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2.5" y="2.5" width="7.5" height="11" rx="1" />
+      <path d="M6.5 8h6.5M10.5 5.5 13.5 8l-3 2.5" />
+    </svg>
   );
 }

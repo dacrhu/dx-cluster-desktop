@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useT } from "@/i18n";
 import { useCluster } from "@/store/useCluster";
@@ -194,21 +195,23 @@ export function SpotTable({ spots, actions }: { spots: EnrichedSpot[]; actions: 
         />
       )}
 
-      {menu && (
-        <ul className="context-menu" style={{ left: menu.x, top: menu.y }}>
-          {actions.map((a) => (
-            <li
-              key={a.label}
-              onClick={() => {
-                a.run(menu.spot);
-                setMenu(null);
-              }}
-            >
-              {a.label}
-            </li>
-          ))}
-        </ul>
-      )}
+      {menu &&
+        createPortal(
+          <ul className="context-menu" style={{ left: menu.x, top: menu.y }}>
+            {actions.map((a) => (
+              <li
+                key={a.label}
+                onClick={() => {
+                  a.run(menu.spot);
+                  setMenu(null);
+                }}
+              >
+                {a.label}
+              </li>
+            ))}
+          </ul>,
+          document.body,
+        )}
     </div>
   );
 }
