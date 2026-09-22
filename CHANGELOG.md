@@ -12,6 +12,17 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+### Fixed
+
+- The WebKitGTK render-freeze mitigation (disabling GPU-accelerated
+  compositing on Linux, added in 1.3.x) turned out not to be enough on its
+  own on a hybrid Intel + NVIDIA laptop: the WebView could still hang with a
+  stale frame after under 2 hours, because WebKitGTK was still opening an
+  EGL/GLX context against the proprietary NVIDIA driver for something other
+  than its own compositor even with that disabled. Now also forces GLVND to
+  hand out the Mesa vendor library instead, keeping GPU contexts off the
+  NVIDIA driver entirely on Linux.
+
 ## [1.4.3] - 2026-09-20
 
 ### Fixed
