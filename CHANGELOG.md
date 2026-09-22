@@ -12,6 +12,17 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+### Fixed
+
+- The 1.4.4 GLVND fix for the WebKitGTK render-freeze wasn't complete: it
+  only forced the GLX vendor to Mesa, but WebKitGTK actually opens an EGL
+  context, whose vendor libglvnd resolves separately — so on this hybrid
+  Intel + NVIDIA laptop the proprietary NVIDIA EGL driver kept winning and
+  the WebView froze again in the very next session. Now also forces the EGL
+  vendor to Mesa (found at runtime from the installed glvnd ICD files, so it
+  only applies where that lookup actually succeeds), which should finally
+  keep GPU contexts off the NVIDIA driver entirely on Linux.
+
 ## [1.4.4] - 2026-09-22
 
 ### Fixed
