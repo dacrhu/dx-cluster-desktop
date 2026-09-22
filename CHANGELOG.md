@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.4.5] - 2026-09-22
+
 ### Fixed
 
 - The 1.4.4 GLVND fix for the WebKitGTK render-freeze wasn't complete: it
