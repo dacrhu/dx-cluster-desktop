@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.4.4] - 2026-09-22
+
 ### Fixed
 
 - The WebKitGTK render-freeze mitigation (disabling GPU-accelerated
