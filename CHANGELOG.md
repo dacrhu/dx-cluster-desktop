@@ -12,6 +12,19 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.4.6] - 2026-09-23
+
+### Fixed
+
+- **1.4.5 regression:** forcing the EGL vendor to Mesa made things worse, not
+  better — on every single launch, WebKitGTK's EGL display creation failed
+  outright (`EGL_BAD_PARAMETER`), so its renderer process never started at
+  all and the window stayed permanently blank (no crash, no error dialog,
+  just an empty page from the very first frame). Reverted that part; the
+  app renders again. The underlying multi-hour freeze this was trying to
+  fully fix is not yet resolved — see 1.4.4's note — but a working, if
+  occasionally freezing, app beats a window that never draws anything.
+
 ## [1.4.5] - 2026-09-22
 
 ### Fixed

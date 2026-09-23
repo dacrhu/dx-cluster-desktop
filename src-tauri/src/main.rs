@@ -1,34 +1,6 @@
 // Prevents an additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-/// Find the installed libglvnd EGL vendor ICD file for Mesa (e.g.
-/// `/usr/share/glvnd/egl_vendor.d/50_mesa.json`), searching the two
-/// directories glvnd itself searches. Returns `None` (rather than guessing a
-/// path) when it can't be found, so the caller can leave EGL vendor
-/// selection alone instead of pointing `__EGL_VENDOR_LIBRARY_FILENAMES` at a
-/// file that doesn't exist on this particular distro and breaking EGL
-/// entirely for whoever's running it.
-#[cfg(target_os = "linux")]
-fn find_mesa_egl_vendor_file() -> Option<std::path::PathBuf> {
-    for dir in ["/usr/share/glvnd/egl_vendor.d", "/etc/glvnd/egl_vendor.d"] {
-        let Ok(entries) = std::fs::read_dir(dir) else {
-            continue;
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let name = path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_lowercase();
-            if name.contains("mesa") && name.ends_with(".json") {
-                return Some(path);
-            }
-        }
-    }
-    None
-}
-
 fn main() {
     // WebKitGTK's GPU-accelerated compositing is known to hang/leak on
     // Wayland + the proprietary NVIDIA driver after some hours of uptime —
@@ -57,32 +29,45 @@ fn main() {
     // driver entirely (falls back to the i915 iGPU) without losing all
     // acceleration the way a blanket LIBGL_ALWAYS_SOFTWARE would.
     //
-    // Fourth occurrence, in a *new* build with all four knobs above already
-    // active (verified live via /proc/<webprocess-pid>/environ before this
-    // freeze): NVIDIA's EGL libraries were *still* mapped into the
-    // WebKitWebProcess. Root cause: `__GLX_VENDOR_LIBRARY_NAME` only steers
-    // libglvnd's **GLX** (X11) dispatch — it does nothing for **EGL**, which
-    // is the API WebKitGTK actually opens (GBM/Wayland-style paths). EGL
-    // vendor selection goes through libglvnd's separate ICD search
+    // Fourth occurrence, in a build with all four knobs above already active
+    // (verified live via /proc/<webprocess-pid>/environ before this freeze):
+    // NVIDIA's EGL libraries were *still* mapped into the WebKitWebProcess.
+    // Root cause: `__GLX_VENDOR_LIBRARY_NAME` only steers libglvnd's **GLX**
+    // (X11) dispatch — it does nothing for **EGL**, which is the API
+    // WebKitGTK actually opens (GBM/Wayland-style paths). EGL vendor
+    // selection goes through libglvnd's separate ICD search
     // (`/usr/share/glvnd/egl_vendor.d/*.json`, tried in filename order), and
     // on this machine `10_nvidia.json` sorts before `50_mesa.json` — so
-    // NVIDIA always won regardless of the GLX variable. The fix is the
-    // EGL-specific equivalent, `__EGL_VENDOR_LIBRARY_FILENAMES`, pointed at
-    // the Mesa ICD file found above; `__GLX_VENDOR_LIBRARY_NAME` is kept too
-    // since it's still correct for any GLX path. Must be set before
-    // GTK/WebKit initialise, i.e. before `run()` builds the webview. Trades
-    // rendering performance (map/bandmap redraws) for stability; all of
-    // these are GTK/Linux-only knobs, meaningless (and left unset) on macOS
-    // (WKWebView) and Windows (WebView2).
+    // NVIDIA always won regardless of the GLX variable.
+    //
+    // Tried next: pointing `__EGL_VENDOR_LIBRARY_FILENAMES` at the installed
+    // Mesa ICD file — this was WORSE, not better. It made EGL display
+    // creation fail outright, every single launch, logged as `Could not
+    // create default EGL display: EGL_BAD_PARAMETER. Aborting...` — no
+    // WebKitWebProcess ever started at all (confirmed via the process tree:
+    // the app's WebKitNetworkProcess child existed, its WebProcess sibling
+    // never did), so the window painted its native chrome but the page
+    // content stayed permanently blank from the very first frame — a 100%
+    // reproducible, worse failure than the multi-hour intermittent hang it
+    // was meant to fix. Reverted. `__GLX_VENDOR_LIBRARY_NAME` and
+    // `__NV_PRIME_RENDER_OFFLOAD` are kept (harmless, and still correct for
+    // any GLX path) but do not by themselves keep WebKitGTK's EGL context
+    // off the NVIDIA driver — that half of the problem is open again; the
+    // next attempt should look at excluding the NVIDIA ICD (e.g. via
+    // `__EGL_VENDOR_LIBRARY_DIRS` pointed at a directory containing only the
+    // Mesa json) rather than a bare `__EGL_VENDOR_LIBRARY_FILENAMES`
+    // override, and must be verified with a real launch (checking for the
+    // WebProcess actually starting), not just a `/proc/.../environ` read.
+    // Must be set before GTK/WebKit initialise, i.e. before `run()` builds
+    // the webview. Trades rendering performance (map/bandmap redraws) for
+    // stability; both are GTK/Linux-only knobs, meaningless (and left
+    // unset) on macOS (WKWebView) and Windows (WebView2).
     #[cfg(target_os = "linux")]
     {
         std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
         std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
         std::env::set_var("__GLX_VENDOR_LIBRARY_NAME", "mesa");
         std::env::set_var("__NV_PRIME_RENDER_OFFLOAD", "0");
-        if let Some(mesa_egl) = find_mesa_egl_vendor_file() {
-            std::env::set_var("__EGL_VENDOR_LIBRARY_FILENAMES", mesa_egl);
-        }
     }
 
     dx_cluster_desktop_lib::run()
