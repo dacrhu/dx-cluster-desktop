@@ -916,7 +916,7 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
 name = "dx-cluster-desktop"
-version = "1.4.5"
+version = "1.4.6"
 dependencies = [
  "dxcluster-core",
  "log",
@@ -936,7 +936,7 @@ dependencies = [
 
 [[package]]
 name = "dxcluster-core"
-version = "1.4.5"
+version = "1.4.6"
 dependencies = [
  "bytes",
  "chrono",

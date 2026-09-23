@@ -1,6 +1,6 @@
 {
   "name": "dx-cluster-desktop",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "Multiplatform desktop client for ham radio DX clusters (Telnet)",
   "type": "module",
   "private": true,
