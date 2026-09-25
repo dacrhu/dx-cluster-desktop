@@ -12,6 +12,18 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.4.7] - 2026-09-25
+
+### Fixed
+
+- **The app no longer freezes after some hours (or right at startup) on
+  Wayland.** The AppImage was forcing the old X11 mode, so on a Wayland
+  desktop it ran through XWayland, where the window's redraw
+  synchronisation could stall — the app kept running underneath but the
+  window stopped drawing and reacting. It now runs natively on Wayland when
+  the desktop is Wayland. Set `DXCD_FORCE_X11=1` to go back to the old
+  behaviour if native Wayland ever misbehaves on your setup.
+
 ## [1.4.6] - 2026-09-23
 
 ### Fixed
