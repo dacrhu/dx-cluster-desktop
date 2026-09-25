@@ -68,6 +68,18 @@ fn main() {
         std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
         std::env::set_var("__GLX_VENDOR_LIBRARY_NAME", "mesa");
         std::env::set_var("__NV_PRIME_RENDER_OFFLOAD", "0");
+        // Fifth occurrence: a live attach showed every Rust/WebKit thread idle
+        // (no deadlock) while the window stayed dead — the AppImage's
+        // linuxdeploy-plugin-gtk hook forces `GDK_BACKEND=x11`, so on a
+        // Wayland session the app ran under XWayland, where GTK3's frame
+        // clock waits on the compositor's frame-drawn sync and can stall.
+        // Run natively on Wayland instead (hook runs before us, we override).
+        if std::env::var_os("WAYLAND_DISPLAY").is_some()
+            && std::env::var("XDG_SESSION_TYPE").is_ok_and(|s| s == "wayland")
+            && std::env::var_os("DXCD_FORCE_X11").is_none()
+        {
+            std::env::set_var("GDK_BACKEND", "wayland");
+        }
     }
 
     dx_cluster_desktop_lib::run()
