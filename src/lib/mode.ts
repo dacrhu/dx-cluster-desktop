@@ -23,6 +23,10 @@ const DIGI_SUBMODES = [
   "FSK441",
   "WSPR",
   "RTTY",
+  // Contest RTTY skimmers abbreviate to "RTT" (fits alongside the CQ WW
+  // zone/quality suffix in the fixed-width comment); normalized to "RTTY"
+  // below so the label and the `mode:rtty` search field see the real mode.
+  "RTT",
   "PSK63",
   "PSK31",
   "PSK125",
@@ -49,7 +53,8 @@ export function modeLabel(m: Mode, comment: string): string {
   if (m === "UNKNOWN") return "";
   if (m === "DIGI") {
     const c = comment.toUpperCase();
-    return DIGI_SUBMODES.find((t) => c.includes(t)) ?? "DIGI";
+    const found = DIGI_SUBMODES.find((t) => c.includes(t));
+    return found === "RTT" ? "RTTY" : (found ?? "DIGI");
   }
   return m;
 }

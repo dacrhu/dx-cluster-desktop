@@ -163,7 +163,7 @@ pub enum Mode {
 fn mode_from_comment(comment: &str) -> Option<Mode> {
     let c = comment.to_ascii_uppercase();
     // Order matters: check the more specific tokens first.
-    const DIGI: [&str; 25] = [
+    const DIGI: [&str; 26] = [
         "FT8",
         "FT4",
         "FST4W",
@@ -177,6 +177,10 @@ fn mode_from_comment(comment: &str) -> Option<Mode> {
         "FSK441",
         "WSPR",
         "RTTY",
+        // Contest RTTY skimmers abbreviate to "RTT" (fits alongside the
+        // CQ WW zone/quality suffix, e.g. "RTT 29dB Q:7 Z:3,5,15", in the
+        // cluster's fixed-width comment field).
+        "RTT",
         "PSK31",
         "PSK63",
         "PSK",
@@ -302,6 +306,11 @@ mod tests {
         assert_eq!(guess_mode(14205.0, "CQ CW"), Mode::Cw);
         assert_eq!(guess_mode(14074.0, "calling CQ SSB"), Mode::Ssb);
         assert_eq!(guess_mode(7005.0, "RTTY contest"), Mode::Digi);
+        // Contest RTTY skimmers abbreviate to "RTT" (fits alongside Q:/Z:
+        // info in the fixed-width comment) — must win over the frequency
+        // heuristic even above the normal digital sub-band edge (20m digi
+        // ends at 14099).
+        assert_eq!(guess_mode(14105.0, "RTT 29dB Q:7 Z:3,5,15"), Mode::Digi);
     }
 
     #[test]

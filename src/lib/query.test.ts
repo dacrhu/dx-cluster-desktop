@@ -84,6 +84,11 @@ describe("compileQuery", () => {
     // whole-word token only — no match on a substring inside another word
     const cw = spot({ mode: "CW", comment: "left the key down" });
     expect(match("mode:ft", cw)).toBe(false);
+
+    // contest RTTY skimmers abbreviate to "RTT" (fits alongside Q:/Z: info);
+    // the normalized "RTTY" label still makes this findable.
+    const rtty = spot({ mode: "DIGI", comment: "RTT 29dB Q:7 Z:3,5,15" });
+    expect(match("mode:rtty", rtty)).toBe(true);
   });
 
   it("comma values inside a field are ORed", () => {

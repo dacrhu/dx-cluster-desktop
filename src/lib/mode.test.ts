@@ -13,6 +13,9 @@ describe("modeLabel", () => {
   it("shows the real sub-mode from the comment for DIGI", () => {
     expect(modeLabel("DIGI", "FT8  -12 dB")).toBe("FT8");
     expect(modeLabel("DIGI", "RTTY contest")).toBe("RTTY");
+    // Contest RTTY skimmers abbreviate to "RTT" (fits alongside Q:/Z: info);
+    // normalized to the full "RTTY" label.
+    expect(modeLabel("DIGI", "RTT 29dB Q:7 Z:3,5,15")).toBe("RTTY");
     expect(modeLabel("DIGI", "cq sstv art")).toBe("SSTV");
     expect(modeLabel("DIGI", "PSK63 CQ")).toBe("PSK63");
   });
