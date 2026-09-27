@@ -12,6 +12,19 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.4.8] - 2026-09-27
+
+### Fixed
+
+- **Contest RTTY skimmer spots no longer show up as SSB.** Some RTTY
+  skimmers shorten "RTTY" to "RTT" in the comment to fit the CQ WW
+  zone/quality info alongside it (e.g. `RTT 29dB Q:7 Z:3,5,15`) — the app
+  only recognised the full spelling, so these fell back to a
+  frequency-based guess that misclassified them whenever the frequency
+  was above the usual digital sub-band edge. Now recognized correctly as
+  RTTY, so the mode column, Bandmap colouring, and `mode:rtty` searches
+  all work as expected.
+
 ## [1.4.7] - 2026-09-25
 
 ### Fixed
