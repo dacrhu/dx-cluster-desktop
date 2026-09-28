@@ -12,6 +12,17 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.4.9] - 2026-09-28
+
+### Documentation
+
+- **macOS: fixed the confusing "damaged and can't be opened" message.**
+  Unsigned builds get flagged by Gatekeeper this way instead of a plain
+  "unknown developer" warning — Troubleshooting (and the README) now explain
+  it's not a bad download and give the one-line Terminal fix.
+- Documented how to point WSJT-X's UDP feed at a multicast address so this
+  app can listen alongside JTAlert / GridTracker / QLog at the same time.
+
 ## [1.4.8] - 2026-09-27
 
 ### Fixed
