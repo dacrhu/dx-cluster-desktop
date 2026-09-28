@@ -16,6 +16,29 @@ only.
 mode chip, or a search term, may be hiding everything. Clear the search box and
 un-select all chips.
 
+## macOS: app reported as "damaged" (Gatekeeper)
+
+Not an actual corrupted download — this is Gatekeeper's message for an app
+that isn't signed with an Apple Developer ID and notarized. The browser tags
+whatever you download with the `com.apple.quarantine` extended attribute, and
+Gatekeeper reports an unsigned, quarantined app as "damaged and can't be
+opened" instead of admitting it just doesn't trust it.
+
+Fix from Terminal (the most reliable route, especially on Sequoia/15.x, where
+right-click → _Open_ doesn't always offer an "Open Anyway" button anymore):
+
+```sh
+xattr -cr "/Applications/DX Cluster Desktop.app"
+```
+
+For a `.zip` build, unzip it first and run this on the extracted `.app`. If a
+`.dmg` already reports "damaged" at mount time, run it on the `.dmg` file
+itself before mounting.
+
+If it's still flagged afterwards, open **System Settings → Privacy &
+Security → Security**, scroll down, and try to open the app once — an "Open
+Anyway" button for it then appears there.
+
 ## Notifications (Linux)
 
 Desktop notifications on Linux go through a dedicated code path because the

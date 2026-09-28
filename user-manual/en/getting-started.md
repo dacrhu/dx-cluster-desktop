@@ -10,7 +10,7 @@ runtime.
 | Platform              | File                          | Notes                                                                                                |
 | --------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Windows 10/11         | `.msi` or `.exe` (NSIS)       | WebView2 ships with Windows 11; on Windows 10 it is installed automatically if missing.              |
-| macOS (Apple Silicon) | `aarch64` `.dmg`              | Drag to Applications. First launch: right-click → _Open_ to bypass Gatekeeper for an unsigned build. |
+| macOS (Apple Silicon) | `aarch64` `.dmg`              | Drag to Applications. Unsigned build — if Gatekeeper calls it "damaged" instead of offering to open it, see [Troubleshooting](troubleshooting.md). |
 | macOS (Intel)         | `x64` `.dmg`                  | As above.                                                                                            |
 | Linux                 | `.AppImage`, `.deb` or `.rpm` | The AppImage is portable — `chmod +x` and run. `.deb`/`.rpm` pull in the WebKitGTK dependency.       |
 

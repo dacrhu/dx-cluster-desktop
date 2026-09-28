@@ -16,6 +16,32 @@ Eingabeaufforderung für das nächste Mal nur bei bekannten Node-Typen.
 [Schnellfilter](spots.md) — ein Band- oder Mode-Chip oder ein Suchbegriff könnte
 alles ausblenden. Leere das Suchfeld und wähle alle Chips ab.
 
+## macOS: App wird als „beschädigt“ gemeldet (Gatekeeper)
+
+Kein tatsächlich beschädigter Download — das ist die Meldung von Gatekeeper
+für eine App, die nicht mit einer Apple Developer ID signiert und notarisiert
+ist. Der Browser versieht alles, was du herunterlädst, mit dem erweiterten
+Attribut `com.apple.quarantine`, und Gatekeeper meldet eine unsignierte,
+unter Quarantäne stehende App als „beschädigt und kann nicht geöffnet
+werden“, statt einfach zuzugeben, dass er ihr nicht vertraut.
+
+Lösung über das Terminal (der zuverlässigste Weg, besonders unter Sequoia/
+15.x, wo Rechtsklick → _Öffnen_ nicht mehr immer eine „Trotzdem öffnen“-
+Schaltfläche anbietet):
+
+```sh
+xattr -cr "/Applications/DX Cluster Desktop.app"
+```
+
+Bei einem `.zip` zuerst entpacken und dies auf die entpackte `.app`
+anwenden. Meldet ein `.dmg` schon beim Einbinden „beschädigt“, führe es auf
+der `.dmg`-Datei selbst aus, bevor du sie einbindest.
+
+Ist die App danach immer noch markiert, öffne **Systemeinstellungen →
+Datenschutz & Sicherheit → Sicherheit**, scrolle nach unten und versuche
+einmal, die App zu öffnen — dort erscheint dann eine „Trotzdem öffnen“-
+Schaltfläche für sie.
+
 ## Benachrichtigungen (Linux)
 
 Desktop-Benachrichtigungen unter Linux laufen über einen eigenen Codepfad, weil

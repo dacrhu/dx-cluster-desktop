@@ -27,10 +27,17 @@ entry (matching is exact).
 
 ## WSJT-X — "what my radio hears"
 
-An opt-in **local UDP** listener. Point WSJT-X's UDP server at the app (default
-`127.0.0.1:2237`) — or use its multicast address; the client joins on every
-interface and coexists with JTAlert / GridTracker / QLog, each still getting a
-full copy.
+An opt-in **local UDP** listener. Point WSJT-X's UDP server (Settings →
+Reporting → UDP Server) at the app (default `127.0.0.1:2237`).
+
+To have **several programs listening at once** — this app plus JTAlert /
+GridTracker / QLog — plain unicast only reliably reaches one of them. Instead,
+set WSJT-X's UDP Server address to a **multicast** address, e.g.
+`239.255.0.1:2237`, and give every listening program that exact same
+address/port. WSJT-X then sends one copy of each decode to the group, and the
+client here joins it on every local network interface (so a Docker bridge or
+VPN adapter doesn't get in the way) — it still gets a full copy, same as the
+others.
 
 Every WSJT-X decode becomes a spot with spotter `WSJT-X`, its own source
 category, placed at the decoded station's grid. RF frequency = dial + audio

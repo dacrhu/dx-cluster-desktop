@@ -93,6 +93,12 @@ Each build is self-contained — the Rust backend, the UI, the web runtime
 reference data ride along in the installer. See
 [Getting started](user-manual/en/getting-started.md) for per-platform notes.
 
+**macOS:** these builds aren't signed with an Apple Developer ID, so Gatekeeper
+may call the app "damaged and can't be opened" on first launch instead of just
+warning about an unidentified developer — that's not a bad download, just an
+unsigned-app warning, and it's fixed with one Terminal command. See
+[Troubleshooting](user-manual/en/troubleshooting.md#macos-app-reported-as-damaged-gatekeeper).
+
 ### Rig control needs Hamlib (`rigctld` not bundled)
 
 CAT rig control is a full feature of the app — over a serial/USB cable or a

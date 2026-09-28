@@ -27,10 +27,19 @@ brauchen einen eigenen Eintrag (der Abgleich ist exakt).
 
 ## WSJT-X — „was mein Funkgerät hört“
 
-Ein optionaler **lokaler UDP**-Listener. Richte den UDP-Server von WSJT-X auf die
-App (Standard `127.0.0.1:2237`) — oder nutze seine Multicast-Adresse; der Client
-tritt auf jeder Schnittstelle bei und koexistiert mit JTAlert / GridTracker /
-QLog, die jeweils weiterhin eine vollständige Kopie erhalten.
+Ein optionaler **lokaler UDP**-Listener. Richte den UDP-Server von WSJT-X
+(Einstellungen → Reporting → UDP Server) auf die App (Standard
+`127.0.0.1:2237`).
+
+Damit **mehrere Programme gleichzeitig mithören können** — diese App plus
+JTAlert / GridTracker / QLog —, erreicht reines Unicast zuverlässig nur eines
+davon. Setze stattdessen die UDP-Server-Adresse von WSJT-X auf eine
+**Multicast**-Adresse, z. B. `239.255.0.1:2237`, und gib genau diese
+Adresse/diesen Port jedem lauschenden Programm. WSJT-X sendet dann eine Kopie
+jeder Dekodierung an die Gruppe, und der Client hier tritt ihr auf jeder
+lokalen Netzwerkschnittstelle bei (funktioniert also auch mit einer
+Docker-Bridge oder einem VPN-Adapter dazwischen) — er erhält trotzdem eine
+vollständige Kopie, wie die anderen auch.
 
 Jede WSJT-X-Dekodierung wird zu einem Spot mit Spotter `WSJT-X`, einer eigenen
 Quellkategorie, platziert am Grid der dekodierten Station. HF-Frequenz = Dial +

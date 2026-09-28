@@ -27,10 +27,17 @@ saját bejegyzés kell (az illesztés pontos).
 
 ## WSJT-X — „mit hall a rádióm”
 
-Egy opcionális **helyi UDP**-figyelő. Irányítsd a WSJT-X UDP-szerverét a
-programra (alapból `127.0.0.1:2237`) — vagy használd a multicast-címét; a kliens
-minden interfészen csatlakozik, és együtt él a JTAlerttel / GridTrackerrel /
-QLoggal, mindegyik továbbra is teljes másolatot kap.
+Egy opcionális **helyi UDP**-figyelő. Irányítsd a WSJT-X UDP-szerverét
+(Settings → Reporting → UDP Server) a programra (alapból `127.0.0.1:2237`).
+
+Hogy **több program is figyelhessen egyszerre** — ez a program plusz a
+JTAlert / GridTracker / QLog —, a sima unicast megbízhatóan csak az egyiküket
+éri el. Ehelyett állítsd a WSJT-X UDP-szerverének címét **multicast** címre,
+pl. `239.255.0.1:2237`, és add meg ugyanezt a pontos cím/port párost minden
+figyelő programnak. A WSJT-X ekkor minden dekódolásból egy másolatot küld a
+csoportnak, a kliens itt pedig minden helyi hálózati interfészen csatlakozik
+hozzá (így egy Docker-bridge vagy VPN-adapter sem akadályozza) — így is
+teljes másolatot kap, akárcsak a többiek.
 
 Minden WSJT-X dekódolás spottá válik `WSJT-X` spotterrel, saját
 forráskategóriával, a dekódolt állomás gridjén elhelyezve. RF-frekvencia =

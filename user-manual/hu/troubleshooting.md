@@ -17,6 +17,29 @@ promptot a következő alkalomra.
 elrejthet mindent. Töröld a keresőmezőt, és szüntesd meg minden címke
 kijelölését.
 
+## macOS: az app „sérültnek” jelzi magát (Gatekeeper)
+
+Nem tényleges sérült letöltés — ez a Gatekeeper üzenete egy olyan appra, ami
+nincs Apple Developer ID-vel aláírva és notarizálva. A böngésző minden
+letöltött fájlra ráteszi a `com.apple.quarantine` kiterjesztett attribútumot,
+és a Gatekeeper egy aláíratlan, karanténba tett appot „sérült, nem
+megnyitható”-ként jelez, ahelyett hogy bevallaná, csak nem bízik benne.
+
+Megoldás Terminálból (ez a legmegbízhatóbb, főleg Sequoia/15.x alatt, ahol a
+jobb klikk → _Megnyitás_ már nem mindig ajánl fel „Open Anyway” gombot):
+
+```sh
+xattr -cr "/Applications/DX Cluster Desktop.app"
+```
+
+Zip esetén előbb csomagold ki, és a kicsomagolt `.app`-ra futtasd. Ha egy dmg
+már a mountoláskor „sérültnek” jelzi magát, futtasd a dmg fájlra magára,
+mielőtt mountolnád.
+
+Ha utána is jelezve marad, nyisd meg a **System Settings → Privacy & Security
+→ Security** menüt, görgess le, és próbáld megnyitni egyszer az appot — ott
+ekkor megjelenik egy „Open Anyway” gomb az app nevével.
+
 ## Értesítések (Linux)
 
 A Linux asztali értesítései egy dedikált kódúton mennek, mert a szabványos

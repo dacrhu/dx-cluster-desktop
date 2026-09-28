@@ -10,7 +10,7 @@ telepítened.
 | Platform              | Fájl                            | Megjegyzés                                                                                                                  |
 | --------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Windows 10/11         | `.msi` vagy `.exe` (NSIS)       | A WebView2 a Windows 11 része; Windows 10 alatt automatikusan települ, ha hiányzik.                                         |
-| macOS (Apple Silicon) | `aarch64` `.dmg`                | Húzd az Applications mappába. Első indítás: jobb klikk → _Megnyitás_, hogy megkerüld a Gatekeepert egy aláíratlan buildnél. |
+| macOS (Apple Silicon) | `aarch64` `.dmg`                | Húzd az Applications mappába. Aláíratlan build — ha a Gatekeeper „sérültnek” jelzi a megnyitás felajánlása helyett, lásd a [Hibaelhárítást](troubleshooting.md). |
 | macOS (Intel)         | `x64` `.dmg`                    | Mint fent.                                                                                                                  |
 | Linux                 | `.AppImage`, `.deb` vagy `.rpm` | Az AppImage hordozható — `chmod +x` és indítsd. A `.deb`/`.rpm` behúzza a WebKitGTK függőséget.                             |
 
