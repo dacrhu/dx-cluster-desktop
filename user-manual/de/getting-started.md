@@ -7,12 +7,12 @@ Hol dir den Installer für deine Plattform von der
 Build ist eigenständig — du musst **weder** Rust, Node noch irgendeine Laufzeit
 installieren.
 
-| Plattform             | Datei                           | Hinweise                                                                                                                         |
-| --------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Windows 10/11         | `.msi` oder `.exe` (NSIS)       | WebView2 ist bei Windows 11 dabei; unter Windows 10 wird es automatisch installiert, falls es fehlt.                             |
+| Plattform             | Datei                           | Hinweise                                                                                                                                                              |
+| --------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows 10/11         | `.msi` oder `.exe` (NSIS)       | WebView2 ist bei Windows 11 dabei; unter Windows 10 wird es automatisch installiert, falls es fehlt.                                                                  |
 | macOS (Apple Silicon) | `aarch64` `.dmg`                | In den Programme-Ordner ziehen. Unsignierter Build — meldet Gatekeeper ihn als „beschädigt“, statt das Öffnen anzubieten, siehe [Fehlerbehebung](troubleshooting.md). |
-| macOS (Intel)         | `x64` `.dmg`                    | Wie oben.                                                                                                                        |
-| Linux                 | `.AppImage`, `.deb` oder `.rpm` | Das AppImage ist portabel — `chmod +x` und ausführen. `.deb`/`.rpm` ziehen die WebKitGTK-Abhängigkeit nach.                      |
+| macOS (Intel)         | `x64` `.dmg`                    | Wie oben.                                                                                                                                                             |
+| Linux                 | `.AppImage`, `.deb` oder `.rpm` | Das AppImage ist portabel — `chmod +x` und ausführen. `.deb`/`.rpm` ziehen die WebKitGTK-Abhängigkeit nach.                                                           |
 
 Das einzige optionale externe Programm ist **`rigctld`** für die
 Funkgerätesteuerung. Siehe [Funkgerätesteuerung und Logging](rig-and-logging.md).

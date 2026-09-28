@@ -7,12 +7,12 @@ Grab the installer for your platform from the
 build is self-contained — you do **not** need to install Rust, Node or any
 runtime.
 
-| Platform              | File                          | Notes                                                                                                |
-| --------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Windows 10/11         | `.msi` or `.exe` (NSIS)       | WebView2 ships with Windows 11; on Windows 10 it is installed automatically if missing.              |
+| Platform              | File                          | Notes                                                                                                                                              |
+| --------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows 10/11         | `.msi` or `.exe` (NSIS)       | WebView2 ships with Windows 11; on Windows 10 it is installed automatically if missing.                                                            |
 | macOS (Apple Silicon) | `aarch64` `.dmg`              | Drag to Applications. Unsigned build — if Gatekeeper calls it "damaged" instead of offering to open it, see [Troubleshooting](troubleshooting.md). |
-| macOS (Intel)         | `x64` `.dmg`                  | As above.                                                                                            |
-| Linux                 | `.AppImage`, `.deb` or `.rpm` | The AppImage is portable — `chmod +x` and run. `.deb`/`.rpm` pull in the WebKitGTK dependency.       |
+| macOS (Intel)         | `x64` `.dmg`                  | As above.                                                                                                                                          |
+| Linux                 | `.AppImage`, `.deb` or `.rpm` | The AppImage is portable — `chmod +x` and run. `.deb`/`.rpm` pull in the WebKitGTK dependency.                                                     |
 
 The only optional external program is **`rigctld`** for rig control. See
 [Rig control and logging](rig-and-logging.md).
