@@ -43,7 +43,8 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
 - **Alerts that find the DX for you.** Watch lists → desktop notification + sound,
   a logged hit list, live-row tinting. Match by prefix, or by an exact
   callsign list (for hunting specific stations, e.g. an awards chase) that
-  won't misfire on a longer callsign sharing the same letters. De-duped so a
+  won't misfire on a longer callsign sharing the same letters. One global
+  "within N km of my QTH" cap for all rules. De-duped so a
   pileup of skimmer spots notifies once.
 - **Full messaging.** Talk threads, group chat/conference, and a complete
   mail & bulletin client (read, compose, reply, delete) with a local cache.

@@ -12,6 +12,12 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+### Added
+
+- **Alerts can be limited by distance.** A new global "max distance from my
+  QTH" field (km), measured to the spotter in the Alerts notification settings — like the radius slider
+  on the map's openings layer. Empty = no limit.
+
 ## [1.4.9] - 2026-09-28
 
 ### Documentation

@@ -51,6 +51,8 @@ interface ClusterStore {
   alertsEnabled: boolean;
   alertsSound: boolean;
   alertSoundStyle: AlertSound;
+  /** Global alert distance cap from the QTH, km; 0 = no limit. */
+  alertMaxKm: number;
   /** Log of spots that fired an alert (newest first), survives table scroll. */
   alertHits: AlertHit[];
   /** Global age cap in minutes for spot lists (Spots, Bandmap, alert hits);
@@ -204,6 +206,7 @@ interface ClusterStore {
   setAlerts: (a: AlertRule[]) => void;
   setAlertsEnabled: (on: boolean) => void;
   setAlertsSound: (on: boolean) => void;
+  setAlertMaxKm: (km: number) => void;
   setAlertSoundStyle: (s: AlertSound) => void;
   addAlertHit: (h: AlertHit) => void;
   loadAlertHits: (h: AlertHit[]) => void;
@@ -296,6 +299,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   alertsEnabled: true,
   alertsSound: true,
   alertSoundStyle: "chime",
+  alertMaxKm: 0,
   alertHits: [],
   spotMaxAgeMin: 0,
   ageTick: 0,
@@ -435,6 +439,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   setAlertsEnabled: (alertsEnabled) => set({ alertsEnabled }),
   setAlertsSound: (alertsSound) => set({ alertsSound }),
   setAlertSoundStyle: (alertSoundStyle) => set({ alertSoundStyle }),
+  setAlertMaxKm: (km) => set({ alertMaxKm: Math.max(0, Math.round(km) || 0) }),
   addAlertHit: (h) =>
     set((st) =>
       st.alertHits.some((x) => x.key === h.key)

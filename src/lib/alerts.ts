@@ -90,13 +90,15 @@ export function describeAlert(rule: AlertRule): string {
 }
 
 /** The first enabled rule `spot` matches, or `null`. Used to tint live rows. */
-export function matchingAlert(spot: EnrichedSpot, rules: AlertRule[]): AlertRule | null {
-  for (const r of rules) if (alertMatches(spot, r)) return r;
+export function matchingAlert(spot: EnrichedSpot, rules: AlertRule[], maxKm = 0): AlertRule | null {
+  for (const r of rules) if (alertMatches(spot, r, maxKm)) return r;
   return null;
 }
 
-/** True if `spot` satisfies every non-empty condition of `rule`. */
-export function alertMatches(spot: EnrichedSpot, rule: AlertRule): boolean {
+/** True if `spot` satisfies every non-empty condition of `rule`. `maxKm` is the
+ *  global distance cap (0 = off): the spotter must lie within that great-circle
+ *  distance of the QTH — if nobody near you hears the DX, you probably won't either. */
+export function alertMatches(spot: EnrichedSpot, rule: AlertRule, maxKm = 0): boolean {
   if (!rule.enabled) return false;
   const call = rule.matchSpotter ? spot.spotter_base : spot.dx_call;
   const info = rule.matchSpotter ? spot.by : spot.dx;
@@ -122,6 +124,7 @@ export function alertMatches(spot: EnrichedSpot, rule: AlertRule): boolean {
   if (rule.modes.length && !rule.modes.includes(spot.mode)) return false;
   if (rule.continents.length && !rule.continents.some((k) => up(k) === up(info?.continent)))
     return false;
+  if (maxKm > 0 && !(spot.by?.distance_km != null && spot.by.distance_km <= maxKm)) return false;
   if (query && !rulePredicate(query)(spot)) return false;
 
   return true;

@@ -21,6 +21,7 @@ export interface AppSettings {
   alertsEnabled: boolean;
   alertsSound: boolean;
   alertSoundStyle: AlertSound;
+  alertMaxKm: number;
   ctyAutoUpdate: boolean;
   /** Weekly auto-update of the cluster node preset list. */
   presetsAutoUpdate: boolean;
@@ -105,6 +106,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   alertsEnabled: true,
   alertsSound: true,
   alertSoundStyle: "chime",
+  alertMaxKm: 0,
   ctyAutoUpdate: true,
   presetsAutoUpdate: true,
   updateCheckEnabled: true,

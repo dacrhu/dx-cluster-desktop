@@ -24,6 +24,11 @@ Az értesítési blokkban:
 - **Riasztások engedélyezése** — fő ki/be.
 - **Hang** — ki/be, plusz egy **stílus** választó: `chime`, `morse` vagy `sweep`
   (mind szintetizált, nincs fájl). Az egyidejű találatok egyszer szólalnak meg.
+- **Max. távolság a QTH-tól (km)** — globális korlát minden szabályra: csak
+  azok a spotok váltanak ki riasztást, amelyek **spottere** ezen a
+  nagykör-távolságon belül van a QTH-tól (ha a közelemben senki sem hallja a
+  DX-et, feltételezhetően én sem fogom). Üresen
+  nincs korlát; a Beállításokban megadott QTH-lokátor kell hozzá.
 - **Teszt** — egy minta-értesítés + hang kiváltása.
 
 ## 3. Figyelőszabályok

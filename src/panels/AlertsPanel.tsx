@@ -23,6 +23,8 @@ export const AlertsPanel = memo(function AlertsPanel({ onGoToSpots }: { onGoToSp
     setAlertsSound,
     alertSoundStyle,
     setAlertSoundStyle,
+    alertMaxKm,
+    setAlertMaxKm,
     alertHits,
     clearAlertHits,
     setPendingSpotSearch,
@@ -36,6 +38,8 @@ export const AlertsPanel = memo(function AlertsPanel({ onGoToSpots }: { onGoToSp
       setAlertsSound: s.setAlertsSound,
       alertSoundStyle: s.alertSoundStyle,
       setAlertSoundStyle: s.setAlertSoundStyle,
+      alertMaxKm: s.alertMaxKm,
+      setAlertMaxKm: s.setAlertMaxKm,
       alertHits: s.alertHits,
       clearAlertHits: s.clearAlertHits,
       setPendingSpotSearch: s.setPendingSpotSearch,
@@ -178,6 +182,22 @@ export const AlertsPanel = memo(function AlertsPanel({ onGoToSpots }: { onGoToSp
           >
             {tr("alerts.test")}
           </button>
+          <label className="inline" title={tr("alerts.maxKmHint")}>
+            {tr("alerts.maxKm")}
+            <input
+              type="number"
+              min={0}
+              step={100}
+              style={{ width: "6em" }}
+              value={alertMaxKm || ""}
+              placeholder={tr("alerts.maxKmPlaceholder")}
+              onChange={(e) => {
+                const v = Math.max(0, Math.round(Number(e.target.value)) || 0);
+                setAlertMaxKm(v);
+                void patchSettings({ alertMaxKm: v });
+              }}
+            />
+          </label>
         </div>
         <span className="muted">{tr("alerts.cooldownNote")}</span>
       </section>

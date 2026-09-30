@@ -22,6 +22,10 @@ The notification block has:
 - **Enable alerts** — master on/off.
 - **Sound** — on/off, plus a **style** select: `chime`, `morse` or `sweep`
   (all synthesised, no files). Simultaneous hits sound once.
+- **Max distance from my QTH (km)** — a global cap for all rules: only spots
+  whose **spotter** lies within that great-circle distance of your QTH fire an
+  alert (if nobody near you hears the DX, you probably won't either). Empty = no limit; needs
+  a QTH locator in Settings.
 - **Test** — fire a sample notification + sound.
 
 ## 3. Watch rules

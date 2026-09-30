@@ -30,6 +30,7 @@ export function SpotTable({ spots, actions }: { spots: EnrichedSpot[]; actions: 
   const tr = useT();
   const alerts = useCluster((s) => s.alerts);
   const alertsEnabled = useCluster((s) => s.alertsEnabled);
+  const alertMaxKm = useCluster((s) => s.alertMaxKm);
   const activeRules = alertsEnabled ? alerts : [];
   const parentRef = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; spot: EnrichedSpot } | null>(null);
@@ -132,7 +133,7 @@ export function SpotTable({ spots, actions }: { spots: EnrichedSpot[]; actions: 
         <div style={{ height: rows.getTotalSize(), position: "relative" }}>
           {rows.getVirtualItems().map((vi) => {
             const s = shown[vi.index];
-            const hit = activeRules.length ? matchingAlert(s, activeRules) : null;
+            const hit = activeRules.length ? matchingAlert(s, activeRules, alertMaxKm) : null;
             return (
               <div
                 key={s.id}

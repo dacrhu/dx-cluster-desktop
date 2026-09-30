@@ -108,6 +108,7 @@ export const WorldMap = memo(function WorldMap({
   const wcy = useCluster((s) => s.wcy);
   const rules = useCluster((s) => s.alerts);
   const alertsEnabled = useCluster((s) => s.alertsEnabled);
+  const alertMaxKm = useCluster((s) => s.alertMaxKm);
   const activeRules = alertsEnabled ? rules : [];
 
   const latestWwv = wwv[0];
@@ -657,7 +658,7 @@ export const WorldMap = memo(function WorldMap({
             ))}
 
             {spotMarks.map(({ s, xy }) => {
-              const hit = activeRules.length && matchingAlert(s, activeRules);
+              const hit = activeRules.length && matchingAlert(s, activeRules, alertMaxKm);
               const cls = `wm-spot ${modeClass(s.mode)}${s.is_skimmer ? " skimmer" : ""}${
                 hit ? " alert" : ""
               }${isGrey(s) ? " grey" : ""}${ageClass(s.received_at)}`;

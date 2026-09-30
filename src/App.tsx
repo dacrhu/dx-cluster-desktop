@@ -68,7 +68,7 @@ function checkAlerts(spot: EnrichedSpot) {
   const st = useCluster.getState();
   if (!st.alertsEnabled) return;
   for (const rule of st.alerts) {
-    if (!alertMatches(spot, rule)) continue;
+    if (!alertMatches(spot, rule, st.alertMaxKm)) continue;
     const key = `${rule.id}:${spot.dx_call}`;
     const now = Date.now();
     if ((lastAlert.get(key) ?? 0) + ALERT_COOLDOWN_MS > now) continue;
@@ -245,6 +245,7 @@ export function App() {
       c().setAlertsEnabled(settings.alertsEnabled ?? true);
       c().setAlertsSound(settings.alertsSound ?? true);
       c().setAlertSoundStyle(settings.alertSoundStyle ?? "chime");
+      c().setAlertMaxKm(settings.alertMaxKm ?? 0);
       c().setCtyAutoUpdate(settings.ctyAutoUpdate ?? true);
       c().setLang(settings.lang ?? "system");
       c().setBandmapZoom(settings.bandmapZoom ?? 1);

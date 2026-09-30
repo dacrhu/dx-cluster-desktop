@@ -25,6 +25,10 @@ Der Benachrichtigungsblock hat:
 - **Alarme aktivieren** — Haupt-Ein/Aus.
 - **Ton** — Ein/Aus, plus eine **Stil**-Auswahl: `chime`, `morse` oder `sweep`
   (alle synthetisiert, keine Dateien). Gleichzeitige Treffer klingen einmal.
+- **Max. Entfernung vom QTH (km)** — eine globale Grenze für alle Regeln: Nur
+  Spots, deren **Spotter** innerhalb dieser Großkreisentfernung vom QTH liegt,
+  lösen einen Alarm aus (hört das DX in deiner Nähe niemand, hörst du es vermutlich auch
+  nicht). Leer = keine Grenze; benötigt einen QTH-Locator in den Einstellungen.
 - **Test** — eine Beispiel-Benachrichtigung + Ton auslösen.
 
 ## 3. Beobachtungsregeln
