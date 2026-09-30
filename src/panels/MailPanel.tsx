@@ -97,7 +97,10 @@ export const MailPanel = memo(function MailPanel() {
     try {
       const rows = await fetchHeaders(onlineId);
       setHeaders(rows);
-      noteMailMsgnos(rows.map((h) => h.msgno));
+      noteMailMsgnos(
+        rows.map((h) => h.msgno),
+        rows.some((h) => !h.read),
+      );
       if (rows.length === 0) setStatus(tr("mail.noMsgs"));
       return rows;
     } finally {
@@ -127,7 +130,12 @@ export const MailPanel = memo(function MailPanel() {
         const rows = await fetchHeaders(onlineId);
         if (stop) return;
         setHeaders(rows);
-        if (noteMailMsgnos(rows.map((h) => h.msgno)))
+        if (
+          noteMailMsgnos(
+            rows.map((h) => h.msgno),
+            rows.some((h) => !h.read),
+          )
+        )
           void notify(tr("mail.notifyTitle"), tr("mail.notifyBody"));
       } catch {
         /* transient — next tick retries */

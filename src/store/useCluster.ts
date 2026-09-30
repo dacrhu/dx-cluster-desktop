@@ -281,8 +281,10 @@ interface ClusterStore {
    *  fetch re-establishes it silently). */
   resetMailBaseline: () => void;
   /** Record the message numbers from a `directory` fetch. Returns true when a
-   *  message newer than the established baseline just appeared (→ notify). */
-  noteMailMsgnos: (msgnos: number[]) => boolean;
+   *  message newer than the established baseline just appeared (→ notify).
+   *  `hasUnread`: the fetch contained unread mail — on the first fetch after a
+   *  baseline reset this lights the tab dot (silently, no toast). */
+  noteMailMsgnos: (msgnos: number[], hasUnread?: boolean) => boolean;
 }
 
 export const useCluster = create<ClusterStore>((set) => ({
@@ -534,13 +536,14 @@ export const useCluster = create<ClusterStore>((set) => ({
     set((st) => (spotsMatchTs !== st.spotsMatchTs ? { spotsMatchTs } : {})),
   setMailWatchEnabled: (mailWatchEnabled) => set({ mailWatchEnabled }),
   resetMailBaseline: () => set({ mailSeenMax: 0 }),
-  noteMailMsgnos: (msgnos: number[]): boolean => {
+  noteMailMsgnos: (msgnos: number[], hasUnread = false): boolean => {
     const max = msgnos.reduce((m, n) => (n > m ? n : m), 0);
     if (max === 0) return false;
     const mailSeenMax: number = useCluster.getState().mailSeenMax;
     const isNew = mailSeenMax > 0 && max > mailSeenMax;
+    const firstWithUnread = mailSeenMax === 0 && hasUnread;
     set(
-      isNew
+      isNew || firstWithUnread
         ? { mailSeenMax: Math.max(mailSeenMax, max), mailNewTs: Date.now() }
         : { mailSeenMax: Math.max(mailSeenMax, max) },
     );
