@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-09-30
+
 ### Fixed
 
 - **Mail tab dot for mail that was already waiting.** Unread messages present when you connect now light the Mail tab's dot (silently, no notification); previously only mail arriving after the first fetch did.
