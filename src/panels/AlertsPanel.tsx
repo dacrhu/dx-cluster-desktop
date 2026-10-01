@@ -104,6 +104,7 @@ export const AlertsPanel = memo(function AlertsPanel({ onGoToSpots }: { onGoToSp
                   <th>{tr("col.band")}</th>
                   <th>{tr("col.dx")}</th>
                   <th>{tr("col.dxcc")}</th>
+                  <th>{tr("col.spotter")}</th>
                   <th>{tr("col.mode")}</th>
                   <th>{tr("alerts.hitRule")}</th>
                   <th>{tr("col.comment")}</th>
@@ -124,6 +125,10 @@ export const AlertsPanel = memo(function AlertsPanel({ onGoToSpots }: { onGoToSp
                     <td>{h.spot.band ?? "—"}</td>
                     <td className="mono">{h.spot.dx_call}</td>
                     <td>{h.spot.dx?.dxcc_name ?? "—"}</td>
+                    <td className="mono">
+                      {h.spot.spotter_base}
+                      {h.spot.by?.distance_km != null ? ` · ${h.spot.by.distance_km} km` : ""}
+                    </td>
                     <td className={`mode-tag ${modeClass(h.spot.mode)}`}>
                       {modeLabel(h.spot.mode, h.spot.comment)}
                     </td>

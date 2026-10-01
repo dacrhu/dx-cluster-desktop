@@ -73,6 +73,10 @@ function checkAlerts(spot: EnrichedSpot) {
     const now = Date.now();
     if ((lastAlert.get(key) ?? 0) + ALERT_COOLDOWN_MS > now) continue;
     lastAlert.set(key, now);
+    console.info(
+      `alert: ${rule.label || rule.id} ← ${spot.dx_call} by ${spot.spotter_base}` +
+        ` (${spot.by?.distance_km ?? "?"} km, cap ${st.alertMaxKm || "off"})`,
+    );
 
     // One row per station appearance: skip if the same call at ~this frequency
     // already fired recently (another spotter, or a second matching rule).
