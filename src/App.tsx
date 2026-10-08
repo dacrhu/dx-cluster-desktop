@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import * as ipc from "@/lib/ipc";
@@ -73,10 +74,11 @@ function checkAlerts(spot: EnrichedSpot) {
     const now = Date.now();
     if ((lastAlert.get(key) ?? 0) + ALERT_COOLDOWN_MS > now) continue;
     lastAlert.set(key, now);
-    console.info(
-      `alert: ${rule.label || rule.id} ← ${spot.dx_call} by ${spot.spotter_base}` +
-        ` (${spot.by?.distance_km ?? "?"} km, cap ${st.alertMaxKm || "off"})`,
-    );
+    void invoke("ui_log", {
+      msg:
+        `alert fired: ${rule.label || rule.id} ← ${spot.dx_call} by ${spot.spotter_base}` +
+        ` (${spot.by?.distance_km ?? "?"} km, cap ${st.alertMaxKm || "off"}, id ${spot.id})`,
+    }).catch(() => {});
 
     // One row per station appearance: skip if the same call at ~this frequency
     // already fired recently (another spotter, or a second matching rule).
@@ -86,7 +88,10 @@ function checkAlerts(spot: EnrichedSpot) {
         Math.abs(h.spot.freq_khz - spot.freq_khz) < 1.5 &&
         now - h.at < ALERT_COOLDOWN_MS,
     );
-    if (dup) return;
+    if (dup) {
+      void invoke("ui_log", { msg: `alert skipped as duplicate: ${spot.dx_call}` }).catch(() => {});
+      return;
+    }
 
     const band = spot.band ? `${spot.band} ` : "";
     const ml = modeLabel(spot.mode, spot.comment);
@@ -107,6 +112,9 @@ function checkAlerts(spot: EnrichedSpot) {
     });
     st.pruneAlertHits();
     void saveAlertHits(useCluster.getState().alertHits);
+    void invoke("ui_log", {
+      msg: `alert hit logged, list now ${useCluster.getState().alertHits.length} (age cap ${st.spotMaxAgeMin} min)`,
+    }).catch(() => {});
     return; // one notification per spot
   }
 }

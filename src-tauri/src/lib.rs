@@ -1779,6 +1779,12 @@ async fn muf_stations(
 #[cfg(target_os = "linux")]
 static NOTIFY_HANDLES: Mutex<Vec<notify_rust::NotificationHandle>> = Mutex::new(Vec::new());
 
+/// Frontend breadcrumb into the app log (diagnostics only).
+#[tauri::command]
+fn ui_log(msg: String) {
+    log::info!("ui: {msg}");
+}
+
 #[tauri::command]
 fn os_notify(_app: AppHandle, title: String, body: String) -> CmdResult<()> {
     std::thread::spawn(move || {
@@ -2089,6 +2095,7 @@ pub fn run() {
             maybe_update_presets,
             update_presets,
             os_notify,
+            ui_log,
             read_mail,
             cached_mail,
             cached_mail_ids,
