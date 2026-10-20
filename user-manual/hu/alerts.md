@@ -1,7 +1,11 @@
 # Riasztások
 
 A **Riasztások** panel az érdekes spotokat asztali értesítéssé, hanggá és
-naplózott „találattá” alakítja. Három szakasza van.
+naplózott „találattá” alakítja. Három szakasza van, amelyet a panel fejlécében
+lévő kapcsoló két nézetre oszt: **Riasztások** (a találati lista — ez az
+alapértelmezett, így a riasztások kapják a teljes panelt) és **Szabályok és
+beállítások** (értesítések + figyelőszabályok, csak szerkesztéskor hozod elő).
+A kapcsoló mellett egy számláló mutatja, hány szabály aktív.
 
 ## 1. Riasztási találatok
 

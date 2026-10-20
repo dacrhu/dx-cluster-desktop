@@ -2,7 +2,11 @@
 
 Das Panel **Alarme** verwandelt interessante Spots in eine
 Desktop-Benachrichtigung, einen Ton und einen protokollierten „Treffer“. Es hat
-drei Abschnitte.
+drei Abschnitte, die der Umschalter in der Panel-Kopfzeile auf zwei Ansichten
+verteilt: **Alarme** (die Trefferliste — Standard, damit die Alarme selbst das
+ganze Panel bekommen) und **Regeln & Einstellungen** (Benachrichtigungen +
+Beobachtungsregeln, nur zum Bearbeiten eingeblendet). Neben dem Umschalter zeigt
+ein Zähler, wie viele Regeln aktiv sind.
 
 ## 1. Alarm-Treffer
 

@@ -56,6 +56,11 @@ export const AlertsPanel = memo(function AlertsPanel({ onGoToSpots }: { onGoToSp
     void saveAlertHits([]);
   }
 
+  // Two views: the hit list (default — the point of the panel) and the
+  // notification settings + watch rules, only brought up for editing.
+  const [view, setView] = useState<"hits" | "rules">("hits");
+  const activeRules = alerts.filter((a) => a.enabled).length;
+
   // Accordion: at most one card open at a time (null = all collapsed).
   const [expanded, setExpanded] = useState<string | null>(null);
   const toggleExpand = (id: string) => setExpanded((cur) => (cur === id ? null : id));
@@ -83,278 +88,297 @@ export const AlertsPanel = memo(function AlertsPanel({ onGoToSpots }: { onGoToSp
     <div className="panel">
       <div className="panel-head">
         <h2>{tr("alerts.title")}</h2>
+        <div className="seg-toggle">
+          <button className={view === "hits" ? "active" : ""} onClick={() => setView("hits")}>
+            {tr("alerts.viewHits")}
+          </button>
+          <button className={view === "rules" ? "active" : ""} onClick={() => setView("rules")}>
+            {tr("alerts.viewRules")}
+          </button>
+        </div>
+        <span className="muted">
+          {tr("alerts.rulesSummary", { n: activeRules, total: alerts.length })}
+        </span>
       </div>
 
-      <section className="alert-hits">
-        <div className="panel-head">
-          <h3>{tr("alerts.hits", { n: alertHits.length })}</h3>
-          <span className="muted">{tr("alerts.hitAgeNote")}</span>
-          {alertHits.length > 0 && <button onClick={clearHits}>{tr("alerts.clearHits")}</button>}
-        </div>
-        {alertHits.length === 0 ? (
-          <p className="muted">{tr("alerts.noHits")}</p>
-        ) : (
-          <div className="alert-hits-scroll">
-            <table className="data-table alert-hits-table">
-              <thead>
-                <tr>
-                  <th>{tr("col.age")}</th>
-                  <th>{tr("col.utc")}</th>
-                  <th>{tr("col.khz")}</th>
-                  <th>{tr("col.band")}</th>
-                  <th>{tr("col.dx")}</th>
-                  <th>{tr("col.dxcc")}</th>
-                  <th>{tr("col.spotter")}</th>
-                  <th>{tr("col.mode")}</th>
-                  <th>{tr("alerts.hitRule")}</th>
-                  <th>{tr("col.comment")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {alertHits.map((h) => (
-                  <tr
-                    key={h.key}
-                    className={h.at > hitsSeen ? "fresh" : ""}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => openHit(h.spot.dx_call)}
-                    title={tr("alerts.hitOpen")}
-                  >
-                    <td>{fmtAge(h.spot.received_at)}</td>
-                    <td className="mono">{fmtUtc(h.spot.received_at)}</td>
-                    <td className="mono">{h.spot.freq_khz.toFixed(1)}</td>
-                    <td>{h.spot.band ?? "—"}</td>
-                    <td className="mono">{h.spot.dx_call}</td>
-                    <td>{h.spot.dx?.dxcc_name ?? "—"}</td>
-                    <td className="mono">
-                      {h.spot.spotter_base}
-                      {h.spot.by?.distance_km != null ? ` · ${h.spot.by.distance_km} km` : ""}
-                    </td>
-                    <td className={`mode-tag ${modeClass(h.spot.mode)}`}>
-                      {modeLabel(h.spot.mode, h.spot.comment)}
-                    </td>
-                    <td>{h.ruleLabel || "—"}</td>
-                    <td>{h.spot.comment}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {view === "hits" && (
+        <section className="alert-hits wide">
+          <div className="panel-head">
+            <h3>{tr("alerts.hits", { n: alertHits.length })}</h3>
+            <span className="muted">{tr("alerts.hitAgeNote")}</span>
+            {alertHits.length > 0 && <button onClick={clearHits}>{tr("alerts.clearHits")}</button>}
           </div>
-        )}
-      </section>
+          {alertHits.length === 0 ? (
+            <p className="muted">{tr("alerts.noHits")}</p>
+          ) : (
+            <div className="alert-hits-scroll">
+              <table className="data-table alert-hits-table">
+                <thead>
+                  <tr>
+                    <th>{tr("col.age")}</th>
+                    <th>{tr("col.utc")}</th>
+                    <th>{tr("col.khz")}</th>
+                    <th>{tr("col.band")}</th>
+                    <th>{tr("col.dx")}</th>
+                    <th>{tr("col.dxcc")}</th>
+                    <th>{tr("col.spotter")}</th>
+                    <th>{tr("col.mode")}</th>
+                    <th>{tr("alerts.hitRule")}</th>
+                    <th>{tr("col.comment")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {alertHits.map((h) => (
+                    <tr
+                      key={h.key}
+                      className={h.at > hitsSeen ? "fresh" : ""}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => openHit(h.spot.dx_call)}
+                      title={tr("alerts.hitOpen")}
+                    >
+                      <td>{fmtAge(h.spot.received_at)}</td>
+                      <td className="mono">{fmtUtc(h.spot.received_at)}</td>
+                      <td className="mono">{h.spot.freq_khz.toFixed(1)}</td>
+                      <td>{h.spot.band ?? "—"}</td>
+                      <td className="mono">{h.spot.dx_call}</td>
+                      <td>{h.spot.dx?.dxcc_name ?? "—"}</td>
+                      <td className="mono">
+                        {h.spot.spotter_base}
+                        {h.spot.by?.distance_km != null ? ` · ${h.spot.by.distance_km} km` : ""}
+                      </td>
+                      <td className={`mode-tag ${modeClass(h.spot.mode)}`}>
+                        {modeLabel(h.spot.mode, h.spot.comment)}
+                      </td>
+                      <td>{h.ruleLabel || "—"}</td>
+                      <td>{h.spot.comment}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
-      <section className="alerts-settings">
-        <div className="panel-head">
-          <h3>{tr("alerts.settingsTitle")}</h3>
-        </div>
-        <div className="post-spot alerts-notify">
-          <label className="inline">
-            <input
-              type="checkbox"
-              checked={alertsEnabled}
-              onChange={(e) => saveToggle({ alertsEnabled: e.target.checked })}
-            />
-            {tr("alerts.enabled")}
-          </label>
-          <label className="inline">
-            <input
-              type="checkbox"
-              checked={alertsSound}
-              onChange={(e) => saveToggle({ alertsSound: e.target.checked })}
-            />
-            {tr("alerts.sound")}
-          </label>
-          <select
-            value={alertSoundStyle}
-            disabled={!alertsSound}
-            onChange={(e) => {
-              const v = e.target.value as AlertSound;
-              setAlertSoundStyle(v);
-              void patchSettings({ alertSoundStyle: v });
-              beep(v);
-            }}
-          >
-            {ALERT_SOUNDS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {tr(`sound.${s.id}`)}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={() => {
-              void notify(tr("alerts.testTitle"), tr("alerts.testBody"));
-              if (alertsSound) beep(alertSoundStyle);
-            }}
-          >
-            {tr("alerts.test")}
-          </button>
-          <label className="inline" title={tr("alerts.maxKmHint")}>
-            {tr("alerts.maxKm")}
-            <input
-              type="number"
-              min={0}
-              step={100}
-              style={{ width: "6em" }}
-              value={alertMaxKm || ""}
-              placeholder={tr("alerts.maxKmPlaceholder")}
-              onChange={(e) => {
-                const v = Math.max(0, Math.round(Number(e.target.value)) || 0);
-                setAlertMaxKm(v);
-                void patchSettings({ alertMaxKm: v });
-              }}
-            />
-          </label>
-        </div>
-        <span className="muted">{tr("alerts.cooldownNote")}</span>
-      </section>
+      {view === "rules" && (
+        <>
+          <section className="alerts-settings">
+            <div className="panel-head">
+              <h3>{tr("alerts.settingsTitle")}</h3>
+            </div>
+            <div className="post-spot alerts-notify">
+              <label className="inline">
+                <input
+                  type="checkbox"
+                  checked={alertsEnabled}
+                  onChange={(e) => saveToggle({ alertsEnabled: e.target.checked })}
+                />
+                {tr("alerts.enabled")}
+              </label>
+              <label className="inline">
+                <input
+                  type="checkbox"
+                  checked={alertsSound}
+                  onChange={(e) => saveToggle({ alertsSound: e.target.checked })}
+                />
+                {tr("alerts.sound")}
+              </label>
+              <select
+                value={alertSoundStyle}
+                disabled={!alertsSound}
+                onChange={(e) => {
+                  const v = e.target.value as AlertSound;
+                  setAlertSoundStyle(v);
+                  void patchSettings({ alertSoundStyle: v });
+                  beep(v);
+                }}
+              >
+                {ALERT_SOUNDS.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {tr(`sound.${s.id}`)}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => {
+                  void notify(tr("alerts.testTitle"), tr("alerts.testBody"));
+                  if (alertsSound) beep(alertSoundStyle);
+                }}
+              >
+                {tr("alerts.test")}
+              </button>
+              <label className="inline" title={tr("alerts.maxKmHint")}>
+                {tr("alerts.maxKm")}
+                <input
+                  type="number"
+                  min={0}
+                  step={100}
+                  style={{ width: "6em" }}
+                  value={alertMaxKm || ""}
+                  placeholder={tr("alerts.maxKmPlaceholder")}
+                  onChange={(e) => {
+                    const v = Math.max(0, Math.round(Number(e.target.value)) || 0);
+                    setAlertMaxKm(v);
+                    void patchSettings({ alertMaxKm: v });
+                  }}
+                />
+              </label>
+            </div>
+            <span className="muted">{tr("alerts.cooldownNote")}</span>
+          </section>
 
-      <section className="alerts-rules">
-        <div className="panel-head">
-          <h3>{tr("alerts.rulesTitle")}</h3>
-          <button className="primary" onClick={add}>
-            {tr("alerts.addRule")}
-          </button>
-        </div>
+          <section className="alerts-rules">
+            <div className="panel-head">
+              <h3>{tr("alerts.rulesTitle")}</h3>
+              <button className="primary" onClick={add}>
+                {tr("alerts.addRule")}
+              </button>
+            </div>
 
-        <p className="muted">{tr("alerts.andNote")}</p>
+            <p className="muted">{tr("alerts.andNote")}</p>
 
-        {alerts.length === 0 && <p className="muted">{tr("alerts.none")}</p>}
+            {alerts.length === 0 && <p className="muted">{tr("alerts.none")}</p>}
 
-        <ul className="rule-list">
-          {alerts.map((a, i) => {
-            const open = expanded === a.id;
-            return (
-              <li key={a.id} className={`rule-card${a.enabled ? "" : " is-disabled"}`}>
-                <div
-                  className="rule-head"
-                  onClick={() => toggleExpand(a.id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && toggleExpand(a.id)}
-                >
-                  <input
-                    type="checkbox"
-                    checked={a.enabled}
-                    title={tr("alerts.active")}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => update(i, { enabled: e.target.checked })}
-                  />
-                  <span className="disclosure">{open ? "▾" : "▸"}</span>
-                  <span className="rule-name">{a.label || tr("alerts.unnamed")}</span>
-                  <span className="rule-summary">{describeAlert(a)}</span>
-                  <span className="grow" />
-                  <button
-                    className="danger"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      remove(i);
-                    }}
-                  >
-                    {tr("common.delete")}
-                  </button>
-                </div>
-
-                {open && (
-                  <div className="rule-body">
-                    <div className="row">
-                      <label className="grow">
-                        {tr("alerts.ruleName")}
-                        <input
-                          value={a.label}
-                          placeholder={tr("alerts.ruleNamePlaceholder")}
-                          onChange={(e) => update(i, { label: e.target.value })}
-                        />
-                      </label>
-                      <label className="inline">
-                        <input
-                          type="checkbox"
-                          checked={a.matchSpotter}
-                          onChange={(e) => update(i, { matchSpotter: e.target.checked })}
-                        />
-                        {tr("alerts.matchSpotter")}
-                      </label>
-                    </div>
-
-                    <div className="row">
-                      <CsvInput
-                        label={
-                          a.matchSpotter ? tr("alerts.spotterPrefixes") : tr("alerts.dxPrefixes")
-                        }
-                        value={a.calls}
-                        placeholder="HA, OM2, 9A"
-                        onChange={(v) => update(i, { calls: v })}
-                      />
-                      <CsvInput
-                        label={tr("alerts.dxcc")}
-                        value={a.dxcc}
-                        placeholder="HA, 3B9"
-                        onChange={(v) => update(i, { dxcc: v })}
-                      />
-                    </div>
-
-                    <div className="row">
-                      <CsvInput
-                        label={
-                          a.matchSpotter
-                            ? tr("alerts.spotterExactCalls")
-                            : tr("alerts.dxExactCalls")
-                        }
-                        value={a.exactCalls}
-                        placeholder="HA5XYZ, OM3ABC, 9A1AA"
-                        onChange={(v) => update(i, { exactCalls: v })}
-                      />
-                    </div>
-                    <p className="field-hint">{tr("alerts.exactCallsHint")}</p>
-
-                    <label className="grow">
-                      <span className="qh-label">
-                        {tr("alerts.query")}
-                        <QueryHelp />
-                      </span>
+            <ul className="rule-list">
+              {alerts.map((a, i) => {
+                const open = expanded === a.id;
+                return (
+                  <li key={a.id} className={`rule-card${a.enabled ? "" : " is-disabled"}`}>
+                    <div
+                      className="rule-head"
+                      onClick={() => toggleExpand(a.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && toggleExpand(a.id)}
+                    >
                       <input
-                        className="mono"
-                        value={a.query ?? ""}
-                        placeholder={tr("alerts.queryPlaceholder")}
-                        spellCheck={false}
-                        onChange={(e) => update(i, { query: e.target.value })}
+                        type="checkbox"
+                        checked={a.enabled}
+                        title={tr("alerts.active")}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => update(i, { enabled: e.target.checked })}
                       />
-                      <span className="field-hint">{tr("alerts.queryHint")}</span>
-                    </label>
-
-                    <div className="field">
-                      <span>{tr("alerts.bands")}</span>
-                      <Chips
-                        options={ALL_BANDS}
-                        selected={a.bands}
-                        onToggle={(b) => update(i, { bands: toggleIn(a.bands, b) })}
-                      />
-                    </div>
-                    <div className="field">
-                      <span>{tr("alerts.modes")}</span>
-                      <Chips
-                        options={ALL_MODES}
-                        selected={a.modes}
-                        onToggle={(m) => update(i, { modes: toggleIn(a.modes, m as Mode) })}
-                      />
-                    </div>
-                    <div className="field">
-                      <span>{tr("alerts.continent")}</span>
-                      <Chips
-                        options={ALL_CONTINENTS}
-                        selected={a.continents}
-                        onToggle={(k) => update(i, { continents: toggleIn(a.continents, k) })}
-                      />
+                      <span className="disclosure">{open ? "▾" : "▸"}</span>
+                      <span className="rule-name">{a.label || tr("alerts.unnamed")}</span>
+                      <span className="rule-summary">{describeAlert(a)}</span>
+                      <span className="grow" />
+                      <button
+                        className="danger"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          remove(i);
+                        }}
+                      >
+                        {tr("common.delete")}
+                      </button>
                     </div>
 
-                    <code className="preview">
-                      {tr("alerts.fires", { desc: describeAlert(a) })}
-                    </code>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+                    {open && (
+                      <div className="rule-body">
+                        <div className="row">
+                          <label className="grow">
+                            {tr("alerts.ruleName")}
+                            <input
+                              value={a.label}
+                              placeholder={tr("alerts.ruleNamePlaceholder")}
+                              onChange={(e) => update(i, { label: e.target.value })}
+                            />
+                          </label>
+                          <label className="inline">
+                            <input
+                              type="checkbox"
+                              checked={a.matchSpotter}
+                              onChange={(e) => update(i, { matchSpotter: e.target.checked })}
+                            />
+                            {tr("alerts.matchSpotter")}
+                          </label>
+                        </div>
+
+                        <div className="row">
+                          <CsvInput
+                            label={
+                              a.matchSpotter
+                                ? tr("alerts.spotterPrefixes")
+                                : tr("alerts.dxPrefixes")
+                            }
+                            value={a.calls}
+                            placeholder="HA, OM2, 9A"
+                            onChange={(v) => update(i, { calls: v })}
+                          />
+                          <CsvInput
+                            label={tr("alerts.dxcc")}
+                            value={a.dxcc}
+                            placeholder="HA, 3B9"
+                            onChange={(v) => update(i, { dxcc: v })}
+                          />
+                        </div>
+
+                        <div className="row">
+                          <CsvInput
+                            label={
+                              a.matchSpotter
+                                ? tr("alerts.spotterExactCalls")
+                                : tr("alerts.dxExactCalls")
+                            }
+                            value={a.exactCalls}
+                            placeholder="HA5XYZ, OM3ABC, 9A1AA"
+                            onChange={(v) => update(i, { exactCalls: v })}
+                          />
+                        </div>
+                        <p className="field-hint">{tr("alerts.exactCallsHint")}</p>
+
+                        <label className="grow">
+                          <span className="qh-label">
+                            {tr("alerts.query")}
+                            <QueryHelp />
+                          </span>
+                          <input
+                            className="mono"
+                            value={a.query ?? ""}
+                            placeholder={tr("alerts.queryPlaceholder")}
+                            spellCheck={false}
+                            onChange={(e) => update(i, { query: e.target.value })}
+                          />
+                          <span className="field-hint">{tr("alerts.queryHint")}</span>
+                        </label>
+
+                        <div className="field">
+                          <span>{tr("alerts.bands")}</span>
+                          <Chips
+                            options={ALL_BANDS}
+                            selected={a.bands}
+                            onToggle={(b) => update(i, { bands: toggleIn(a.bands, b) })}
+                          />
+                        </div>
+                        <div className="field">
+                          <span>{tr("alerts.modes")}</span>
+                          <Chips
+                            options={ALL_MODES}
+                            selected={a.modes}
+                            onToggle={(m) => update(i, { modes: toggleIn(a.modes, m as Mode) })}
+                          />
+                        </div>
+                        <div className="field">
+                          <span>{tr("alerts.continent")}</span>
+                          <Chips
+                            options={ALL_CONTINENTS}
+                            selected={a.continents}
+                            onToggle={(k) => update(i, { continents: toggleIn(a.continents, k) })}
+                          />
+                        </div>
+
+                        <code className="preview">
+                          {tr("alerts.fires", { desc: describeAlert(a) })}
+                        </code>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        </>
+      )}
     </div>
   );
 });

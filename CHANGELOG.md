@@ -14,6 +14,10 @@ every entry should already read the way it will appear there.
 
 ## [1.5.2] - 2026-10-20
 
+### Changed
+
+- Alerts panel: the hit list now has the panel to itself. The notification settings and the (often long) list of watch rules moved behind a **Rules & settings** toggle in the panel header, shown only when you want to edit them; a counter next to it shows how many rules are active.
+
 ### Fixed
 
 - The first click on a top menu tab after launch is no longer delayed by a few seconds — the audio engine used for alert chimes is now initialised in the background at startup instead of on the first click.

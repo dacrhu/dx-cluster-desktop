@@ -45,7 +45,9 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
   callsign list (for hunting specific stations, e.g. an awards chase) that
   won't misfire on a longer callsign sharing the same letters. One global
   "within N km of my QTH" cap for all rules. De-duped so a
-  pileup of skimmer spots notifies once.
+  pileup of skimmer spots notifies once. The panel leads with the hit list;
+  the (possibly long) rule list and notification settings sit behind a
+  "Rules & settings" toggle, out of the way until you want to edit.
 - **Full messaging.** Talk threads, group chat/conference, and a complete
   mail & bulletin client (read, compose, reply, delete) with a local cache.
 - **Rig control and logging hand-off.** Full CAT rig control over serial/USB or

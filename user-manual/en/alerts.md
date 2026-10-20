@@ -1,7 +1,11 @@
 # Alerts
 
 The **Alerts** panel turns interesting spots into a desktop notification, a
-sound and a logged "hit". It has three sections.
+sound and a logged "hit". It has three sections, split over two views by the
+toggle in the panel header: **Alerts** (the hit list — the default, so the
+alerts themselves get the whole panel) and **Rules & settings**
+(notifications + watch rules, only brought up when you want to edit them).
+Next to the toggle a counter shows how many rules are active.
 
 ## 1. Alert hits
 

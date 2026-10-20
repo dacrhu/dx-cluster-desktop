@@ -2065,6 +2065,10 @@ button.chip.active {
   padding-top: 12px;
   border-top: 1px solid var(--border);
 }
+.alert-hits.wide .alert-hits-scroll {
+  /* hits-only view: use the room the hidden rules/settings no longer take */
+  max-height: calc(100vh - 230px);
+}
 .alert-hits-table tr.fresh td {
   font-weight: 600;
   box-shadow: inset 3px 0 0 var(--alert-hit-border);
