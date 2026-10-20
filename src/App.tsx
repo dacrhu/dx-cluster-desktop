@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { getVersion } from "@tauri-apps/api/app";
 import * as ipc from "@/lib/ipc";
 import { useCluster, useSendTargets } from "@/store/useCluster";
@@ -135,7 +136,32 @@ export function App() {
   const [version, setVersion] = useState("");
   // Set once at startup when a newer GitHub release is found; the popup clears it.
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
-  const store = useCluster();
+  // Only the fields App itself reads — a bare `useCluster()` would re-render
+  // the whole App (tab bar + every panel element) on any store write.
+  const store = useCluster(
+    useShallow((s) => ({
+      alertHits: s.alertHits,
+      announcements: s.announcements,
+      catEnabled: s.catEnabled,
+      chat: s.chat,
+      connections: s.connections,
+      lang: s.lang,
+      mailNewTs: s.mailNewTs,
+      pendingTalk: s.pendingTalk,
+      rigStatus: s.rigStatus,
+      rigVfo: s.rigVfo,
+      seen: s.seen,
+      sendTargetId: s.sendTargetId,
+      setSendTargetId: s.setSendTargetId,
+      setSpotMaxAgeMin: s.setSpotMaxAgeMin,
+      spotMaxAgeMin: s.spotMaxAgeMin,
+      spotsMatchTs: s.spotsMatchTs,
+      sysLocale: s.sysLocale,
+      talk: s.talk,
+      wcy: s.wcy,
+      wwv: s.wwv,
+    })),
+  );
   const sendTargets = useSendTargets();
   const tr = useT();
   const bootstrapped = useRef(false);
@@ -177,8 +203,13 @@ export function App() {
 
     primeNotifications();
 
-    // Unlock the audio context on the first interaction so alert chimes fired
-    // from event handlers (not user gestures) can play.
+    // Create the AudioContext shortly after startup, NOT on the first click:
+    // constructing it initialises WebKit's GStreamer audio backend, which in
+    // the packaged AppImage blocks the webview for ~3-4 s — right when the
+    // user clicks their first tab. It starts suspended; the first interaction
+    // then only has to resume() it (cheap) so alert chimes fired from event
+    // handlers (not user gestures) can play.
+    window.setTimeout(primeAudio, 1500);
     const unlock = () => primeAudio();
     window.addEventListener("pointerdown", unlock, { once: true });
     window.addEventListener("keydown", unlock, { once: true });

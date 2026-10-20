@@ -12,6 +12,10 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+### Fixed
+
+- The first click on a top menu tab after launch is no longer delayed by a few seconds — the audio engine used for alert chimes is now initialised in the background at startup instead of on the first click.
+
 ## [1.5.1] - 2026-09-30
 
 ### Fixed
