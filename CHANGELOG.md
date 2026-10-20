@@ -12,7 +12,7 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
-## [1.5.2] - 2026-10-20
+## [1.5.3] - 2026-10-20
 
 ### Changed
 
