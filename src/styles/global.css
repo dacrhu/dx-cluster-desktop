@@ -3002,7 +3002,3 @@ button.chip.active {
   stroke-width: 0.5;
   pointer-events: auto;
 }
-
-.map-band-select {
-  width: auto;
-}

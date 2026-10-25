@@ -114,22 +114,23 @@ export const MapPanel = memo(function MapPanel({
           onGoToFilters={onGoToFilters}
         />
         {pathOpenOn && hasHome && (
-          <select
-            className="map-band-select"
-            value={pathOpenBand}
-            title={tr("map.pathOpenBand")}
-            aria-label={tr("map.pathOpenBand")}
-            onChange={(e) => {
-              setPathOpenBand(e.target.value);
-              void patchSettings({ mapPathOpenBand: e.target.value });
-            }}
-          >
-            {BANDMAP_BANDS.filter((b) => b.highKhz < 40000).map((b) => (
-              <option key={b.label} value={b.label}>
-                {b.label}
-              </option>
-            ))}
-          </select>
+          <label className="inline" title={tr("map.pathOpenHint")}>
+            {tr("map.pathOpenBandLabel")}
+            <select
+              value={pathOpenBand}
+              aria-label={tr("map.pathOpenBand")}
+              onChange={(e) => {
+                setPathOpenBand(e.target.value);
+                void patchSettings({ mapPathOpenBand: e.target.value });
+              }}
+            >
+              {BANDMAP_BANDS.filter((b) => b.highKhz < 40000).map((b) => (
+                <option key={b.label} value={b.label}>
+                  {b.label}
+                </option>
+              ))}
+            </select>
+          </label>
         )}
         <span className="grow" />
         {reports.length > 0 && (

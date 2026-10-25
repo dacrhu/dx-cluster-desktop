@@ -214,6 +214,7 @@
   "map.mufStationTip": "{name} — MUFD {mufd} MHz, foF2 {fof2} MHz, confidence {cs}",
   "map.pathOpen": "Band open from QTH",
   "map.pathOpenBand": "band",
+  "map.pathOpenBandLabel": "Band open from QTH",
   "map.pathOpenHint": "Where the chosen band should be open from your QTH: green = frequency under 85 % of the path's limiting MUF, yellow = up to the MUF. MUF read at each hop midpoint (1–3 hops), measured ionosonde data where available. An estimate — no absorption, antennas, power or sporadic-E.",
   "map.pathOpenNoQth": "Set your QTH locator first (Connection → Settings)",
   "map.pathOpenLegend": "{band} from QTH",
