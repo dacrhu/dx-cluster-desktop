@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useCluster } from "@/store/useCluster";
 import { patchSettings } from "@/lib/persist";
 import { OPENINGS_RADIUS_MAX_KM } from "@/lib/openings";
-import { BANDMAP_BANDS } from "@/lib/bands";
 import { useClampPopover } from "@/lib/util";
 import { useT } from "@/i18n";
 
@@ -46,8 +45,6 @@ export function MapLayers({
   const setMufStations = useCluster((s) => s.setMapMufStations);
   const pathOpenOn = useCluster((s) => s.mapPathOpen);
   const setPathOpen = useCluster((s) => s.setMapPathOpen);
-  const pathOpenBand = useCluster((s) => s.mapPathOpenBand);
-  const setPathOpenBand = useCluster((s) => s.setMapPathOpenBand);
   const hasHome = useCluster((s) => !!s.homeLocator);
   const openingsOn = useCluster((s) => s.mapOpenings);
   const setOpenings = useCluster((s) => s.setMapOpenings);
@@ -175,24 +172,6 @@ export function MapLayers({
               />
               {tr("map.pathOpen")}
             </label>
-            {pathOpenOn && hasHome && (
-              <label className="inline ml-row ml-slider">
-                {tr("map.pathOpenBand")}
-                <select
-                  value={pathOpenBand}
-                  onChange={(e) => {
-                    setPathOpenBand(e.target.value);
-                    void patchSettings({ mapPathOpenBand: e.target.value });
-                  }}
-                >
-                  {BANDMAP_BANDS.filter((b) => b.highKhz < 40000).map((b) => (
-                    <option key={b.label} value={b.label}>
-                      {b.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
             {row(openingsOn, setOpenings, tr("map.openings"), "mapOpenings")}
             {openingsOn && (
               <label className="inline ml-row ml-slider">

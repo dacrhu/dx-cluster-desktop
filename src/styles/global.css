@@ -2991,7 +2991,7 @@ button.chip.active {
   stroke: var(--reach);
 }
 .wm-reach-sw {
-  background: color-mix(in srgb, var(--reach) 25%, transparent);
+  background: var(--reach);
   border-color: var(--reach);
 }
 .wm-reach-legend.stacked {
@@ -3001,4 +3001,8 @@ button.chip.active {
   stroke: var(--wm-ocean);
   stroke-width: 0.5;
   pointer-events: auto;
+}
+
+.map-band-select {
+  width: auto;
 }

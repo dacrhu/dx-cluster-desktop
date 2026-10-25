@@ -11,6 +11,7 @@ import { WorldMap } from "@/components/WorldMap";
 import { QuickFilters } from "@/components/QuickFilters";
 import { QueryHelp } from "@/components/QueryHelp";
 import { MapLayers } from "@/components/MapLayers";
+import { BANDMAP_BANDS } from "@/lib/bands";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
 import { type CtyEntity } from "@/lib/types";
@@ -66,6 +67,11 @@ export const MapPanel = memo(function MapPanel({
   const shownEntities = labels ? entities : NO_ENTITIES;
   const frozenEntities = useFrozenWhenInactive(shownEntities, active);
 
+  const pathOpenOn = useCluster((s) => s.mapPathOpen);
+  const pathOpenBand = useCluster((s) => s.mapPathOpenBand);
+  const setPathOpenBand = useCluster((s) => s.setMapPathOpenBand);
+  const hasHome = useCluster((s) => !!s.homeLocator);
+
   return (
     <div className="panel map-panel">
       <div className="quickbar">
@@ -107,6 +113,24 @@ export const MapPanel = memo(function MapPanel({
           setReachOnly={setReachOnly}
           onGoToFilters={onGoToFilters}
         />
+        {pathOpenOn && hasHome && (
+          <select
+            className="map-band-select"
+            value={pathOpenBand}
+            title={tr("map.pathOpenBand")}
+            aria-label={tr("map.pathOpenBand")}
+            onChange={(e) => {
+              setPathOpenBand(e.target.value);
+              void patchSettings({ mapPathOpenBand: e.target.value });
+            }}
+          >
+            {BANDMAP_BANDS.filter((b) => b.highKhz < 40000).map((b) => (
+              <option key={b.label} value={b.label}>
+                {b.label}
+              </option>
+            ))}
+          </select>
+        )}
         <span className="grow" />
         {reports.length > 0 && (
           <span className="muted map-count">{tr("map.reach", { n: reports.length })}</span>
