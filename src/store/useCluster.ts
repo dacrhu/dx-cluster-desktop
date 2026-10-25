@@ -108,6 +108,12 @@ interface ClusterStore {
   mapBandRose: boolean;
   /** Map: model MUF dot-field from the cluster's sunspot number. */
   mapMuf: boolean;
+  /** Map: measured ionosonde (kc2g) stations drawn as dots under the MUF layer. */
+  mapMufStations: boolean;
+  /** Map: MUF-based "is the band open from my QTH to there?" layer. */
+  mapPathOpen: boolean;
+  /** Band label (e.g. "20m") the path-open layer is drawn for. */
+  mapPathOpenBand: string;
   /** Map: empirical band-openings heat map from the whole spot stream. */
   mapOpenings: boolean;
   /** Sub-filter on the openings layer — keep only arcs whose spotter is
@@ -242,6 +248,9 @@ interface ClusterStore {
   setMapCondHud: (on: boolean) => void;
   setMapBandRose: (on: boolean) => void;
   setMapMuf: (on: boolean) => void;
+  setMapMufStations: (on: boolean) => void;
+  setMapPathOpen: (on: boolean) => void;
+  setMapPathOpenBand: (band: string) => void;
   setMapOpenings: (on: boolean) => void;
   setMapOpeningsNearMeKm: (km: number) => void;
   setPskrEnabled: (on: boolean) => void;
@@ -331,6 +340,9 @@ export const useCluster = create<ClusterStore>((set) => ({
   mapCondHud: true,
   mapBandRose: false,
   mapMuf: false,
+  mapMufStations: true,
+  mapPathOpen: false,
+  mapPathOpenBand: "20m",
   mapOpenings: false,
   mapOpeningsNearMeKm: 20000,
   pskrEnabled: false,
@@ -490,6 +502,9 @@ export const useCluster = create<ClusterStore>((set) => ({
   setMapCondHud: (mapCondHud) => set({ mapCondHud }),
   setMapBandRose: (mapBandRose) => set({ mapBandRose }),
   setMapMuf: (mapMuf) => set({ mapMuf }),
+  setMapMufStations: (mapMufStations) => set({ mapMufStations }),
+  setMapPathOpen: (mapPathOpen) => set({ mapPathOpen }),
+  setMapPathOpenBand: (mapPathOpenBand) => set({ mapPathOpenBand }),
   setMapOpenings: (mapOpenings) => set({ mapOpenings }),
   setMapOpeningsNearMeKm: (mapOpeningsNearMeKm) =>
     set({

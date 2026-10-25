@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useCluster } from "@/store/useCluster";
 import { patchSettings } from "@/lib/persist";
 import { OPENINGS_RADIUS_MAX_KM } from "@/lib/openings";
+import { BANDMAP_BANDS } from "@/lib/bands";
 import { useClampPopover } from "@/lib/util";
 import { useT } from "@/i18n";
 
@@ -41,6 +42,13 @@ export function MapLayers({
   const setBandRose = useCluster((s) => s.setMapBandRose);
   const mufOn = useCluster((s) => s.mapMuf);
   const setMuf = useCluster((s) => s.setMapMuf);
+  const mufStationsOn = useCluster((s) => s.mapMufStations);
+  const setMufStations = useCluster((s) => s.setMapMufStations);
+  const pathOpenOn = useCluster((s) => s.mapPathOpen);
+  const setPathOpen = useCluster((s) => s.setMapPathOpen);
+  const pathOpenBand = useCluster((s) => s.mapPathOpenBand);
+  const setPathOpenBand = useCluster((s) => s.setMapPathOpenBand);
+  const hasHome = useCluster((s) => !!s.homeLocator);
   const openingsOn = useCluster((s) => s.mapOpenings);
   const setOpenings = useCluster((s) => s.setMapOpenings);
   const openingsNearMeKm = useCluster((s) => s.mapOpeningsNearMeKm);
@@ -89,9 +97,18 @@ export function MapLayers({
   );
 
   const activeCount =
-    [grayline, arcs, labels, greyline, auroraOn, condHud, bandRoseOn, mufOn, openingsOn].filter(
-      Boolean,
-    ).length + (reachOnly ? 1 : 0);
+    [
+      grayline,
+      arcs,
+      labels,
+      greyline,
+      auroraOn,
+      condHud,
+      bandRoseOn,
+      mufOn,
+      pathOpenOn,
+      openingsOn,
+    ].filter(Boolean).length + (reachOnly ? 1 : 0);
 
   return (
     <span className="ml" ref={wrap}>
@@ -142,6 +159,40 @@ export function MapLayers({
             )}
             {row(auroraOn, setAurora, tr("map.aurora"), "mapAurora")}
             {row(mufOn, setMuf, tr("map.muf"), "mapMuf")}
+            {mufOn && row(mufStationsOn, setMufStations, tr("map.mufStations"), "mapMufStations")}
+            <label
+              className="inline ml-row"
+              title={hasHome ? tr("map.pathOpenHint") : tr("map.pathOpenNoQth")}
+            >
+              <input
+                type="checkbox"
+                checked={pathOpenOn}
+                disabled={!hasHome}
+                onChange={(e) => {
+                  setPathOpen(e.target.checked);
+                  void patchSettings({ mapPathOpen: e.target.checked });
+                }}
+              />
+              {tr("map.pathOpen")}
+            </label>
+            {pathOpenOn && hasHome && (
+              <label className="inline ml-row ml-slider">
+                {tr("map.pathOpenBand")}
+                <select
+                  value={pathOpenBand}
+                  onChange={(e) => {
+                    setPathOpenBand(e.target.value);
+                    void patchSettings({ mapPathOpenBand: e.target.value });
+                  }}
+                >
+                  {BANDMAP_BANDS.filter((b) => b.highKhz < 40000).map((b) => (
+                    <option key={b.label} value={b.label}>
+                      {b.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {row(openingsOn, setOpenings, tr("map.openings"), "mapOpenings")}
             {openingsOn && (
               <label className="inline ml-row ml-slider">

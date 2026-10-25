@@ -557,6 +557,14 @@ optional measured overlay added in phase 13 (see `store.mapMuf` below):
     the shared palette (`mufColor` buckets, legend). Estimate, not a
     prediction. Painted **above** the grayline/greyband so the band field
     isn't muddied by the night cap.
+- `store.mapPathOpen` / `store.mapPathOpenBand` — `src/lib/reach.ts`: "band open
+  from my QTH". Same sampled-grid + `d3-contour` recipe as the MUF bands
+  (`REACH_CELL` = 14 px), but each node holds `pathMuf(home, node) / bandFreq`
+  where `pathMuf` = the **lowest** MUF at the hop midpoints of the great-circle
+  path (1/2/3 hops for ≤4000/≤8000/longer km; `mufAt` + `interpolateMuf`).
+  Contours at 1 (marginal, yellow) and 1/0.85 (open, green). Needs `homeLocator`;
+  shares the kc2g fetch with the MUF layer. `store.mapMufStations` (default on)
+  draws the kc2g ionosonde stations as `.wm-ionosonde` dots under the MUF layer.
 - `store.mapOpenings` — `src/lib/openings.ts::bandOpenings`: every spot from the
   last 30 min as a faint mode-coloured great-circle arc (spotter→DX); overlap =
   heat. Empirical (measured), coverage-biased to where hams are active.

@@ -2960,3 +2960,45 @@ button.chip.active {
   align-items: center;
   gap: 8px;
 }
+
+/* Path-open ("is the band open from my QTH?") layer */
+.wm-reach {
+  pointer-events: none;
+}
+.wm-reach-fill {
+  opacity: 0.16;
+}
+.wm-reach-fill path {
+  stroke: none;
+}
+.wm-reach-line path {
+  fill: none;
+  stroke-width: 0.9;
+  stroke-opacity: 0.65;
+}
+.wm-reach path.open,
+.wm-reach-sw.open {
+  --reach: #22c55e;
+}
+.wm-reach path.marginal,
+.wm-reach-sw.marginal {
+  --reach: #eab308;
+}
+.wm-reach-fill path {
+  fill: var(--reach);
+}
+.wm-reach-line path {
+  stroke: var(--reach);
+}
+.wm-reach-sw {
+  background: color-mix(in srgb, var(--reach) 25%, transparent);
+  border-color: var(--reach);
+}
+.wm-reach-legend.stacked {
+  bottom: 38px;
+}
+.wm-ionosonde {
+  stroke: var(--wm-ocean);
+  stroke-width: 0.5;
+  pointer-events: auto;
+}

@@ -303,6 +303,9 @@ export function App() {
       c().setMapCondHud(settings.mapCondHud ?? true);
       c().setMapBandRose(settings.mapBandRose ?? false);
       c().setMapMuf(settings.mapMuf ?? false);
+      c().setMapMufStations(settings.mapMufStations ?? true);
+      c().setMapPathOpen(settings.mapPathOpen ?? false);
+      c().setMapPathOpenBand(settings.mapPathOpenBand ?? "20m");
       c().setMapOpenings(settings.mapOpenings ?? false);
       c().setMapOpeningsNearMeKm(settings.mapOpeningsNearMeKm ?? 20000);
       c().setPskrEnabled(settings.pskrEnabled ?? false);

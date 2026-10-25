@@ -12,6 +12,9 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+- Map: new **Band open from QTH** layer — pick a band and the map shades where it should be open from your QTH (green/yellow), based on the MUF along the path.
+- Map: the MUF layer can now show the measured ionosonde stations as dots (hover for MUFD / foF2).
+
 ## [1.5.3] - 2026-10-20
 
 ### Changed

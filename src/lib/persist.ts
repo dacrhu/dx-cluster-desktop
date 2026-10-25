@@ -50,6 +50,9 @@ export interface AppSettings {
   mapCondHud: boolean;
   mapBandRose: boolean;
   mapMuf: boolean;
+  mapMufStations: boolean;
+  mapPathOpen: boolean;
+  mapPathOpenBand: string;
   mapOpenings: boolean;
   mapOpeningsNearMeKm: number;
   /** PSK Reporter "who hears me" feed (digital modes). Off unless opted in. */
@@ -125,6 +128,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   mapCondHud: true,
   mapBandRose: false,
   mapMuf: false,
+  mapMufStations: true,
+  mapPathOpen: false,
+  mapPathOpenBand: "20m",
   mapOpenings: false,
   mapOpeningsNearMeKm: 20000,
   pskrEnabled: false,

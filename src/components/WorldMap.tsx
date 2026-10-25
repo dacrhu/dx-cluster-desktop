@@ -25,7 +25,17 @@ import { modeClass, modeLabel } from "@/lib/mode";
 import { spotLonLat, type LonLat } from "@/lib/grid";
 import { antipode, inGreyline, subsolarPoint } from "@/lib/grayline";
 import { auroraOvals } from "@/lib/aurora";
-import { interpolateMuf, mufAt, mufBandLabels, mufContours, MUF_SCALE, sfiToSsn } from "@/lib/muf";
+import {
+  interpolateMuf,
+  mufAt,
+  mufBandLabels,
+  mufColor,
+  mufContours,
+  MUF_SCALE,
+  sfiToSsn,
+} from "@/lib/muf";
+import { BANDMAP_BANDS } from "@/lib/bands";
+import { bandCenterMhz, pathMuf, reachContours, REACH_THRESHOLDS } from "@/lib/reach";
 import { bandOpenings, OPENINGS_RADIUS_MAX_KM } from "@/lib/openings";
 import { bandRose, ROSE_SECTORS } from "@/lib/bandRose";
 import { fmtAge } from "@/lib/format";
@@ -100,6 +110,9 @@ export const WorldMap = memo(function WorldMap({
   const condHud = useCluster((s) => s.mapCondHud);
   const showRose = useCluster((s) => s.mapBandRose);
   const showMuf = useCluster((s) => s.mapMuf);
+  const showMufStations = useCluster((s) => s.mapMufStations);
+  const showPathOpen = useCluster((s) => s.mapPathOpen);
+  const pathOpenBand = useCluster((s) => s.mapPathOpenBand);
   const showOpenings = useCluster((s) => s.mapOpenings);
   const openingsNearMeKm = useCluster((s) => s.mapOpeningsNearMeKm);
   const catEnabled = useCluster((s) => s.catEnabled);
@@ -143,7 +156,7 @@ export const WorldMap = memo(function WorldMap({
   // Measured ionosonde data (kc2g): fetch when the MUF layer is on, refresh
   // every 15 min. A failure leaves us on the pure model.
   useEffect(() => {
-    if (!showMuf) return;
+    if (!showMuf && !showPathOpen) return;
     let cancelled = false;
     const load = () =>
       ipc
@@ -160,7 +173,7 @@ export const WorldMap = memo(function WorldMap({
       cancelled = true;
       window.clearInterval(t);
     };
-  }, [showMuf]);
+  }, [showMuf, showPathOpen]);
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -170,7 +183,7 @@ export const WorldMap = memo(function WorldMap({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const timeDependent = grayline || greyline || showMuf;
+  const timeDependent = grayline || greyline || showMuf || showPathOpen;
   useEffect(() => {
     if (!timeDependent) return;
     const t = window.setInterval(() => setTick((n) => n + 1), 120_000);
@@ -398,6 +411,60 @@ export const WorldMap = memo(function WorldMap({
     );
   }, [mufBands, view.k]);
 
+  // "Is the band open from my QTH?" — same sampled-grid + marching-squares recipe
+  // as the MUF bands, but each node holds `limiting path MUF / band frequency`
+  // (≥1 marginal, ≥1/0.85 open) for the chosen band. Coarser cell: every node
+  // costs 1–3 `mufAt` calls.
+  const REACH_CELL = 14;
+  const pathOpenBands = useMemo(() => {
+    void tick;
+    if (!showPathOpen || !projection || !ready || !home) return null;
+    const invert = projection.invert;
+    const band = BANDMAP_BANDS.find((b) => b.label === pathOpenBand);
+    if (!invert || !band) return null;
+    const f = bandCenterMhz(band.lowKhz, band.highKhz);
+    const now = new Date();
+    const gw = Math.max(2, Math.ceil(w / REACH_CELL) + 1);
+    const gh = Math.max(2, Math.ceil(h / REACH_CELL) + 1);
+    const values = new Array<number>(gw * gh);
+    for (let j = 0; j < gh; j++) {
+      for (let i = 0; i < gw; i++) {
+        const ll = invert([i * REACH_CELL, j * REACH_CELL]);
+        let v = 0;
+        if (ll && Number.isFinite(ll[0]) && Number.isFinite(ll[1])) {
+          if (!azim || geoDistance(home, ll as LonLat) < Math.PI) {
+            v = pathMuf(home, ll as LonLat, now, ssn, mufStations) / f;
+          }
+        }
+        values[j * gw + i] = v;
+      }
+    }
+    return reachContours(values, gw, gh, REACH_CELL);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPathOpen, projection, ready, w, h, ssn, tick, mufStations, azim, home, pathOpenBand]);
+
+  const pathOpenLayer = useMemo(() => {
+    if (!pathOpenBands || pathOpenBands.length === 0) return null;
+    const d = (b: (typeof pathOpenBands)[number]) =>
+      mufBandPath({ type: "MultiPolygon", coordinates: b.coordinates } as GeoAny) ?? "";
+    const cls = (b: (typeof pathOpenBands)[number]) =>
+      b.value > REACH_THRESHOLDS[0] ? "open" : "marginal";
+    return (
+      <g className="wm-reach" clipPath="url(#wm-sphere-clip)">
+        <g className="wm-reach-fill">
+          {pathOpenBands.map((b) => (
+            <path key={b.value} className={cls(b)} d={d(b)} />
+          ))}
+        </g>
+        <g className="wm-reach-line">
+          {pathOpenBands.map((b) => (
+            <path key={b.value} className={cls(b)} d={d(b)} />
+          ))}
+        </g>
+      </g>
+    );
+  }, [pathOpenBands, mufBandPath]);
+
   const mufLayer =
     mufBandsLayer || mufLabelsLayer ? (
       <g className="wm-muf" clipPath="url(#wm-sphere-clip)">
@@ -594,7 +661,7 @@ export const WorldMap = memo(function WorldMap({
         onPointerUp={onPointerUp}
         onClick={() => setMenu(null)}
       >
-        {showMuf && ready && rawPath && (
+        {(showMuf || showPathOpen) && ready && rawPath && (
           <defs>
             {/* Base (pre-transform) coords — the referencing <g.wm-muf> already
                 sits inside <g transform={g}>, so userSpaceOnUse lines them up. */}
@@ -614,6 +681,36 @@ export const WorldMap = memo(function WorldMap({
             {greyBandPath && <path className="wm-greyband" d={greyBandPath} />}
 
             {mufLayer}
+            {pathOpenLayer}
+
+            {showMuf &&
+              showMufStations &&
+              mufStations.map((st) => {
+                const xy = project([st.lon, st.lat]);
+                if (!xy) return null;
+                return (
+                  <circle
+                    key={`io${st.name}${st.lon}${st.lat}`}
+                    className="wm-ionosonde"
+                    cx={xy[0]}
+                    cy={xy[1]}
+                    r={3.5 / view.k}
+                    style={{
+                      fill: mufColor(st.mufd),
+                      opacity: 0.35 + 0.6 * (Math.max(0, Math.min(100, st.cs)) / 100),
+                    }}
+                  >
+                    <title>
+                      {tr("map.mufStationTip", {
+                        name: st.name,
+                        mufd: st.mufd.toFixed(1),
+                        fof2: st.fof2 == null ? "–" : st.fof2.toFixed(1),
+                        cs: Math.round(st.cs),
+                      })}
+                    </title>
+                  </circle>
+                );
+              })}
 
             {roseAtQth && homeXY && (
               <g className="wm-rose-bloom">
@@ -746,6 +843,25 @@ export const WorldMap = memo(function WorldMap({
               {label}
             </span>
           ))}
+        </div>
+      )}
+
+      {showPathOpen && home && (
+        <div
+          className={`wm-muf-legend wm-reach-legend${showMuf ? " stacked" : ""}`}
+          title={tr("map.pathOpenHint")}
+        >
+          <span className="wm-muf-legend-title">
+            {tr("map.pathOpenLegend", { band: pathOpenBand })}
+          </span>
+          <span className="wm-muf-legend-step">
+            <i className="wm-reach-sw open" />
+            {tr("map.pathOpenOpen")}
+          </span>
+          <span className="wm-muf-legend-step">
+            <i className="wm-reach-sw marginal" />
+            {tr("map.pathOpenMarginal")}
+          </span>
         </div>
       )}
 

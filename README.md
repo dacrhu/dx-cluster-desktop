@@ -33,7 +33,8 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
   shading, many-skimmer spots collapsed into one row, SOS and beacon-project
   reference markers.
 - **A world map that shows propagation.** Grey-line, aurora, a measured-MUF layer
-  blending a solar model with live ionosonde data, band openings, a bearing
+  blending a solar model with live ionosonde data (stations drawn as dots), a
+  **"is the band open from my QTH?"** layer for any band, band openings, a bearing
   rose, and a **"who is hearing me right now"** layer.
 - **A band-activity matrix.** A band × continent grid with a sparkline and
   rising/falling trend in every cell — a 15-minute moving average of the spot
