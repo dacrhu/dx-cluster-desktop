@@ -3002,3 +3002,13 @@ button.chip.active {
   stroke-width: 0.5;
   pointer-events: auto;
 }
+.path-band-pop {
+  width: min(280px, 88vw);
+  right: auto;
+  left: 0;
+}
+.path-band-pop .band-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
