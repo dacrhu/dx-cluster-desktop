@@ -245,6 +245,7 @@ export function App() {
     });
     void ipc.onPskrState((s) => c().setPskrStatus(s));
     void ipc.onWsjtxState((s) => c().setWsjtxStatus(s));
+    void ipc.onLastQso((q) => c().setLastQso(q));
     void ipc.onRigState((s) => c().setRigStatus(s));
     void ipc.onRigVfo((v) => {
       c().setRigVfo(v);
@@ -350,6 +351,7 @@ export function App() {
       c().setLogFormat(settings.logFormat ?? "wsjtx");
       c().setRaiseLoggerEnabled(settings.raiseLoggerEnabled ?? false);
       c().setRaiseLoggerTitle(settings.raiseLoggerTitle ?? "");
+      c().setLastQsoAdifPath(settings.lastQsoAdifPath ?? "");
       if (settings.catEnabled) {
         c().setRigStatus("connecting");
         void ipc.rigStart(rigConfigFromStore()).catch((e) => c().setRigStatus(`error: ${e}`));

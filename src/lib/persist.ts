@@ -101,6 +101,8 @@ export interface AppSettings {
   raiseLoggerEnabled: boolean;
   /** The logger window's title (a substring is enough). */
   raiseLoggerTitle: string;
+  /** ADIF file the "Last QSO" button reads; empty = use the logger's UDP feed. */
+  lastQsoAdifPath: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -158,6 +160,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   logFormat: "wsjtx",
   raiseLoggerEnabled: false,
   raiseLoggerTitle: "",
+  lastQsoAdifPath: "",
 };
 
 export async function loadProfiles(): Promise<NodeProfile[]> {

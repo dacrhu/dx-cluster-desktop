@@ -4,6 +4,7 @@ import type {
   CallInfo,
   ConnState,
   EnrichedSpot,
+  LastQso,
   NodeProfile,
   NodeSoftware,
   CtyEntity,
@@ -88,6 +89,9 @@ export const pskrStop = () => invoke<void>("pskr_stop", {});
 export const wsjtxStart = (bind: string) => invoke<void>("wsjtx_start", { bind });
 
 export const wsjtxStop = () => invoke<void>("wsjtx_stop", {});
+
+export const lastQsoFromFile = (path: string) =>
+  invoke<LastQso | null>("last_qso_from_file", { path });
 
 // --- CAT (rig control) + logging-program push ------------------------------
 
@@ -255,6 +259,10 @@ export const onPskrState = (cb: (state: string) => void): Promise<UnlistenFn> =>
 /** WSJT-X feed lifecycle: "off" | "listening" | "receiving" | "error: …". */
 export const onWsjtxState = (cb: (state: string) => void): Promise<UnlistenFn> =>
   listen<string>("wsjtx://state", (e) => cb(e.payload));
+
+/** A QSO the logger just saved (WSJT-X "QSO Logged"/"Logged ADIF" or a bare ADIF datagram). */
+export const onLastQso = (cb: (q: LastQso) => void): Promise<UnlistenFn> =>
+  listen<LastQso>("cluster://last-qso", (e) => cb(e.payload));
 
 /** CAT session lifecycle: "off" | "connecting" | "connected" | "disconnected" | "error: …". */
 export const onRigState = (cb: (state: string) => void): Promise<UnlistenFn> =>

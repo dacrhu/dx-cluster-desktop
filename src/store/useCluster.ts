@@ -3,7 +3,7 @@ import { useShallow } from "zustand/react/shallow";
 import type { AlertHit, AlertRule } from "@/lib/alerts";
 import type { AlertSound } from "@/lib/notify";
 import type { LangPref } from "@/i18n";
-import type { CtyStatus, LogFormat, PresetsStatus, RigVfo, UpdateInfo } from "@/lib/types";
+import type { CtyStatus, LastQso, LogFormat, PresetsStatus, RigVfo, UpdateInfo } from "@/lib/types";
 import type {
   ConnState,
   EnrichedSpot,
@@ -163,6 +163,10 @@ interface ClusterStore {
   logFormat: LogFormat;
   raiseLoggerEnabled: boolean;
   raiseLoggerTitle: string;
+  /** ADIF log file whose last record the "Last QSO" button reads (empty = use the UDP feed). */
+  lastQsoAdifPath: string;
+  /** Newest QSO pushed by the logger over UDP (session-only). */
+  lastQso: LastQso | null;
 
   homeLocator: string;
   lang: LangPref;
@@ -281,6 +285,8 @@ interface ClusterStore {
   setLogFormat: (f: LogFormat) => void;
   setRaiseLoggerEnabled: (on: boolean) => void;
   setRaiseLoggerTitle: (title: string) => void;
+  setLastQsoAdifPath: (path: string) => void;
+  setLastQso: (q: LastQso | null) => void;
   setHomeLocator: (loc: string) => void;
   setLang: (l: LangPref) => void;
   setSysLocale: (l: string | null) => void;
@@ -374,6 +380,8 @@ export const useCluster = create<ClusterStore>((set) => ({
   logFormat: "wsjtx",
   raiseLoggerEnabled: false,
   raiseLoggerTitle: "",
+  lastQsoAdifPath: "",
+  lastQso: null,
   homeLocator: "",
   lang: "system",
   sysLocale: null,
@@ -540,6 +548,8 @@ export const useCluster = create<ClusterStore>((set) => ({
   setLogFormat: (logFormat) => set({ logFormat }),
   setRaiseLoggerEnabled: (raiseLoggerEnabled) => set({ raiseLoggerEnabled }),
   setRaiseLoggerTitle: (raiseLoggerTitle) => set({ raiseLoggerTitle }),
+  setLastQsoAdifPath: (lastQsoAdifPath) => set({ lastQsoAdifPath }),
+  setLastQso: (lastQso) => set({ lastQso }),
   setHomeLocator: (homeLocator) => set({ homeLocator }),
   setLang: (lang) => set({ lang }),
   setSysLocale: (sysLocale) => set({ sysLocale }),

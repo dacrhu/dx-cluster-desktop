@@ -16,6 +16,7 @@
 pub mod band;
 pub mod commands;
 pub mod connection;
+pub mod lastqso;
 pub mod logpush;
 pub mod parser;
 pub mod pskr;

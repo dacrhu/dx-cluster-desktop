@@ -62,6 +62,40 @@ seine freedesktop-App-ID an — die App wählt die richtige Methode für dein OS
 (D-Bus/`gapplication` unter Wayland, `wmctrl`/`xdotool` unter X11, `AppActivate`
 unter Windows, `osascript` unter macOS).
 
+## Letztes QSO → Spot absetzen
+
+Eine Station gearbeitet, die nicht im Cluster steht? Die Schaltfläche **Letztes
+QSO** neben dem Spot-Formular übernimmt Rufzeichen und Frequenz aus dem letzten
+Kontakt deines Logprogramms, ohne Abtippen. Zwei Quellen (Einstellungen →
+Log-Gruppe):
+
+- **ADIF-Datei** — Pfad zur ADIF-Datei deines Logs; bei jedem Klick wird der
+  neueste Eintrag gelesen.
+- **UDP vom Logprogramm** — bei leerem Pfad merkt sich die App das letzte QSO,
+  das dein Logprogramm sendet: WSJT-X-/JTDX-Nachricht „QSO Logged“ oder ein
+  ADIF-Datagramm von Log4OM oder GridTracker, oder die QLog-Meldung _Settings → Network → QSO Changes_. Das hört auf der Adresse des
+  WSJT-X-Feeds; aktiviere ihn und richte das Logprogramm darauf aus.
+
+Der Kommentar lautet immer `CQ <Modus>[/<Submodus>]` (Submodus nur, wenn das Log ihn enthält) — der eigene Log-Kommentar wird bewusst nie übernommen.
+
+Die Schaltfläche füllt das Formular nur vor; **Senden** drückst du weiterhin selbst.
+
+### Beispiel: QLog
+
+Der Reiter _Settings → Network → Wsjtx_ in QLog legt nur fest, wie QLog
+WSJT-X **empfängt** — er sendet nichts an uns. So übergibst du geloggte QSOs:
+
+1. Hier: den WSJT-X-Feed aktivieren (Verbindung → Einstellungen) mit einer
+   **Multicast**-Adresse wie `239.255.0.1:2237` (siehe
+   [Zusätzliche Spot-Quellen](extra-feeds.md)).
+2. In QLog: _Settings → Network → QSO Changes_ → an dieselbe Adresse und denselben
+   Port senden.
+3. Ein QSO in QLog loggen, dann **Letztes QSO** drücken.
+
+Mit einer Multicast-Adresse bekommt jedes Programm eine eigene Kopie, QLog,
+WSJT-X und diese App streiten also nicht um den Port. QLog sendet das
+gespeicherte QSO als in JSON verpacktes ADIF; Löschungen werden ignoriert.
+
 ## Test-Schaltflächen
 
 Beide Abschnitte haben eine **Test**-Schaltfläche — ein

@@ -330,3 +330,12 @@ export interface RigVfo {
 
 /** Wire format for the "prepare a QSO" push — mirror of Rust `logpush::LogFormat`. */
 export type LogFormat = "wsjtx" | "adif";
+
+/** The logger's most recent contact (mirror of `lastqso.rs::LastQso`). */
+export interface LastQso {
+  call: string;
+  freq_khz: number | null;
+  mode: string | null;
+  band: string | null;
+  submode: string | null;
+}

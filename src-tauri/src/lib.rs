@@ -1152,6 +1152,9 @@ fn wsjtx_start(app: AppHandle, state: State<'_, AppState>, bind: String) -> CmdR
                         let _ = app2.emit("wsjtx://state", format!("error: {msg}"));
                     }
                     Some(WsjtxEvent::Spot(s)) => forward_wsjtx_spot(&app2, s),
+                    Some(WsjtxEvent::Logged(q)) => {
+                        let _ = app2.emit("cluster://last-qso", &q);
+                    }
                 },
             }
         }
@@ -1169,6 +1172,22 @@ fn wsjtx_stop(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
     }
     let _ = app.emit("wsjtx://state", "off");
     Ok(())
+}
+
+/// The newest record of the ADIF log at `path` (read from the file's tail), for
+/// the post-a-spot form's "Last QSO" button. `None` if the file has no record.
+#[tauri::command]
+async fn last_qso_from_file(path: String) -> CmdResult<Option<dxcluster_core::lastqso::LastQso>> {
+    let path = path.trim().to_string();
+    if path.is_empty() {
+        return Err("no file".into());
+    }
+    tokio::task::spawn_blocking(move || {
+        dxcluster_core::lastqso::last_from_adif_file(std::path::Path::new(&path))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())
 }
 
 // --- CAT (rig control via rigctld) -----------------------------------------
@@ -2058,6 +2077,7 @@ pub fn run() {
             pskr_stop,
             wsjtx_start,
             wsjtx_stop,
+            last_qso_from_file,
             rig_models,
             rig_test,
             rig_start,

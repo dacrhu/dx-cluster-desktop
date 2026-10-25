@@ -103,6 +103,8 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
     logFormat,
     raiseLoggerEnabled,
     raiseLoggerTitle,
+    lastQsoAdifPath,
+    setLastQsoAdifPath,
     setLogPushEnabled,
     setLogHost,
     setLogPort,
@@ -174,6 +176,8 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
       logFormat: s.logFormat,
       raiseLoggerEnabled: s.raiseLoggerEnabled,
       raiseLoggerTitle: s.raiseLoggerTitle,
+      lastQsoAdifPath: s.lastQsoAdifPath,
+      setLastQsoAdifPath: s.setLastQsoAdifPath,
       setLogPushEnabled: s.setLogPushEnabled,
       setLogHost: s.setLogHost,
       setLogPort: s.setLogPort,
@@ -206,6 +210,7 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
   const [catDeviceDraft, setCatDeviceDraft] = useState<string | null>(null);
   const [logHostDraft, setLogHostDraft] = useState<string | null>(null);
   const [raiseCmdDraft, setRaiseCmdDraft] = useState<string | null>(null);
+  const [adifPathDraft, setAdifPathDraft] = useState<string | null>(null);
   const [rigModels, setRigModels] = useState<RigModel[]>([]);
   const [rigTestMsg, setRigTestMsg] = useState("");
   const [logTestMsg, setLogTestMsg] = useState("");
@@ -1260,6 +1265,22 @@ export const ConnectionPanel = memo(function ConnectionPanel() {
               />
             </label>
             <p className="field-hint">{tr("conn.logRaiseHint")}</p>
+            <label>
+              {tr("conn.lastQsoFile")}
+              <input
+                value={adifPathDraft ?? lastQsoAdifPath}
+                placeholder="/home/me/log.adi"
+                onChange={(e) => setAdifPathDraft(e.target.value)}
+                onBlur={() => {
+                  if (adifPathDraft === null) return;
+                  const v = adifPathDraft.trim();
+                  setLastQsoAdifPath(v);
+                  setAdifPathDraft(null);
+                  void patchSettings({ lastQsoAdifPath: v });
+                }}
+              />
+            </label>
+            <p className="field-hint">{tr("conn.lastQsoHint")}</p>
             <div className="row settings-controls">
               <button disabled={!logPushEnabled} onClick={() => void runTestLogPush()}>
                 {tr("conn.logTest")}

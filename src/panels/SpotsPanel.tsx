@@ -68,6 +68,30 @@ export const SpotsPanel = memo(function SpotsPanel({
     if (!freqEdited.current && vfoKhz != null) setFreq(vfoKhz.toFixed(1));
   }, [vfoKhz]);
 
+  // "Last QSO": prefill call + frequency from the logger — the ADIF file's last
+  // record when one is configured (read fresh), else the newest UDP-pushed QSO.
+  const lastQsoAdifPath = useCluster((s) => s.lastQsoAdifPath);
+  const lastQsoUdp = useCluster((s) => s.lastQso);
+  const canLastQso = !!lastQsoAdifPath.trim() || !!lastQsoUdp;
+  async function fillLastQso() {
+    try {
+      const q = lastQsoAdifPath.trim() ? await ipc.lastQsoFromFile(lastQsoAdifPath) : lastQsoUdp;
+      if (!q) {
+        setPostMsg(tr("spots.lastQsoNone"));
+        return;
+      }
+      freqEdited.current = true; // don't let VFO tracking overwrite the logged frequency
+      setCall(q.call);
+      // Never the log's own comment (could be anything) — only "CQ <mode>[/<submode>]".
+      const mode = q.mode ? q.mode + (q.submode ? `/${q.submode}` : "") : "";
+      setComment(mode ? `CQ ${mode}` : "");
+      if (q.freq_khz != null) setFreq(q.freq_khz.toFixed(1));
+      setPostMsg("");
+    } catch (e) {
+      setPostMsg(String(e));
+    }
+  }
+
   async function postSpot() {
     if (!onlineId) return;
     try {
@@ -134,6 +158,14 @@ export const SpotsPanel = memo(function SpotsPanel({
 
       <div className="post-spot">
         <span>{tr("spots.post")}</span>
+        <button
+          type="button"
+          disabled={!canLastQso}
+          title={canLastQso ? tr("spots.lastQsoHint") : tr("spots.lastQsoSetup")}
+          onClick={() => void fillLastQso()}
+        >
+          {tr("spots.lastQso")}
+        </button>
         <input
           className="mono"
           style={{ width: 90 }}

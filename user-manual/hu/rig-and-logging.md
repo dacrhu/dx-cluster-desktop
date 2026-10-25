@@ -60,6 +60,39 @@ meg az ablakcímét vagy freedesktop app-id-jét — a program a rendszeredhez a
 megfelelő módszert választja (D-Bus/`gapplication` Waylanden, `wmctrl`/`xdotool`
 X11-en, `AppActivate` Windowson, `osascript` macOS-en).
 
+## Utolsó QSO → spot feladása
+
+Dolgoztál egy olyan állomással, ami nincs a clusterben? A spot-feladó űrlap
+melletti **Utolsó QSO** gomb a naplóprogramod legutóbbi kapcsolatából tölti ki a
+hívójelet és a frekvenciát, nem kell kézzel másolgatni. Két forrás (Beállítások
+→ napló csoport):
+
+- **ADIF fájl** — add meg a naplód ADIF fájljának útvonalát; a gomb minden
+  kattintáskor az utolsó rekordot olvassa.
+- **UDP a naplóprogramtól** — ha az útvonal üres, az app megjegyzi a naplózód
+  által küldött utolsó QSO-t: WSJT-X / JTDX „QSO Logged” üzenet, vagy ADIF
+  datagram Log4OM vagy GridTracker felől, illetve a QLog _Settings → Network → QSO Changes_ értesítése. Ez a WSJT-X feed címén hallgat,
+  ezért kapcsold be azt a feedet, és a naplózót irányítsd rá.
+
+A megjegyzés mindig `CQ <mód>[/<almód>]` (almód csak akkor, ha a napló megadja) — a napló saját megjegyzését szándékosan soha nem másolja át.
+
+A gomb csak előtölti az űrlapot; a **Küldés** gombot továbbra is te nyomod meg.
+
+### Példa: QLog
+
+A QLog _Settings → Network → Wsjtx_ lapja csak azt állítja, hogyan **fogadja** a
+QLog a WSJT-X-et — nekünk semmit nem küld. A naplózott QSO-k átadásához:
+
+1. Itt: kapcsold be a WSJT-X feedet (Kapcsolat → Beállítások) egy **multicast**
+   címmel, pl. `239.255.0.1:2237` (lásd: [További spot-források](extra-feeds.md)).
+2. A QLogban: _Settings → Network → QSO Changes_ → ugyanerre a címre és portra
+   küldjön.
+3. Naplózz egy QSO-t a QLogban, majd nyomd meg az **Utolsó QSO** gombot.
+
+Multicast címmel minden program saját másolatot kap, így a QLog, a WSJT-X és ez
+az app nem verekszik a portért. A QLog a mentett QSO-t JSON-ba csomagolt ADIF-ként
+küldi; a törléseket figyelmen kívül hagyjuk.
+
 ## Teszt gombok
 
 Mindkét szakaszban van egy **Teszt** gomb — egy CAT oda-vissza olvasás, vagy egy

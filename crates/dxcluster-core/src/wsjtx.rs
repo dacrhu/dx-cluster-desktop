@@ -20,6 +20,8 @@ use socket2::{Domain, Protocol, Socket, Type};
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc;
 
+use crate::lastqso::{parse_adif_records, parse_datagram, LastQso};
+
 pub const WSJTX_MAGIC: u32 = 0xadbc_cbda;
 pub const DEFAULT_BIND: &str = "127.0.0.1:2237";
 /// WSJT-X's default UDP port, used when the configured address omits one.
@@ -94,6 +96,8 @@ pub enum WsjtxMessage {
         mode: String,
         message: String,
     },
+    /// QSO Logged (5) / Logged ADIF (12) — the logger just saved a contact.
+    Logged(LastQso),
     /// Any other message type (heartbeat, clear, …).
     Other,
 }
@@ -140,6 +144,37 @@ pub fn parse_message(buf: &[u8]) -> Option<WsjtxMessage> {
                 mode,
                 message,
             })
+        }
+        5 => {
+            // QDateTime off: Julian day (u64), ms (u32), timespec (u8; 2 = +i32 offset).
+            let _day = r.u64()?;
+            let _ms = r.u32()?;
+            if r.u8()? == 2 {
+                let _offset = r.i32()?;
+            }
+            let call = r.utf8()?;
+            let _grid = r.utf8()?;
+            let tx_hz = r.u64()?;
+            let mode = r.utf8()?;
+            let call = call.trim().to_ascii_uppercase();
+            if call.is_empty() {
+                return Some(WsjtxMessage::Other);
+            }
+            Some(WsjtxMessage::Logged(LastQso {
+                call,
+                freq_khz: (tx_hz > 0).then(|| tx_hz as f64 / 1000.0),
+                mode: Some(mode.trim().to_ascii_uppercase()).filter(|m| !m.is_empty()),
+                band: None,
+                submode: None,
+            }))
+        }
+        12 => {
+            let adif = r.utf8()?;
+            Some(
+                parse_adif_records(&adif)
+                    .pop()
+                    .map_or(WsjtxMessage::Other, WsjtxMessage::Logged),
+            )
         }
         _ => Some(WsjtxMessage::Other),
     }
@@ -228,6 +263,8 @@ pub enum WsjtxEvent {
     /// Datagrams are arriving.
     Receiving,
     Spot(WsjtxSpot),
+    /// The logger saved a QSO (WSJT-X type 5 / 12, or a bare ADIF datagram).
+    Logged(LastQso),
     /// Non-fatal error (the loop keeps going); a fatal bind error ends the task.
     Error(String),
 }
@@ -345,7 +382,22 @@ pub async fn run(bind: String, tx: mpsc::UnboundedSender<WsjtxEvent>) {
                 return;
             }
         }
+        // No WSJT-X magic: maybe a bare ADIF record (Log4OM / N1MM-style).
+        if !buf[..n].starts_with(&WSJTX_MAGIC.to_be_bytes()) {
+            let text = String::from_utf8_lossy(&buf[..n]);
+            if let Some(q) = parse_datagram(&text) {
+                if tx.send(WsjtxEvent::Logged(q)).is_err() {
+                    return;
+                }
+            }
+            continue;
+        }
         match parse_message(&buf[..n]) {
+            Some(WsjtxMessage::Logged(q)) => {
+                if tx.send(WsjtxEvent::Logged(q)).is_err() {
+                    return;
+                }
+            }
             Some(WsjtxMessage::Status {
                 dial_hz: d,
                 mode,
@@ -470,6 +522,41 @@ mod tests {
                 assert_eq!(message, "CQ DL1ABC JO31");
             }
             other => panic!("expected Decode, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_qso_logged() {
+        let mut d = Vec::new();
+        header(&mut d, 5);
+        u64b(&mut d, 2_461_000); // julian day
+        u32b(&mut d, 12_345_000); // ms
+        d.push(1); // UTC
+        strb(&mut d, "dl1ab");
+        strb(&mut d, "JO62");
+        u64b(&mut d, 14_075_500);
+        strb(&mut d, "FT8");
+        match parse_message(&d) {
+            Some(WsjtxMessage::Logged(q)) => {
+                assert_eq!(q.call, "DL1AB");
+                assert_eq!(q.freq_khz, Some(14075.5));
+                assert_eq!(q.mode.as_deref(), Some("FT8"));
+            }
+            other => panic!("expected Logged, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_logged_adif() {
+        let mut d = Vec::new();
+        header(&mut d, 12);
+        strb(&mut d, "\n<call:5>K1ABC<freq:6>14.074<mode:3>FT8<eor>");
+        match parse_message(&d) {
+            Some(WsjtxMessage::Logged(q)) => {
+                assert_eq!(q.call, "K1ABC");
+                assert_eq!(q.freq_khz, Some(14074.0));
+            }
+            other => panic!("expected Logged, got {other:?}"),
         }
     }
 

@@ -662,6 +662,15 @@ the decoded station's grid rides `StoredSpot.grid` for precise map placement.
 (`127.0.0.1:2237`) + `settings.spotShowWsjtx`, in the Connection panel's
 Settings section; `App.tsx` bootstrap starts it if enabled.
 
+**Last QSO → post-a-spot:** `crates/…/lastqso.rs` (`LastQso`, `parse_adif_records`,
+`last_from_adif_file` — tail-read, FREQ MHz→kHz). `wsjtx::parse_message` also reads
+`QSO Logged` (5) and `Logged ADIF` (12), and `wsjtx::run` treats a datagram without
+the WSJT-X magic as a bare ADIF record → `WsjtxEvent::Logged` → `cluster://last-qso`
+→ `store.lastQso` (session-only; needs the WSJT-X feed enabled). `last_qso_from_file`
+reads `settings.lastQsoAdifPath` on click and wins over the UDP value. `SpotsPanel`'s
+**Last QSO** button fills call + kHz and sets `freqEdited` (so the CAT VFO tracking
+doesn't overwrite it); it never sends.
+
 **CAT (rig control) + log push:** the two links that turn a spot into a QSO —
 both opt-in, off by default, in the Connection panel's Settings view, and
 _not_ cluster transports (hardware / local-IPC).

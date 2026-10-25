@@ -60,6 +60,8 @@ The **post-a-spot** form at the bottom takes a frequency, a callsign and an
 optional comment, and sends a correctly formatted `DX` command to your
 [send-target](settings.md) node. When CAT is connected the frequency field
 tracks your VFO until you type in it; a **VFO** chip snaps it back.
+**Last QSO** pre-fills the callsign and frequency from your logger's newest
+contact (see [Rig control and logging](rig-and-logging.md)).
 
 ## New-activity dot
 

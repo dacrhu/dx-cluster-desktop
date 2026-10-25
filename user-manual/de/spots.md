@@ -64,7 +64,9 @@ Das Formular **einen Spot absetzen** unten nimmt eine Frequenz, ein Rufzeichen
 und einen optionalen Kommentar und sendet einen korrekt formatierten
 `DX`-Befehl an deinen [Sendeziel](settings.md)-Node. Wenn CAT verbunden ist,
 folgt das Frequenzfeld deiner VFO, bis du hineintippst; ein **VFO**-Chip holt es
-zurück.
+zurück. **Letztes QSO** übernimmt Rufzeichen und Frequenz aus dem letzten
+Kontakt deines Logprogramms (siehe [Funkgerätesteuerung und
+Logging](rig-and-logging.md)).
 
 ## Neu-Aktivitäts-Punkt
 

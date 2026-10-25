@@ -24,7 +24,9 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
 - **Everything is point-and-click.** Every cluster feature — spots, filters,
   announcements, WWV/WCY, talk, chat, mail, bulletins and node preferences like
   skimmer spots — is a table, a form or a clickable row. A raw terminal is
-  there too, for when you want it.
+  there too, for when you want it. Worked someone who isn't spotted yet? One
+  **Last QSO** click pulls the call and frequency from your logger (ADIF file,
+  or WSJT-X / QLog / Log4OM / GridTracker over UDP) into the post-a-spot form.
 - **A spot table that keeps up.** Virtualised, instant local filtering, a proper
   [search query language](user-manual/en/search-query.md) (`dx:VP8 band:20m cw`,
   `re:/MM$`), freeze-on-scroll so incoming spots never move what you're reading,

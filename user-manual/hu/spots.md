@@ -63,7 +63,9 @@ Az alján lévő **spot feladása** űrlap egy frekvenciát, egy hívójelet és
 opcionális megjegyzést vár, majd egy helyesen formázott `DX` parancsot küld a
 [küldési célpont](settings.md) node-odnak. Ha a CAT csatlakoztatva van, a
 frekvenciamező a VFO-dat követi, amíg bele nem gépelsz; egy **VFO** címke
-visszaugratja.
+visszaugratja. Az **Utolsó QSO** gomb a naplóprogramod legutóbbi
+kapcsolatából tölti ki a hívójelet és a frekvenciát (lásd:
+[Rádióvezérlés és naplózás](rig-and-logging.md)).
 
 ## Új-aktivitás pötty
 

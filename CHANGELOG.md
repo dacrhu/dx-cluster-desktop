@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+- Spots: new **Last QSO** button on the post-a-spot form — fills the callsign and frequency from your logger's most recent contact (an ADIF file, or QSOs sent over UDP by WSJT-X / JTDX, QLog, Log4OM, GridTracker), so spotting a station that isn't on the cluster yet needs no copy/paste.
+
 ## [1.6.0] - 2026-10-25
 
 - Tabs: Propagation moved into the Spotting group (next to Map and Activity) and Announcements into Communication; the separate Bulletins group is gone.
