@@ -87,6 +87,7 @@ interface ClusterStore {
   /** Band Activity panel: which spotters' continent the trend is scoped to.
    *  "" = auto (derive from the QTH), "*" = anywhere, else a continent code. */
   bandActivityFrom: string;
+  forecastTarget: string;
   /** Map projection: azimuthal-equidistant from the QTH, or flat world. */
   mapProjection: "azimuthal" | "rect";
   /** Map: draw the day/night grayline overlay. */
@@ -238,6 +239,7 @@ interface ClusterStore {
   setSpotShowSkimmer: (on: boolean) => void;
   setBandmapZoom: (z: number) => void;
   setBandActivityFrom: (v: string) => void;
+  setForecastTarget: (v: string) => void;
   setMapProjection: (p: "azimuthal" | "rect") => void;
   setMapGrayline: (on: boolean) => void;
   setMapArcs: (on: boolean) => void;
@@ -330,6 +332,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   spotShowSkimmer: true,
   bandmapZoom: 1,
   bandActivityFrom: "",
+  forecastTarget: "",
   mapProjection: "rect",
   mapGrayline: true,
   mapArcs: false,
@@ -491,6 +494,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   setSpotShowSkimmer: (spotShowSkimmer) => set({ spotShowSkimmer }),
   setBandmapZoom: (bandmapZoom) => set({ bandmapZoom: Math.min(5, Math.max(1, bandmapZoom)) }),
   setBandActivityFrom: (bandActivityFrom) => set({ bandActivityFrom }),
+  setForecastTarget: (forecastTarget) => set({ forecastTarget }),
   setMapProjection: (mapProjection) => set({ mapProjection }),
   setMapGrayline: (mapGrayline) => set({ mapGrayline }),
   setMapArcs: (mapArcs) => set({ mapArcs }),

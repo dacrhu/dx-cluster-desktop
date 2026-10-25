@@ -35,7 +35,8 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
 - **A world map that shows propagation.** Grey-line, aurora, a measured-MUF layer
   blending a solar model with live ionosonde data (stations drawn as dots), a
   **"is the band open from my QTH?"** layer for any band, band openings, a bearing
-  rose, and a **"who is hearing me right now"** layer.
+  rose, and a **"who is hearing me right now"** layer. A **band × hour forecast
+  grid** to any target country (VOACAP-style estimate) lives on the Propagation tab.
 - **A band-activity matrix.** A band × continent grid with a sparkline and
   rising/falling trend in every cell — a 15-minute moving average of the spot
   feed, scoped to spotters on your own continent so it reflects what's workable

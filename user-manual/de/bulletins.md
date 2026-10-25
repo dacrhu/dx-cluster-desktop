@@ -25,6 +25,15 @@ abgeglichen gegen die Rohfelder).
 Die WCY-Kurzcodes (`qui`, `act`, `maj`, `no`, `yes`…) werden im Kachel- und
 Zellentext **dekodiert**; der Rohcode steht im Tooltip.
 
+Unter den Kacheln liefert die **Bandvorhersage zu einem Ziel** ein VOACAP-artiges
+Raster: Zielland wählen und für jedes Band (10–80 m) und jede UTC-Stunde sehen,
+wie wahrscheinlich der Weg von deinem QTH offen ist (rot = geschlossen, grün =
+zuverlässig), dazu TX- / MP- / RX-Streifen, die den Tag am QTH, an der Wegmitte
+und am Ziel zeigen. Kurz- / Langweg umschaltbar; die aktuelle Stunde ist
+unterstrichen. Es ist eine **Schätzung** (Sonnenfleckenzahl-MUF-Modell +
+D-Schicht-Dämpfung), kein VOACAP-Lauf — keine Antennen, Leistung, Rauschen oder
+Sporadic-E. Benötigt deinen QTH-Locator.
+
 Diese Zahlen speisen auch das [Bedingungs-HUD und den MUF-Layer](map.md) der
 Karte.
 

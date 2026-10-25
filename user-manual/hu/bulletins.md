@@ -25,6 +25,15 @@ jelenik meg. Egy keresőmező a két táblázat fölött szűri őket (bevonó /
 A WCY rövidítéskódjai (`qui`, `act`, `maj`, `no`, `yes`…) **dekódolva** vannak a
 csempe- és cellaszövegben; a nyers kód a buborékban van.
 
+A csempék alatt a **Sáv-előrejelzés a célhoz** egy VOACAP-stílusú rácsot ad:
+válassz célországot, és minden sávra (10–80 m) és minden UTC órára látod, mekkora
+eséllyel nyitott az út a QTH-dtól (piros = zárt, zöld = megbízható), alatta
+TX / MP / RX sávokkal, amelyek a nappalt mutatják a QTH-nál, az útvonal
+felezőpontján és a célnál. Rövid / hosszú út váltható; az aktuális óra alá van
+húzva. Ez **becslés** (napfoltszám-alapú MUF-modell + D-réteg elnyelés), nem
+VOACAP-futtatás — nincs antenna, teljesítmény, zaj vagy sporadikus E. Szükséges
+hozzá a QTH-lokátorod.
+
 Ezek a számok a térkép [Feltétel-HUD-ját és MUF-rétegét](map.md) is táplálják.
 
 ## WX (időjárás)

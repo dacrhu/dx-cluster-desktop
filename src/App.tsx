@@ -123,9 +123,11 @@ function checkAlerts(spot: EnrichedSpot) {
 // Tabs grouped by purpose; rendered as framed clusters in the top bar.
 const TAB_GROUPS: { id: string; tabs: TabId[] }[] = [
   { id: "setup", tabs: ["connection"] },
-  { id: "spotting", tabs: ["spots", "bandmap", "map", "activity", "alerts", "filters"] },
-  { id: "info", tabs: ["announcements", "propagation"] },
-  { id: "comms", tabs: ["talk", "chat", "mail", "users"] },
+  {
+    id: "spotting",
+    tabs: ["spots", "bandmap", "map", "activity", "propagation", "alerts", "filters"],
+  },
+  { id: "comms", tabs: ["announcements", "talk", "chat", "mail", "users"] },
   { id: "advanced", tabs: ["tools", "raw"] },
   { id: "help", tabs: ["about"] },
 ];
@@ -293,6 +295,7 @@ export function App() {
       c().setLang(settings.lang ?? "system");
       c().setBandmapZoom(settings.bandmapZoom ?? 1);
       c().setBandActivityFrom(settings.bandActivityFrom ?? "");
+      c().setForecastTarget(settings.forecastTarget ?? "");
       c().setMapProjection(settings.mapProjection ?? "rect");
       c().setMapGrayline(settings.mapGrayline ?? true);
       c().setMapArcs(settings.mapArcs ?? false);

@@ -39,8 +39,8 @@ The top bar has:
 - **The app title** and a small **`v…` version chip** — click it to jump to the
   _Help_ tab.
 - **Tab groups**, framed by purpose: _Connection_, _Spotting_ (Spots, Bandmap,
-  Map, Filters, Alerts), _Bulletins_ (Announcements, Propagation), _Communication_
-  (Talk, Chat, Mail, Users), _Advanced_ (Tools, Raw terminal) and _Help_.
+  Map, Activity, Propagation, Alerts, Filters), _Communication_ (Announcements,
+  Talk, Chat, Mail, Users), _Advanced_ (Tools, Raw terminal) and _Help_.
 - A coloured **dot on the Connection tab**: green = all profiles online, amber =
   some connecting, red = none up.
 - **Activity dots** on other tabs when something new arrives while you are

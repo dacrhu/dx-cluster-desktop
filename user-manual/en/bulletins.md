@@ -25,6 +25,14 @@ raw fields).
 The WCY shorthand codes (`qui`, `act`, `maj`, `no`, `yes`…) are **decoded** in
 the tile and cell text; the raw code is in the tooltip.
 
+Below the tiles, **Band forecast to a target** gives a VOACAP-style grid: pick a
+target country and see, for each band (10–80 m) and each UTC hour, how likely
+the path from your QTH is to be open (red = closed, green = reliable), plus
+TX / MP / RX strips showing daylight at your QTH, the path midpoint and the
+target. Toggle short / long path; the current hour is underlined. It is an
+**estimate** (sunspot-number MUF model + D-layer absorption), not a VOACAP
+run — no antennas, power, noise or sporadic-E. Needs your QTH locator.
+
 These numbers also feed the map's [Conditions HUD and MUF layer](map.md).
 
 ## WX (weather)

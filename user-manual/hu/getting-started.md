@@ -40,8 +40,8 @@ A felső sávban:
 - **A program címe** és egy kis **`v…` verziócímke** — kattints rá, hogy a
   _Súgó_ fülre ugorj.
 - **Fülcsoportok**, cél szerint keretezve: _Kapcsolat_, _Spotolás_ (Spotok,
-  Sávtérkép, Térkép, Szűrők, Riasztások), _Bulletinek_ (Hirdetmények, Terjedés),
-  _Kommunikáció_ (Talk, Chat, Mail, Felhasználók), _Haladó_ (Eszközök, Nyers
+  Sávtérkép, Térkép, Aktivitás, Terjedés, Riasztások, Szűrők), _Kommunikáció_
+  (Hirdetmények, Talk, Chat, Mail, Felhasználók), _Haladó_ (Eszközök, Nyers
   terminál) és _Súgó_.
 - Egy színes **pötty a Kapcsolat fülön**: zöld = minden profil online, sárga =
   némelyik csatlakozik, piros = egy sincs fent.

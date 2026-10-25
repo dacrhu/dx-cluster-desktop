@@ -41,8 +41,8 @@ Die obere Leiste enthält:
 - **Den App-Titel** und ein kleines **`v…`-Versionschip** — klicke darauf, um zum
   Tab _Hilfe_ zu springen.
 - **Tab-Gruppen**, nach Zweck gerahmt: _Verbindung_, _Spotting_ (Spots, Bandmap,
-  Karte, Filter, Alarme), _Bulletins_ (Mitteilungen, Ausbreitung),
-  _Kommunikation_ (Talk, Chat, Mail, Benutzer), _Erweitert_ (Werkzeuge,
+  Karte, Aktivität, Ausbreitung, Alarme, Filter), _Kommunikation_ (Mitteilungen,
+  Talk, Chat, Mail, Benutzer), _Erweitert_ (Werkzeuge,
   Rohterminal) und _Hilfe_.
 - Ein farbiger **Punkt am Tab Verbindung**: grün = alle Profile online, gelb =
   einige verbinden sich, rot = keines aktiv.

@@ -39,6 +39,8 @@ export interface AppSettings {
   /** Band Activity panel: spotter-continent scope ("" = auto from QTH, "*" =
    *  anywhere, else a continent code). */
   bandActivityFrom: string;
+  /** Propagation forecast grid: target DXCC primary prefix ("" = none). */
+  forecastTarget: string;
   /** Map panel. */
   mapProjection: "azimuthal" | "rect";
   mapGrayline: boolean;
@@ -118,6 +120,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   spotMaxAgeMin: 0,
   bandmapZoom: 1,
   bandActivityFrom: "",
+  forecastTarget: "",
   mapProjection: "rect",
   mapGrayline: true,
   mapArcs: false,

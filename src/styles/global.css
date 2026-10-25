@@ -3012,3 +3012,91 @@ button.chip.active {
   flex-wrap: wrap;
   gap: 4px;
 }
+
+/* Propagation forecast grid (PathForecast) — a card like Alerts' hits block */
+.path-forecast {
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+}
+.path-forecast .panel-head {
+  margin-bottom: 4px;
+}
+.path-forecast .panel-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.pf-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.pf-head {
+  text-align: center;
+  margin: 6px 0 8px;
+  font-size: 15px;
+}
+.pf-wrap {
+  position: relative;
+}
+.pf-table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+  font-size: clamp(9px, 1.4vw, 14px);
+}
+.pf-table th {
+  font-weight: 600;
+  padding: 2px 0;
+  width: 4%;
+  color: var(--muted, #888);
+}
+.pf-table td {
+  height: clamp(20px, 3.4vw, 34px);
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.pf-wrap.empty .pf-table {
+  opacity: 0.55;
+}
+.pf-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 16px;
+  font-weight: 600;
+  color: var(--text);
+  pointer-events: none;
+}
+.pf-table th.pf-now {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.pf-table td.pf-day {
+  background: #fff8e1;
+}
+.pf-table td.pf-night {
+  background: #6b7280;
+}
+.pf-note {
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+.prop-data {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.prop-data > h3 {
+  margin: 0;
+  font-size: 14px;
+}

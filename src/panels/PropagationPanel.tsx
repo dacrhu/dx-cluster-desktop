@@ -6,6 +6,7 @@ import { matchTerms } from "@/lib/util";
 import { describeWcyCode } from "@/lib/wcy";
 import { useT } from "@/i18n";
 import { runQuery } from "@/lib/ipc";
+import { PathForecast } from "@/components/PathForecast";
 
 function Stat({
   label,
@@ -81,139 +82,146 @@ export const PropagationPanel = memo(function PropagationPanel() {
         </button>
       </div>
 
-      <div className="stat-row">
-        {latestWwv ? (
-          <>
-            <Stat label="SFI" value={latestWwv.sfi} hint={tr("prop.solarFlux")} />
-            <Stat label="A" value={latestWwv.a} />
-            <Stat label="K" value={latestWwv.k} />
-            <Stat
-              label="WWV"
-              value={`${latestWwv.sender} <${latestWwv.hour}z>`}
-              hint={`${fmtAge(latestWwv.received_at)} · ${latestWwv.forecast}`}
-            />
-          </>
-        ) : (
-          <p className="muted">{tr("prop.noWwv")}</p>
-        )}
-      </div>
+      <PathForecast />
 
-      {latestWcy && (
+      <section className="prop-data">
+        <h3>{tr("prop.solarTitle")}</h3>
         <div className="stat-row">
-          <Stat label="SFI" value={latestWcy.sfi} />
-          <Stat label="A" value={latestWcy.a} />
-          <Stat label="K / exp" value={`${latestWcy.k} / ${latestWcy.expk}`} />
-          <Stat label="R" value={latestWcy.r} hint={tr("prop.sunspots")} />
-          <Stat
-            label="SA"
-            value={describeWcyCode(latestWcy.sa, tr)}
-            hint={tr("prop.solarActivity")}
-            title={latestWcy.sa}
-          />
-          <Stat
-            label="GMF"
-            value={describeWcyCode(latestWcy.gmf, tr)}
-            hint={tr("prop.geomagField")}
-            title={latestWcy.gmf}
-          />
-          <Stat
-            label={tr("prop.aurora")}
-            value={describeWcyCode(latestWcy.aurora, tr)}
-            title={latestWcy.aurora}
-          />
-          <Stat label="WCY" value={latestWcy.sender} hint={fmtAge(latestWcy.received_at)} />
-        </div>
-      )}
-
-      {showTable && showTable.length > 0 && <pre className="raw-block">{showTable.join("\n")}</pre>}
-
-      <input
-        className="search"
-        placeholder={tr("prop.searchPlaceholder")}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        spellCheck={false}
-      />
-
-      <h3>{tr("prop.wwvHistory")}</h3>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>{tr("col.utc")}</th>
-            <th>{tr("col.hour")}</th>
-            <th>SFI</th>
-            <th>A</th>
-            <th>K</th>
-            <th>{tr("col.forecast")}</th>
-            <th>{tr("col.sender")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {wwvRows.length === 0 && (
-            <tr>
-              <td colSpan={7} className="muted">
-                {tr(q ? "prop.noMatch" : "prop.noData")}
-              </td>
-            </tr>
+          {latestWwv ? (
+            <>
+              <Stat label="SFI" value={latestWwv.sfi} hint={tr("prop.solarFlux")} />
+              <Stat label="A" value={latestWwv.a} />
+              <Stat label="K" value={latestWwv.k} />
+              <Stat
+                label="WWV"
+                value={`${latestWwv.sender} <${latestWwv.hour}z>`}
+                hint={`${fmtAge(latestWwv.received_at)} · ${latestWwv.forecast}`}
+              />
+            </>
+          ) : (
+            <p className="muted">{tr("prop.noWwv")}</p>
           )}
-          {wwvRows.map((w) => (
-            <tr key={w.id}>
-              <td className="mono">{fmtUtc(w.received_at)}</td>
-              <td>{w.hour}z</td>
-              <td>{w.sfi}</td>
-              <td>{w.a}</td>
-              <td>{w.k}</td>
-              <td>{w.forecast}</td>
-              <td className="mono">{w.sender}</td>
+        </div>
+
+        {latestWcy && (
+          <div className="stat-row">
+            <Stat label="SFI" value={latestWcy.sfi} />
+            <Stat label="A" value={latestWcy.a} />
+            <Stat label="K / exp" value={`${latestWcy.k} / ${latestWcy.expk}`} />
+            <Stat label="R" value={latestWcy.r} hint={tr("prop.sunspots")} />
+            <Stat
+              label="SA"
+              value={describeWcyCode(latestWcy.sa, tr)}
+              hint={tr("prop.solarActivity")}
+              title={latestWcy.sa}
+            />
+            <Stat
+              label="GMF"
+              value={describeWcyCode(latestWcy.gmf, tr)}
+              hint={tr("prop.geomagField")}
+              title={latestWcy.gmf}
+            />
+            <Stat
+              label={tr("prop.aurora")}
+              value={describeWcyCode(latestWcy.aurora, tr)}
+              title={latestWcy.aurora}
+            />
+            <Stat label="WCY" value={latestWcy.sender} hint={fmtAge(latestWcy.received_at)} />
+          </div>
+        )}
+
+        {showTable && showTable.length > 0 && (
+          <pre className="raw-block">{showTable.join("\n")}</pre>
+        )}
+
+        <input
+          className="search"
+          placeholder={tr("prop.searchPlaceholder")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          spellCheck={false}
+        />
+
+        <h3>{tr("prop.wwvHistory")}</h3>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{tr("col.utc")}</th>
+              <th>{tr("col.hour")}</th>
+              <th>SFI</th>
+              <th>A</th>
+              <th>K</th>
+              <th>{tr("col.forecast")}</th>
+              <th>{tr("col.sender")}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {wcy.length > 0 && (
-        <>
-          <h3>{tr("prop.wcyHistory")}</h3>
-          <table className="data-table">
-            <thead>
+          </thead>
+          <tbody>
+            {wwvRows.length === 0 && (
               <tr>
-                <th>{tr("col.utc")}</th>
-                <th>{tr("col.hour")}</th>
-                <th>SFI</th>
-                <th>A</th>
-                <th>K</th>
-                <th>R</th>
-                <th>SA</th>
-                <th>GMF</th>
-                <th>Au</th>
+                <td colSpan={7} className="muted">
+                  {tr(q ? "prop.noMatch" : "prop.noData")}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {wcyRows.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="muted">
-                    {tr("prop.noMatch")}
-                  </td>
-                </tr>
-              )}
-              {wcyRows.map((w) => (
-                <tr key={w.id}>
-                  <td className="mono">{fmtUtc(w.received_at)}</td>
-                  <td>{w.hour}z</td>
-                  <td>{w.sfi}</td>
-                  <td>{w.a}</td>
-                  <td>{w.k}</td>
-                  <td>{w.r}</td>
-                  <td title={w.sa}>{describeWcyCode(w.sa, tr)}</td>
-                  <td title={w.gmf}>{describeWcyCode(w.gmf, tr)}</td>
-                  <td title={w.aurora}>{describeWcyCode(w.aurora, tr)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
+            )}
+            {wwvRows.map((w) => (
+              <tr key={w.id}>
+                <td className="mono">{fmtUtc(w.received_at)}</td>
+                <td>{w.hour}z</td>
+                <td>{w.sfi}</td>
+                <td>{w.a}</td>
+                <td>{w.k}</td>
+                <td>{w.forecast}</td>
+                <td className="mono">{w.sender}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-      <p className="muted">{tr("prop.note")}</p>
+        {wcy.length > 0 && (
+          <>
+            <h3>{tr("prop.wcyHistory")}</h3>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>{tr("col.utc")}</th>
+                  <th>{tr("col.hour")}</th>
+                  <th>SFI</th>
+                  <th>A</th>
+                  <th>K</th>
+                  <th>R</th>
+                  <th>SA</th>
+                  <th>GMF</th>
+                  <th>Au</th>
+                </tr>
+              </thead>
+              <tbody>
+                {wcyRows.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="muted">
+                      {tr("prop.noMatch")}
+                    </td>
+                  </tr>
+                )}
+                {wcyRows.map((w) => (
+                  <tr key={w.id}>
+                    <td className="mono">{fmtUtc(w.received_at)}</td>
+                    <td>{w.hour}z</td>
+                    <td>{w.sfi}</td>
+                    <td>{w.a}</td>
+                    <td>{w.k}</td>
+                    <td>{w.r}</td>
+                    <td title={w.sa}>{describeWcyCode(w.sa, tr)}</td>
+                    <td title={w.gmf}>{describeWcyCode(w.gmf, tr)}</td>
+                    <td title={w.aurora}>{describeWcyCode(w.aurora, tr)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        <p className="muted">{tr("prop.note")}</p>
+      </section>
     </div>
   );
 });
