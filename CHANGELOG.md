@@ -12,6 +12,10 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-25
+
+- Tabs: Propagation moved into the Spotting group (next to Map and Activity) and Announcements into Communication; the separate Bulletins group is gone.
+- Propagation: new **band forecast to a target** — pick a country and get a band × UTC-hour reliability grid from your QTH (short/long path, day/night strips), a quick VOACAP-style estimate.
 - Map: new **Band open from QTH** layer — pick a band and the map shades where it should be open from your QTH (green/yellow), based on the MUF along the path.
 - Map: the MUF layer can now show the measured ionosonde stations as dots (hover for MUFD / foF2).
 
