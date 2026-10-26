@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-10-26
+
 - Announcements spam filter: cluster-node self-adverts are hidden automatically,
   identical re-posts fold into a single row with a `×N` badge, and a **⊘**
   button mutes a message (and its look-alikes) or a whole station — mutes are
