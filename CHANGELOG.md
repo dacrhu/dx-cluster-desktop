@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-26
+
 ### Changed
 
 - Map: with CAT connected, changing band on the radio switches the "Band open from QTH" band to match, once per band change (you can still pick another band by hand).
