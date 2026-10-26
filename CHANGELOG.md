@@ -12,6 +12,10 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+### Changed
+
+- Map: with CAT connected, changing band on the radio switches the "Band open from QTH" band to match, once per band change (you can still pick another band by hand).
+
 ## [1.7.0] - 2026-10-25
 
 - Spots: new **Last QSO** button on the post-a-spot form — fills the callsign and frequency from your logger's most recent contact (an ADIF file, or QSOs sent over UDP by WSJT-X / JTDX or QLog; QLog setup is in the manual), so spotting a station that is not on the cluster yet needs no copy/paste. The comment is pre-filled as `CQ <mode>[/<submode>]`.

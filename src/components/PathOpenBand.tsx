@@ -16,6 +16,26 @@ export function PathOpenBand() {
   const band = useCluster((s) => s.mapPathOpenBand);
   const setBand = useCluster((s) => s.setMapPathOpenBand);
 
+  // The rig's band (CAT) — selecting the label keeps this from re-rendering on
+  // every VFO tick. When it *changes*, the map follows once; a manual pick in
+  // the popover afterwards sticks until the rig changes band again.
+  const rigBand = useCluster((s) => {
+    const khz = s.rigVfo ? s.rigVfo.freqHz / 1000 : null;
+    return khz == null
+      ? null
+      : (BANDMAP_BANDS.find((b) => khz >= b.lowKhz && khz <= b.highKhz)?.label ?? null);
+  });
+  const lastRigBand = useRef<string | null>(null);
+  useEffect(() => {
+    if (rigBand === lastRigBand.current) return;
+    const first = lastRigBand.current === null;
+    lastRigBand.current = rigBand;
+    // The first reading after connect only seeds the tracker (no jump on startup).
+    if (first || !rigBand) return;
+    setBand(rigBand);
+    void patchSettings({ mapPathOpenBand: rigBand });
+  }, [rigBand, setBand]);
+
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {

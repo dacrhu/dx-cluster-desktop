@@ -36,7 +36,7 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
   reference markers.
 - **A world map that shows propagation.** Grey-line, aurora, a measured-MUF layer
   blending a solar model with live ionosonde data (stations drawn as dots), a
-  **"is the band open from my QTH?"** layer for any band, band openings, a bearing
+  **"is the band open from my QTH?"** layer for any band (it follows your radio's band via CAT), band openings, a bearing
   rose, and a **"who is hearing me right now"** layer. A **band × hour forecast
   grid** to any target country (VOACAP-style estimate) lives on the Propagation tab.
 - **A band-activity matrix.** A band × continent grid with a sparkline and
