@@ -8,6 +8,28 @@ getrennte **Einschluss**- / **`-Ausschluss`**-Begriffe, abgeglichen gegen
 Absender, Ziel und Text — so blendet `-telnet` Zeilen aus, die telnet erwähnen,
 und `dxpedition -test` engt auf echte Bulletins ein.
 
+### Spam-Filter
+
+Cluster-Nodes werben gern immer wieder für sich selbst. Drei Ebenen halten das
+aus der Liste fern (die Daten werden nur ausgeblendet, nie gelöscht):
+
+- **Cluster-Node-Werbung ausblenden** (standardmäßig an) — erkennt Mitteilungen,
+  die einen Node bewerben (`telnet …`, `host:port`, eine IP-Adresse oder
+  „cluster" / „DXSpider" zusammen mit einer Web-Adresse).
+- **Wiederholungen bündeln (×N)** (standardmäßig an) — derselbe Text derselben
+  Station erscheint einmal mit einem `×N`-Abzeichen; beim Darüberfahren siehst
+  du alle Sendezeiten. Der von Nodes angehängte Datums-/Zeitstempel
+  (`26-Oct-2026 2100Z`) zählt beim Vergleich nicht.
+- **Manuell stummschalten** — fahre über eine Zeile und klicke **⊘**, um diese
+  Mitteilung und alle gleichartigen (beliebiger Absender) auszublenden, oder
+  **⊘⊘** für alles von dieser Station (alle SSIDs). Die Stummschaltungen bleiben
+  gespeichert. **Stummgeschaltet: N ▾** listet sie auf, dort lassen sie sich
+  entfernen; **Ausgeblendete zeigen (N)** listet die gefilterten Zeilen
+  abgeblendet.
+
+Ausgeblendete Mitteilungen und gebündelte Wiederholungen lassen den
+Aktivitätspunkt des Tabs nicht aufleuchten.
+
 Historische Mitteilungen können mit `SH/ANN` vom Node importiert werden.
 
 ## Ausbreitung (WWV / WCY)

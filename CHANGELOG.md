@@ -12,6 +12,11 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+- Announcements spam filter: cluster-node self-adverts are hidden automatically,
+  identical re-posts fold into a single row with a `×N` badge, and a **⊘**
+  button mutes a message (and its look-alikes) or a whole station — mutes are
+  saved. Hidden spam no longer lights the Announcements tab's activity dot.
+
 ## [1.8.0] - 2026-10-26
 
 ### Changed

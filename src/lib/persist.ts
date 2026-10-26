@@ -1,5 +1,6 @@
 import { load, type Store } from "@tauri-apps/plugin-store";
 import type { AlertHit, AlertRule } from "./alerts";
+import type { AnnMute } from "./announceFilter";
 import type { AlertSound } from "./notify";
 import type { LogFormat, NodeProfile, SpotFilter } from "./types";
 
@@ -34,6 +35,10 @@ export interface AppSettings {
    *  `alertHitTtlMin` is the pre-1.x name, still read on load. */
   spotMaxAgeMin: number;
   alertHitTtlMin?: number;
+  /** Announcements spam filter (see `lib/announceFilter.ts`). */
+  annHideNodeAds: boolean;
+  annCollapseRepeats: boolean;
+  annMuted: AnnMute[];
   /** Bandmap vertical zoom factor. */
   bandmapZoom: number;
   /** Band Activity panel: spotter-continent scope ("" = auto from QTH, "*" =
@@ -120,6 +125,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   updateSkippedVersion: "",
   lang: "system",
   spotMaxAgeMin: 0,
+  annHideNodeAds: true,
+  annCollapseRepeats: true,
+  annMuted: [],
   bandmapZoom: 1,
   bandActivityFrom: "",
   forecastTarget: "",

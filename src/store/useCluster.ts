@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import type { AlertHit, AlertRule } from "@/lib/alerts";
+import type { AnnMute } from "@/lib/announceFilter";
 import type { AlertSound } from "@/lib/notify";
 import type { LangPref } from "@/i18n";
 import type { CtyStatus, LastQso, LogFormat, PresetsStatus, RigVfo, UpdateInfo } from "@/lib/types";
@@ -58,6 +59,12 @@ interface ClusterStore {
   /** Global age cap in minutes for spot lists (Spots, Bandmap, alert hits);
    *  0 = show everything. Lives in the top bar. */
   spotMaxAgeMin: number;
+  /** Announcements: hide cluster-node self-adverts (heuristic). */
+  annHideNodeAds: boolean;
+  /** Announcements: fold identical re-posts (same sender + text) into one ×N row. */
+  annCollapseRepeats: boolean;
+  /** Announcements: user mute rules (text fingerprint / sender base call). */
+  annMuted: AnnMute[];
   /** Bumped on a timer so age-based views refresh while the feed is quiet. */
   ageTick: number;
   /** A search string the Spots panel should adopt (e.g. from an alert-hit click). */
@@ -252,6 +259,9 @@ interface ClusterStore {
   setMapGreylineWidth: (deg: number) => void;
   setMapAurora: (on: boolean) => void;
   setMapCondHud: (on: boolean) => void;
+  setAnnHideNodeAds: (on: boolean) => void;
+  setAnnCollapseRepeats: (on: boolean) => void;
+  setAnnMuted: (m: AnnMute[]) => void;
   setMapBandRose: (on: boolean) => void;
   setMapMuf: (on: boolean) => void;
   setMapMufStations: (on: boolean) => void;
@@ -321,6 +331,9 @@ export const useCluster = create<ClusterStore>((set) => ({
   alertMaxKm: 0,
   alertHits: [],
   spotMaxAgeMin: 0,
+  annHideNodeAds: true,
+  annCollapseRepeats: true,
+  annMuted: [],
   ageTick: 0,
   pendingSpotSearch: null,
   pendingTalk: null,
@@ -512,6 +525,9 @@ export const useCluster = create<ClusterStore>((set) => ({
     set({ mapGreylineWidth: Math.min(12, Math.max(3, Math.round(mapGreylineWidth) || 9)) }),
   setMapAurora: (mapAurora) => set({ mapAurora }),
   setMapCondHud: (mapCondHud) => set({ mapCondHud }),
+  setAnnHideNodeAds: (annHideNodeAds) => set({ annHideNodeAds }),
+  setAnnCollapseRepeats: (annCollapseRepeats) => set({ annCollapseRepeats }),
+  setAnnMuted: (annMuted) => set({ annMuted }),
   setMapBandRose: (mapBandRose) => set({ mapBandRose }),
   setMapMuf: (mapMuf) => set({ mapMuf }),
   setMapMufStations: (mapMufStations) => set({ mapMufStations }),

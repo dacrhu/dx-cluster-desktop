@@ -8,6 +8,24 @@ notices, DXpedition bulletins). The search box takes space-separated
 `-telnet` hides rows that mention telnet, `dxpedition -test` narrows to real
 bulletins.
 
+### Spam filter
+
+Cluster nodes love to advertise themselves, over and over. Three layers keep
+that out of the list (the data is only hidden, never deleted):
+
+- **Hide cluster-node adverts** (on by default) — recognises messages that
+  advertise a node (`telnet …`, `host:port`, an IP address, or "cluster" /
+  "DXSpider" together with a web address).
+- **Fold repeats (×N)** (on by default) — the same text from the same station
+  appears once, with a `×N` badge; hover it for every time it was posted. The
+  date/time stamp nodes add (`26-Oct-2026 2100Z`) is ignored when comparing.
+- **Mute by hand** — hover a row and click **⊘** to hide that message and all its
+  look-alikes (any sender), or **⊘⊘** to hide everything from that station (all
+  SSIDs). Mutes are saved. **Muted: N ▾** lists them so you can remove one;
+  **Show hidden (N)** lists the filtered rows, dimmed.
+
+Hidden and folded repeats do not light the tab's activity dot.
+
 Historical announcements can be imported from the node with `SH/ANN`.
 
 ## Propagation (WWV / WCY)

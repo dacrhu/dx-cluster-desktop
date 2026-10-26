@@ -8,6 +8,26 @@ node-értesítések, DXpedíció-bulletinek). A keresőmező szóközzel elvála
 ellen illesztve — tehát a `-telnet` elrejti a telnetet említő sorokat, a
 `dxpedition -test` a valódi bulletinekre szűkít.
 
+### Spamszűrő
+
+A cluster node-ok szeretik újra és újra reklámozni magukat. Három réteg tartja
+távol ezt a listából (az adat csak el van rejtve, nem törlődik):
+
+- **Cluster-node hirdetések elrejtése** (alapból be) — felismeri a node-ot
+  hirdető üzeneteket (`telnet …`, `host:port`, IP-cím, vagy a „cluster" /
+  „DXSpider" szó webcímmel együtt).
+- **Ismétlések összevonása (×N)** (alapból be) — ugyanaz a szöveg ugyanattól az
+  állomástól egyszer jelenik meg `×N` jelvénnyel; fölé víve látszik minden
+  feladási idő. Az összehasonlításnál a node-ok által hozzáfűzött dátum/idő
+  (`26-Oct-2026 2100Z`) nem számít.
+- **Kézi némítás** — vidd az egeret egy sor fölé, és kattints a **⊘**-ra: az
+  üzenet és minden hasonlója (bármely feladótól) rejtve lesz; a **⊘⊘** az adott
+  állomás mindent elrejti (minden SSID). A némítások megmaradnak. A **Némítva:
+  N ▾** felsorolja őket, innen törölhetők; az **Elrejtettek mutatása (N)** a
+  kiszűrt sorokat halványan mutatja.
+
+Az elrejtett és összevont ismétlések nem gyújtják fel a fül aktivitás-pontját.
+
 A történeti hirdetmények a node-ról importálhatók a `SH/ANN` paranccsal.
 
 ## Terjedés (WWV / WCY)

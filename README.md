@@ -27,6 +27,10 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
   there too, for when you want it. Worked someone who isn't spotted yet? One
   **Last QSO** click pulls the call and frequency from your logger (ADIF file,
   or WSJT-X / QLog / Log4OM / GridTracker over UDP) into the post-a-spot form.
+- **Announcements without the node spam.** Cluster nodes advertising themselves
+  are hidden automatically, identical re-posts fold into one `×N` row, and one
+  click on **⊘** mutes a message and all its look-alikes for good — the tab's
+  activity dot stays quiet for all of it.
 - **A spot table that keeps up.** Virtualised, instant local filtering, a proper
   [search query language](user-manual/en/search-query.md) (`dx:VP8 band:20m cw`,
   `re:/MM$`), freeze-on-scroll so incoming spots never move what you're reading,

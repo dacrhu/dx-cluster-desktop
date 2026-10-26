@@ -1,15 +1,28 @@
 import { memo, useMemo, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useCluster, useOnlineId } from "@/store/useCluster";
 import { fmtAge, fmtUtc } from "@/lib/format";
 import { matchTerms } from "@/lib/util";
+import { annMuteKey, useVisibleAnnouncements, type AnnMute } from "@/lib/announceFilter";
+import { patchSettings } from "@/lib/persist";
+import type { StoredAnnounce } from "@/lib/types";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
 import { runQuery } from "@/lib/ipc";
 
 export const AnnouncementsPanel = memo(function AnnouncementsPanel() {
   const tr = useT();
-  const announcements = useCluster((s) => s.announcements);
   const loadAnnouncements = useCluster((s) => s.loadAnnouncements);
+  const spam = useCluster(
+    useShallow((s) => ({
+      hideNodeAds: s.annHideNodeAds,
+      collapseRepeats: s.annCollapseRepeats,
+      muted: s.annMuted,
+      setHideNodeAds: s.setAnnHideNodeAds,
+      setCollapseRepeats: s.setAnnCollapseRepeats,
+      setMuted: s.setAnnMuted,
+    })),
+  );
   const onlineId = useOnlineId();
 
   const [tab, setTab] = useState<"all" | "wx">("all");
@@ -20,6 +33,22 @@ export const AnnouncementsPanel = memo(function AnnouncementsPanel() {
   const [sent, setSent] = useState("");
   const [fetching, setFetching] = useState(false);
   const [fetchMsg, setFetchMsg] = useState("");
+  const [showHidden, setShowHidden] = useState(false);
+  const [showMuted, setShowMuted] = useState(false);
+  const filtered = useVisibleAnnouncements(showHidden);
+
+  function mute(a: StoredAnnounce, kind: AnnMute["kind"]) {
+    const key = annMuteKey(a, kind);
+    if (!key || spam.muted.some((m) => m.kind === kind && m.key === key)) return;
+    const next = [...spam.muted, { kind, key }];
+    spam.setMuted(next);
+    void patchSettings({ annMuted: next });
+  }
+  function unmute(m: AnnMute) {
+    const next = spam.muted.filter((x) => !(x.kind === m.kind && x.key === m.key));
+    spam.setMuted(next);
+    void patchSettings({ annMuted: next });
+  }
 
   async function fetchHistory() {
     if (!onlineId) return;
@@ -43,12 +72,12 @@ export const AnnouncementsPanel = memo(function AnnouncementsPanel() {
 
   const rows = useMemo(() => {
     const q = search.trim();
-    return announcements.filter((a) => {
+    return filtered.rows.filter(({ a }) => {
       if (tab === "wx" && !a.is_wx) return false;
       if (q && !matchTerms(`${a.sender} ${a.target} ${a.text}`, q)) return false;
       return true;
     });
-  }, [announcements, tab, search]);
+  }, [filtered, tab, search]);
 
   async function send() {
     if (!onlineId || !text.trim()) return;
@@ -115,6 +144,61 @@ export const AnnouncementsPanel = memo(function AnnouncementsPanel() {
         spellCheck={false}
       />
 
+      <div className="ann-filterbar">
+        <label className="inline">
+          <input
+            type="checkbox"
+            checked={spam.hideNodeAds}
+            onChange={(e) => {
+              spam.setHideNodeAds(e.target.checked);
+              void patchSettings({ annHideNodeAds: e.target.checked });
+            }}
+          />
+          {tr("ann.hideNodeAds")}
+        </label>
+        <label className="inline">
+          <input
+            type="checkbox"
+            checked={spam.collapseRepeats}
+            onChange={(e) => {
+              spam.setCollapseRepeats(e.target.checked);
+              void patchSettings({ annCollapseRepeats: e.target.checked });
+            }}
+          />
+          {tr("ann.collapseRepeats")}
+        </label>
+        {filtered.hidden > 0 && (
+          <label className="inline">
+            <input
+              type="checkbox"
+              checked={showHidden}
+              onChange={(e) => setShowHidden(e.target.checked)}
+            />
+            {tr("ann.showHidden", { n: filtered.hidden })}
+          </label>
+        )}
+        <span className="grow" />
+        <button onClick={() => setShowMuted((v) => !v)}>
+          {tr("ann.mutedRules", { n: spam.muted.length })}
+        </button>
+      </div>
+      {showMuted && (
+        <ul className="ann-muted">
+          {spam.muted.length === 0 && <li className="muted">{tr("ann.mutedNone")}</li>}
+          {spam.muted.map((m) => (
+            <li key={`${m.kind}:${m.key}`}>
+              <span className="tag">
+                {tr(m.kind === "sender" ? "ann.muteSenderTag" : "ann.muteTextTag")}
+              </span>
+              <span className="mono grow">{m.key}</span>
+              <button title={tr("ann.unmute")} onClick={() => unmute(m)}>
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <table className="data-table">
         <thead>
           <tr>
@@ -123,23 +207,54 @@ export const AnnouncementsPanel = memo(function AnnouncementsPanel() {
             <th>{tr("col.sender")}</th>
             <th>{tr("col.target")}</th>
             <th>{tr("col.text")}</th>
+            <th />
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 && (
             <tr>
-              <td colSpan={5} className="muted">
+              <td colSpan={6} className="muted">
                 {tr("ann.none")}
               </td>
             </tr>
           )}
-          {rows.map((a) => (
-            <tr key={a.id} className={a.is_wx ? "wx" : ""}>
+          {rows.map(({ a, count, times, spam: isSpam }) => (
+            <tr key={a.id} className={`${a.is_wx ? "wx" : ""}${isSpam ? " ann-spam" : ""}`}>
               <td>{fmtAge(a.received_at)}</td>
               <td className="mono">{fmtUtc(a.received_at)}</td>
               <td className="mono">{a.sender}</td>
               <td>{a.target}</td>
-              <td>{a.text}</td>
+              <td>
+                {a.text}
+                {count > 1 && (
+                  <span
+                    className="ann-count"
+                    title={times.map((t) => `${fmtUtc(t)} (${fmtAge(t)})`).join("\n")}
+                  >
+                    ×{count}
+                  </span>
+                )}
+              </td>
+              <td className="ann-actions">
+                {!a.is_wx && (
+                  <>
+                    <button
+                      className="ann-mute"
+                      title={tr("ann.muteText")}
+                      onClick={() => mute(a, "text")}
+                    >
+                      ⊘
+                    </button>
+                    <button
+                      className="ann-mute"
+                      title={tr("ann.muteSender", { call: annMuteKey(a, "sender") })}
+                      onClick={() => mute(a, "sender")}
+                    >
+                      ⊘⊘
+                    </button>
+                  </>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>

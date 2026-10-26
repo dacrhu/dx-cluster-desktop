@@ -37,6 +37,7 @@ import { AlertsPanel } from "@/panels/AlertsPanel";
 import { UsersPanel } from "@/panels/UsersPanel";
 import { RawConsolePanel } from "@/panels/RawConsolePanel";
 import { AboutPanel } from "@/panels/AboutPanel";
+import { useVisibleAnnouncements } from "@/lib/announceFilter";
 
 type TabId =
   | "connection"
@@ -143,7 +144,6 @@ export function App() {
   const store = useCluster(
     useShallow((s) => ({
       alertHits: s.alertHits,
-      announcements: s.announcements,
       catEnabled: s.catEnabled,
       chat: s.chat,
       connections: s.connections,
@@ -164,6 +164,8 @@ export function App() {
       wwv: s.wwv,
     })),
   );
+  // Spam / repeats don't light the Announcements dot.
+  const annActivityTs = useVisibleAnnouncements().activityTs;
   const sendTargets = useSendTargets();
   const tr = useT();
   const bootstrapped = useRef(false);
@@ -305,6 +307,9 @@ export function App() {
       c().setMapGreylineWidth(settings.mapGreylineWidth ?? 9);
       c().setMapAurora(settings.mapAurora ?? false);
       c().setMapCondHud(settings.mapCondHud ?? true);
+      c().setAnnHideNodeAds(settings.annHideNodeAds ?? true);
+      c().setAnnCollapseRepeats(settings.annCollapseRepeats ?? true);
+      c().setAnnMuted(settings.annMuted ?? []);
       c().setMapBandRose(settings.mapBandRose ?? false);
       c().setMapMuf(settings.mapMuf ?? false);
       c().setMapMufStations(settings.mapMufStations ?? true);
@@ -426,7 +431,7 @@ export function App() {
   // Newest activity timestamp (ms) per tab, for the "unread" dot.
   const activity: Partial<Record<TabId, number>> = {
     spots: store.spotsMatchTs,
-    announcements: (store.announcements[0]?.received_at ?? 0) * 1000,
+    announcements: annActivityTs * 1000,
     propagation: Math.max(
       (store.wwv[0]?.received_at ?? 0) * 1000,
       (store.wcy[0]?.received_at ?? 0) * 1000,
