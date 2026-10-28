@@ -172,11 +172,53 @@ function Lane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [radioKhz, active, follow, n, rowH, laneH]);
 
+  // Scroll anchor: the station row at the top of the viewport and how far the
+  // viewport is scrolled into it. New spots are inserted live (no frozen
+  // snapshot), so after every layout change the scroll offset is re-derived
+  // from this row's new position — what you're reading stays put while new
+  // stations still appear around it.
+  const anchor = useRef<{ key: string; offset: number } | null>(null);
+  function captureAnchor(el: HTMLDivElement) {
+    if (el.scrollTop <= 1 || groups.length === 0) {
+      anchor.current = null;
+      return;
+    }
+    let idx = 0;
+    for (let i = 0; i < groups.length; i++) {
+      if (rowTop[i] <= el.scrollTop) idx = i;
+      else break;
+    }
+    anchor.current = { key: groups[idx].key, offset: el.scrollTop - rowTop[idx] };
+  }
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    // The VFO-follow effect above owns the scroll position of a tracked lane.
+    if (active && follow && radioKhz != null) return;
+    const a = anchor.current;
+    if (a) {
+      const idx = groups.findIndex((g) => g.key === a.key);
+      if (idx >= 0) {
+        const want = Math.max(
+          0,
+          Math.min(rowTop[idx] + a.offset, el.scrollHeight - el.clientHeight),
+        );
+        if (Math.abs(el.scrollTop - want) > 1) {
+          programmatic.current = true;
+          el.scrollTop = want;
+        }
+      }
+    }
+    captureAnchor(el);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups, rowTop, laneH]);
+
   function onScroll() {
     if (programmatic.current) {
       programmatic.current = false;
       return;
     }
+    if (bodyRef.current) captureAnchor(bodyRef.current);
     if (active) onManualScroll();
   }
 
@@ -436,19 +478,14 @@ export const Bandmap = memo(function Bandmap({
       ? (lanes.find((b) => radioKhz >= b.lowKhz && radioKhz <= b.highKhz)?.label ?? null)
       : null;
 
-  // The active lane tracks the VFO by default; a manual scroll pauses that and
-  // freezes the spot set so nothing shifts under the reader. A new band (or the
-  // ⌖ button) resumes tracking.
+  // The active lane tracks the VFO by default; a manual scroll pauses that (the
+  // lane keeps its scroll anchor, see `Lane`, while spots keep arriving live).
+  // A new band (or the ⌖ button) resumes tracking.
   const [follow, setFollow] = useState(true);
-  const [frozen, setFrozen] = useState<EnrichedSpot[] | null>(null);
   useEffect(() => {
     setFollow(true);
-    setFrozen(null);
   }, [activeBand]);
-  // A deliberate change to the shared quick-filter (search query, band/mode
-  // chips, skimmer/WSJT-X/saved-filter toggles, age cap) must also drop the
-  // frozen snapshot — otherwise a lane the user scrolled while following the
-  // VFO keeps showing the pre-filter spot set and the search looks broken.
+  // A deliberate change to the shared quick-filter resumes VFO tracking.
   const filterSig = useCluster(
     (s) =>
       `${s.spotQuery} ${s.spotBands.join(",")} ${s.spotModes.join(",")} ${s.spotShowSkimmer} ${s.spotShowWsjtx} ${s.filtersEnabled} ${s.spotMaxAgeMin}`,
@@ -456,9 +493,7 @@ export const Bandmap = memo(function Bandmap({
   const savedFilters = useCluster((s) => s.filters);
   useEffect(() => {
     setFollow(true);
-    setFrozen(null);
   }, [filterSig, savedFilters]);
-  const shown = frozen ?? spots;
 
   return (
     <div
@@ -471,7 +506,7 @@ export const Bandmap = memo(function Bandmap({
         <Lane
           key={b.label}
           band={b}
-          spots={shown}
+          spots={spots}
           rules={activeRules}
           availH={availH}
           zoom={zoom}
@@ -494,14 +529,10 @@ export const Bandmap = memo(function Bandmap({
           dimmed={activeBand != null && b.label !== activeBand}
           follow={follow}
           onManualScroll={() => {
-            if (follow) {
-              setFollow(false);
-              setFrozen(spots);
-            }
+            if (follow) setFollow(false);
           }}
           onRecenter={() => {
             setFollow(true);
-            setFrozen(null);
           }}
           onBandSelect={
             radioKhz != null
