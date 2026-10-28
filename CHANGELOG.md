@@ -12,6 +12,14 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-10-28
+
+- Bandmap: new stations (including a spot you just posted) no longer stay
+  hidden after you scroll a lane. The lane used to freeze its spot list on a
+  manual scroll and only a filter change released it; now the list is always
+  live and the station you're reading stays put on screen while new ones
+  appear around it.
+
 ## [1.9.0] - 2026-10-26
 
 - Announcements spam filter: cluster-node self-adverts are hidden automatically,
