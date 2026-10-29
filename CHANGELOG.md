@@ -12,6 +12,9 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+- Spot cards (Spots, Bandmap, Map): new **View on QRZ.com** button that opens the
+  station's QRZ.com callbook page in your browser.
+
 ## [1.9.1] - 2026-10-28
 
 - Bandmap: new stations (including a spot you just posted) no longer stay

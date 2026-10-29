@@ -543,6 +543,7 @@
   "spots.menu.tuneRadio": "Rádió ráhangolása",
   "spots.menu.tuneSplit": "Split — adás {f} kHz-en",
   "spots.menu.prepQso": "QSO előkészítése a naplóban",
+  "spots.menu.viewQrz": "Megtekintés itt: QRZ.com",
   "rig.state.off": "CAT ki",
   "rig.state.connecting": "csatlakozás…",
   "rig.state.connected": "csatlakozva",

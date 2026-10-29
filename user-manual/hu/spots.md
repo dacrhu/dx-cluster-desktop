@@ -48,6 +48,7 @@ plusz műveleti gombokat:
   észlelhető.
 - **QSO előkészítése** — a spot átadása a naplóprogramodnak (kell hozzá
   [log-push](rig-and-logging.md)).
+- **Megtekintés itt: QRZ.com** — megnyitja az állomás QRZ.com lapját a böngésződben.
 - A közös **műveleti menü** (lásd lentebb).
 
 ## Jobb klikk: a műveleti menü

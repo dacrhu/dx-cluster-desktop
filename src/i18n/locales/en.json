@@ -543,6 +543,7 @@
   "spots.menu.tuneRadio": "Tune the radio here",
   "spots.menu.tuneSplit": "Split — TX on {f} kHz",
   "spots.menu.prepQso": "Prepare a QSO in the logger",
+  "spots.menu.viewQrz": "View on QRZ.com",
   "rig.state.off": "CAT off",
   "rig.state.connecting": "connecting…",
   "rig.state.connected": "connected",

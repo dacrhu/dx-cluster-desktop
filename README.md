@@ -64,6 +64,8 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
   JTAlert / GridTracker. It drives the rig through Hamlib's `rigctld` (the one
   piece you install yourself); on a serial rig the app starts and supervises it
   for you.
+- **QRZ.com in one click.** Every spot card has a "View on QRZ.com" button that
+  opens the station's callbook page.
 - **Extra ears, if you want them.** Optional read-only feeds: the Reverse Beacon
   Network, PSK Reporter ("who hears me"), and a local WSJT-X UDP listener
   ("what my radio hears").

@@ -543,6 +543,7 @@
   "spots.menu.tuneRadio": "Funkgerät hierauf abstimmen",
   "spots.menu.tuneSplit": "Split — Senden auf {f} kHz",
   "spots.menu.prepQso": "QSO im Logprogramm vorbereiten",
+  "spots.menu.viewQrz": "Auf QRZ.com ansehen",
   "rig.state.off": "CAT aus",
   "rig.state.connecting": "verbinde…",
   "rig.state.connected": "verbunden",

@@ -4,7 +4,7 @@ import { useT } from "@/i18n";
 import { useCluster } from "@/store/useCluster";
 import { modeClass, modeLabel } from "@/lib/mode";
 import { fmtAge } from "@/lib/format";
-import { prepareQso, tuneSplitToSpot, tuneToSpot } from "@/lib/engage";
+import { openQrz, prepareQso, tuneSplitToSpot, tuneToSpot } from "@/lib/engage";
 import { qsxFromComment } from "@/lib/split";
 import type { EnrichedSpot, SpotAction } from "@/lib/types";
 
@@ -71,6 +71,7 @@ export function SpotPopover({
   // Provisional position; corrected to the card's real size before paint so it
   // never spills off-screen (e.g. clicking a spot at the bottom of a band lane).
   const [pos, setPos] = useState({ left: x + 8, top: y + 8 });
+  const [showActions, setShowActions] = useState(false);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -80,7 +81,7 @@ export function SpotPopover({
       // flip above the click if it wouldn't fit below
       top: Math.max(8, Math.min(y + 8, window.innerHeight - height - 8)),
     });
-  }, [x, y]);
+  }, [x, y, showActions]);
 
   // Rendered into <body> — not as a descendant of the Spots table / Bandmap
   // lanes — so it always paints above them regardless of any ancestor's own
@@ -104,7 +105,7 @@ export function SpotPopover({
         ))}
       </dl>
       {spot.comment && <p className="spot-pop-comment">{spot.comment}</p>}
-      {(catEnabled || logPushEnabled) && (
+      {
         <div className="spot-pop-engage">
           {catEnabled && (
             <button className="primary" onClick={() => void tuneToSpot(spot)}>
@@ -118,14 +119,23 @@ export function SpotPopover({
             </button>
           )}
           {logPushEnabled && (
-            <button className="primary" onClick={() => void prepareQso(spot)}>
+            <button className="qso-btn" onClick={() => void prepareQso(spot)}>
               <LogIcon />
               {tr("spots.menu.prepQso")}
             </button>
           )}
+          <button className="qrz-btn" onClick={() => void openQrz(spot.dx_call)}>
+            <QrzIcon />
+            {tr("spots.menu.viewQrz")}
+          </button>
         </div>
-      )}
+      }
       {actions.length > 0 && (
+        <button className="wm-popup-actions" onClick={() => setShowActions((v) => !v)}>
+          {tr("map.spotActions")} {showActions ? "▴" : "▾"}
+        </button>
+      )}
+      {actions.length > 0 && showActions && (
         <ul className="spot-pop-actions">
           {actions.map((a) => (
             <li
@@ -182,6 +192,26 @@ export function LogIcon() {
     >
       <rect x="2.5" y="2.5" width="7.5" height="11" rx="1" />
       <path d="M6.5 8h6.5M10.5 5.5 13.5 8l-3 2.5" />
+    </svg>
+  );
+}
+
+/** Globe — used on the "View on QRZ.com" button. */
+export function QrzIcon() {
+  return (
+    <svg
+      className="spot-pop-btn-icon"
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    >
+      <circle cx="8" cy="8" r="6" />
+      <path d="M2 8h12" />
+      <path d="M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12" />
     </svg>
   );
 }

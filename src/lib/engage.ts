@@ -11,6 +11,7 @@ async function raiseLoggerIfWanted(): Promise<void> {
 }
 
 import { useCluster } from "@/store/useCluster";
+import { baseCall } from "@/lib/grid";
 import * as ipc from "@/lib/ipc";
 import { modeArg, modeLabel } from "@/lib/mode";
 import { qsxFromComment } from "@/lib/split";
@@ -98,4 +99,13 @@ export async function testLogPush(): Promise<void> {
     myGrid: s.homeLocator || null,
   });
   await raiseLoggerIfWanted();
+}
+
+/** Open the QRZ.com callbook page for a spotted call in the system browser. */
+export async function openQrz(call: string): Promise<void> {
+  try {
+    await ipc.openExternal(`https://www.qrz.com/db/${encodeURIComponent(baseCall(call))}`);
+  } catch (e) {
+    console.warn("openQrz failed", e);
+  }
 }

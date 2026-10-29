@@ -39,9 +39,9 @@ import { bandCenterMhz, pathMuf, reachContours, REACH_THRESHOLDS } from "@/lib/r
 import { bandOpenings, OPENINGS_RADIUS_MAX_KM } from "@/lib/openings";
 import { bandRose, ROSE_SECTORS } from "@/lib/bandRose";
 import { fmtAge } from "@/lib/format";
-import { prepareQso, tuneSplitToSpot, tuneToSpot } from "@/lib/engage";
+import { openQrz, prepareQso, tuneSplitToSpot, tuneToSpot } from "@/lib/engage";
 import { qsxFromComment } from "@/lib/split";
-import { LogIcon, TuneIcon } from "@/components/SpotPopover";
+import { LogIcon, QrzIcon, TuneIcon } from "@/components/SpotPopover";
 import { useCluster } from "@/store/useCluster";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
@@ -972,7 +972,7 @@ export const WorldMap = memo(function WorldMap({
               ) : (
                 s.comment && <p className="wm-popup-comment">{s.comment}</p>
               )}
-              {(catEnabled || logPushEnabled) && (
+              {
                 <div className="wm-popup-engage">
                   {catEnabled && (
                     <button className="primary" onClick={() => void tuneToSpot(s)}>
@@ -986,13 +986,17 @@ export const WorldMap = memo(function WorldMap({
                     </button>
                   )}
                   {logPushEnabled && (
-                    <button className="primary" onClick={() => void prepareQso(s)}>
+                    <button className="qso-btn" onClick={() => void prepareQso(s)}>
                       <LogIcon />
                       {tr("spots.menu.prepQso")}
                     </button>
                   )}
+                  <button className="qrz-btn" onClick={() => void openQrz(s.dx_call)}>
+                    <QrzIcon />
+                    {tr("spots.menu.viewQrz")}
+                  </button>
                 </div>
-              )}
+              }
               {actions.length > 0 && (
                 <button
                   className="wm-popup-actions"

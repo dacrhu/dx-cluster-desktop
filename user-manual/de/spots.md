@@ -49,6 +49,7 @@ DXCC, Spotter, Richtung, Alter und Kommentar zu öffnen, plus Aktionsschaltfläc
   wird.
 - **QSO vorbereiten** — den Spot an dein Logprogramm übergeben (benötigt
   [Log-Push](rig-and-logging.md)).
+- **Auf QRZ.com ansehen** — öffnet die QRZ.com-Seite der Station im Browser.
 - Das geteilte **Aktionsmenü** (siehe unten).
 
 ## Rechtsklick: das Aktionsmenü

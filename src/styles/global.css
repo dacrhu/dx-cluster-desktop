@@ -346,6 +346,7 @@ button.tab.active .tab-dot {
 }
 .wm-popup-engage {
   display: flex;
+  flex-direction: column;
   gap: 6px;
   margin-top: 6px;
 }
@@ -3145,4 +3146,17 @@ button.chip.active {
 .prop-data > h3 {
   margin: 0;
   font-size: 14px;
+}
+
+.spot-pop-engage button.qso-btn,
+.wm-popup-engage button.qso-btn {
+  background: var(--ok);
+  border-color: transparent;
+  color: #fff;
+}
+.spot-pop-engage button.qrz-btn,
+.wm-popup-engage button.qrz-btn {
+  background: var(--warn);
+  border-color: transparent;
+  color: #fff;
 }

@@ -45,6 +45,7 @@ spotter, heading, age and comment, plus action buttons:
 - **Split — TX on …** — only shown when a QSX/split is detected in the comment.
 - **Prepare QSO** — hand the spot to your logging program (needs
   [log push](rig-and-logging.md)).
+- **View on QRZ.com** — open the station's QRZ.com callbook page in your browser.
 - The shared **action menu** (see below).
 
 ## Right-click: the action menu
