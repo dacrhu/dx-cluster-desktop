@@ -12,6 +12,11 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-10-30
+
+- Map: the **View on QRZ.com** button on a "reports of me" marker (RBN / PSK Reporter)
+  now opens the spotter's page instead of your own.
+
 ## [1.10.0] - 2026-10-29
 
 - Spot cards (Spots, Bandmap, Map): new **View on QRZ.com** button that opens the
