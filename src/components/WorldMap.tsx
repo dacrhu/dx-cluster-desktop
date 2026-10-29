@@ -991,7 +991,10 @@ export const WorldMap = memo(function WorldMap({
                       {tr("spots.menu.prepQso")}
                     </button>
                   )}
-                  <button className="qrz-btn" onClick={() => void openQrz(s.dx_call)}>
+                  <button
+                    className="qrz-btn"
+                    onClick={() => void openQrz(rep ? s.spotter : s.dx_call)}
+                  >
                     <QrzIcon />
                     {tr("spots.menu.viewQrz")}
                   </button>
