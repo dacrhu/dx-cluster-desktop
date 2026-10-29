@@ -12,8 +12,12 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-10-29
+
 - Spot cards (Spots, Bandmap, Map): new **View on QRZ.com** button that opens the
   station's QRZ.com callbook page in your browser.
+- Spot cards: the three action buttons now have distinct colours and stack on the
+  Map card too; the **Actions** dropdown is now on the Spots and Bandmap cards.
 
 ## [1.9.1] - 2026-10-28
 
