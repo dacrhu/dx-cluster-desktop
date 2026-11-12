@@ -89,6 +89,7 @@ function Lane({
 }) {
   const tr = useT();
   const bodyRef = useRef<HTMLDivElement>(null);
+  const [list, setList] = useState<{ x: number; y: number; items: EnrichedSpot[] } | null>(null);
   const programmatic = useRef(false);
 
   // One row per station, frequency-ordered: spots of the same call within the
@@ -184,7 +185,7 @@ function Lane({
         : (specialTop.get(khz) ?? yOf(khz));
 
   // Linear mode: spots sit at their true frequency; those that would overlap
-  // are spread over side-by-side columns (max 4, the rest are counted, not drawn).
+  // are spread over side-by-side columns (max 3, the rest collapse into a clickable +N chip).
   const linearPos = useMemo(() => {
     if (!linear) return null;
     const tops = groups.map((g) =>
@@ -192,9 +193,22 @@ function Lane({
     );
     const cols = packColumns(
       tops.map((y) => ({ y, h: rowH })),
-      4,
+      3,
     );
-    return { tops, cols, hidden: cols.filter((c) => c.col < 0).length };
+    // Overflowed clusters: one "+N" chip spanning the cluster, listing every station.
+    const chips = new Map<number, { top: number; bottom: number; cols: number; idx: number[] }>();
+    cols.forEach((c, i) => {
+      let ch = chips.get(c.cluster);
+      if (!ch)
+        chips.set(
+          c.cluster,
+          (ch = { top: tops[i], bottom: tops[i] + rowH, cols: c.cols, idx: [] }),
+        );
+      ch.bottom = Math.max(ch.bottom, tops[i] + rowH);
+      ch.idx.push(i);
+    });
+    const overflow = [...chips.values()].filter((c) => c.idx.some((i) => cols[i].col < 0));
+    return { tops, cols, hidden: cols.filter((c) => c.col < 0).length, overflow };
   }, [linear, groups, band, span, laneH, rowH]);
 
   // The station the radio is sitting on (VFO exactly on its frequency, ±0.05 kHz), if any.
@@ -328,6 +342,33 @@ function Lane({
           {linearPos?.hidden ? ` (+${linearPos.hidden})` : ""}
         </span>
       </div>
+      {list &&
+        createPortal(
+          <>
+            <div className="bandmap-list-backdrop" onClick={() => setList(null)} />
+            <ul
+              className="context-menu bandmap-cluster-list"
+              style={{
+                left: Math.min(list.x, window.innerWidth - 240),
+                top: Math.min(list.y, window.innerHeight - 320),
+              }}
+            >
+              {list.items.map((sp) => (
+                <li
+                  key={sp.id}
+                  onClick={(e) => {
+                    setList(null);
+                    onSelect(e, sp);
+                  }}
+                >
+                  <span className="mono">{sp.freq_khz.toFixed(1)}</span> {sp.dx_call}{" "}
+                  <span className="muted">{modeLabel(sp.mode, sp.comment)}</span>
+                </li>
+              ))}
+            </ul>
+          </>,
+          document.body,
+        )}
       {outside && <div className="bandmap-oob-flag">⚠ {tr("bandmap.outOfBand")}</div>}
       <div className="bandmap-lane-body" ref={bodyRef} onScroll={onScroll}>
         <div className="bandmap-scale" style={{ height: laneH }}>
@@ -371,10 +412,14 @@ function Lane({
           {specials.map((f) => (
             <div
               key={`${f.kind}-${f.khz}`}
-              className="bandmap-row"
-              style={{ top: specialY(f.khz), height: specialRowH }}
+              className={`bandmap-row${linear ? " linear" : ""}`}
+              style={
+                linear
+                  ? { top: specialY(f.khz), height: specialRowH, left: "var(--bm-lg)" }
+                  : { top: specialY(f.khz), height: specialRowH }
+              }
             >
-              <span className="bandmap-rowfreq mono">{f.khz.toFixed(1)}</span>
+              {!linear && <span className="bandmap-rowfreq mono">{f.khz.toFixed(1)}</span>}
               <button
                 className={`bandmap-spot bandmap-spot-special special-${f.kind}`}
                 style={f.color ? ({ "--marker-color": f.color } as CSSProperties) : undefined}
@@ -412,8 +457,8 @@ function Lane({
                       : {
                           top: linearPos.tops[i],
                           height: rowH,
-                          left: `calc(30px + (100% - 30px) * ${linearPos.cols[i].col} / ${linearPos.cols[i].cols})`,
-                          width: `calc((100% - 30px) / ${linearPos.cols[i].cols})`,
+                          left: `calc(var(--bm-lg) + (100% - var(--bm-lg)) * ${linearPos.cols[i].col} / ${linearPos.cols[i].cols})`,
+                          width: `calc((100% - var(--bm-lg)) / ${linearPos.cols[i].cols})`,
                           right: "auto",
                         }
                     : { top: rowTop[i], height: rowH }
@@ -435,6 +480,30 @@ function Lane({
               </div>
             );
           })}
+          {linearPos?.overflow.map((c) => (
+            <div
+              key={`chip-${c.idx[0]}`}
+              className="bandmap-row linear"
+              style={{
+                top: c.top,
+                height: Math.max(rowH, c.bottom - c.top),
+                left: `calc(var(--bm-lg) + (100% - var(--bm-lg)) * ${c.cols - 1} / ${c.cols})`,
+                width: `calc((100% - var(--bm-lg)) / ${c.cols})`,
+                right: "auto",
+              }}
+            >
+              <button
+                className="bandmap-spot bandmap-chip"
+                title={tr("bandmap.clusterHint", { n: c.idx.length })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setList({ x: e.clientX, y: e.clientY, items: c.idx.map((i) => groups[i].rep) });
+                }}
+              >
+                +{c.idx.filter((i) => linearPos.cols[i].col < 0).length}
+              </button>
+            </div>
+          ))}
           {radioKhz != null && radioKhz >= band.lowKhz && radioKhz <= band.highKhz && (
             <div className="bandmap-radio-cursor" style={{ top: yOf(radioKhz) }} />
           )}

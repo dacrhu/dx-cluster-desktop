@@ -12,6 +12,8 @@ export interface PackResult {
   col: number;
   /** Number of columns in this item's overlap cluster (for the width). */
   cols: number;
+  /** Index of the overlap cluster the item belongs to. */
+  cluster: number;
 }
 
 /**
@@ -25,24 +27,35 @@ export function packColumns(items: PackItem[], maxCols: number): PackResult[] {
   const out: PackResult[] = new Array(items.length);
   let colEnd: number[] = [];
   let cluster: number[] = [];
+  let hidden: number[] = [];
   let clusterCols = 1;
+  let clusterId = -1;
+  let hasHidden = false;
   const flush = () => {
-    for (const i of cluster) out[i].cols = clusterCols;
+    // A cluster that overflowed gets one extra slot, used for the "+N" chip.
+    const cols = hasHidden ? maxCols + 1 : clusterCols;
+    for (const i of cluster) out[i].cols = cols;
+    for (const i of hidden) out[i].cols = cols;
+    hasHidden = false;
     cluster = [];
+    hidden = [];
     clusterCols = 1;
     colEnd = [];
   };
   items.forEach((it, i) => {
-    if (cluster.length && colEnd.every((e) => e <= it.y)) flush();
+    if ((cluster.length || hidden.length) && colEnd.every((e) => e <= it.y)) flush();
+    if (!cluster.length && !hidden.length) clusterId++;
     let col = colEnd.findIndex((e) => e <= it.y);
     if (col === -1 && colEnd.length < maxCols) col = colEnd.length;
     if (col === -1) {
-      out[i] = { col: -1, cols: 1 };
+      out[i] = { col: -1, cols: 1, cluster: clusterId };
+      hidden.push(i);
+      hasHidden = true;
       return;
     }
     colEnd[col] = it.y + it.h;
     clusterCols = Math.max(clusterCols, col + 1);
-    out[i] = { col, cols: 1 };
+    out[i] = { col, cols: 1, cluster: clusterId };
     cluster.push(i);
   });
   flush();

@@ -3359,3 +3359,23 @@ button.chip.active {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.bandmap-lane {
+  --bm-lg: calc(14px + 22px * var(--bm-scale, 1));
+}
+.bandmap-chip {
+  justify-content: center;
+  font-weight: 700;
+  color: var(--accent);
+  border-style: dashed;
+}
+.bandmap-cluster-list {
+  max-height: 300px;
+  overflow-y: auto;
+  min-width: 200px;
+  z-index: 1001;
+}
+.bandmap-list-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}

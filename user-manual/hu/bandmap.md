@@ -33,8 +33,8 @@ beállítás megjegyződik.
 **Lineáris skála** (jelölőnégyzet az eszköztáron): alapból minden állomás külön sort
 kap, így a sáv üres szakaszai kimaradnak. Bekapcsolt _Lineáris skála_ esetén a sáv
 arányos frekvenciatengely kHz-vonalzóval — az üres részek látszanak —, az egymást
-fedő állomások pedig egymás mellé kerülnek (legfeljebb négy oszlop; a többit a sáv
-fejlécében számolja, nagyítással láthatóvá válnak). A beállítás megjegyződik.
+fedő állomások pedig egymás mellé kerülnek (legfeljebb három oszlop; ahol több
+nem fér el, egy **+N** jelölő kattintásra felsorolja az ott lévő összes állomást). A beállítás megjegyződik.
 
 ## Speciális referenciajelölők
 
