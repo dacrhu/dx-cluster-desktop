@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-12
+
 - Bandmap: new **Linear scale** option — the band is drawn as a true proportional frequency
   axis with a kHz ruler, so empty stretches stay visible; overlapping stations sit side by side.
 - Bandmap: every lane now marks its **band start and end** for your **IARU region** (auto from
