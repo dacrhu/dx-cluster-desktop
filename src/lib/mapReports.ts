@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useCluster } from "@/store/useCluster";
 import { baseCall, spotterLonLat, type LonLat } from "./grid";
 import { useFrozenWhenInactive } from "./util";
+import { BANDMAP_BANDS } from "./bands";
 import type { EnrichedSpot } from "./types";
 
 /** Base callsigns of every configured connection profile ("who am I"). */
@@ -87,6 +88,13 @@ export function useMyReports(active = true): MyReport[] {
   const maxAgeMin = useCluster((s) => s.spotMaxAgeMin);
   const ageTick = useCluster((s) => s.ageTick);
   const myCalls = useMyCalls();
+  // The band the rig is on (CAT connected) — selecting the label keeps this from
+  // re-rendering on every VFO tick. `null` = no CAT info → show every band.
+  const rigBand = useCluster((s) => {
+    if (!s.catEnabled || s.rigStatus !== "connected" || !s.rigVfo) return null;
+    const khz = s.rigVfo.freqHz / 1000;
+    return BANDMAP_BANDS.find((b) => khz >= b.lowKhz && khz <= b.highKhz) ?? null;
+  });
 
   return useMemo(() => {
     void ageTick;
@@ -96,6 +104,7 @@ export function useMyReports(active = true): MyReport[] {
     for (const s of spots) {
       if (cutoff && s.received_at < cutoff) continue;
       if (!myCalls.includes(baseCall(s.dx_call))) continue;
+      if (rigBand && (s.freq_khz < rigBand.lowKhz || s.freq_khz > rigBand.highKhz)) continue;
       const pos = spotterLonLat(s);
       if (!pos) continue;
       const snr = /(-?\d+)\s*db/i.exec(s.comment);
@@ -111,5 +120,5 @@ export function useMyReports(active = true): MyReport[] {
       });
     }
     return collapseReports(out);
-  }, [spots, myCalls, maxAgeMin, ageTick]);
+  }, [spots, myCalls, maxAgeMin, ageTick, rigBand]);
 }

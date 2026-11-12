@@ -53,6 +53,8 @@ of your callsign, plots the **receiver** position and draws a green arc home.
 - Reports of the same station on the same frequency from different feeds are
   **merged** into one marker (`spotter ×N`); the popup lists every underlying
   report with its age, SNR/WPM and comment.
+- With **CAT** connected, only reports on the **band your radio is on** are shown;
+  without CAT info, all bands are shown.
 
 ## Map settings persist
 

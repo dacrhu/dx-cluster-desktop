@@ -59,6 +59,8 @@ WSJT-X](extra-feeds.md)-Feeds) nach Spots deines Rufzeichens, trägt die
 - Meldungen derselben Station auf derselben Frequenz aus verschiedenen Feeds
   werden zu einem Marker **zusammengeführt** (`spotter ×N`); das Popup listet
   jede zugrunde liegende Meldung mit ihrem Alter, SNR/WPM und Kommentar.
+- Bei verbundenem **CAT** werden nur Meldungen auf dem **Band gezeigt, auf dem dein
+  Funkgerät gerade steht**; ohne CAT-Info werden alle Bänder gezeigt.
 
 ## Karteneinstellungen bleiben erhalten
 

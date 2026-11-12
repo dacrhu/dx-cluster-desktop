@@ -56,6 +56,8 @@ egy zöld ívet húz haza.
 - Az azonos állomásról azonos frekvencián különböző feedekből érkező jelentések
   egyetlen jelölővé **fésülődnek** össze (`spotter ×N`); a felbukkanó felsorolja
   az összes mögöttes jelentést az életkorával, SNR/WPM-jével és megjegyzésével.
+- Csatlakoztatott **CAT** mellett csak az **a sáv** jelenik meg, amelyiken a rádiód
+  éppen áll; CAT-információ nélkül minden sáv látszik.
 
 ## A térkép-beállítások megmaradnak
 

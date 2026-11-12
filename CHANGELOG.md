@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+- The map's "reports of me" layer (RBN / PSK Reporter / WSJT-X) now shows only the band your radio is on when CAT is connected; without CAT it shows everything.
+
 ## [1.11.1] - 2026-11-12
 
 - Fixed the macOS builds (the release pipeline now uses a supported macOS runner), so the
