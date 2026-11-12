@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.11.2] - 2026-11-12
+
 - The map's "reports of me" layer (RBN / PSK Reporter / WSJT-X) now shows only the band your radio is on when CAT is connected; without CAT it shows everything.
 
 ## [1.11.1] - 2026-11-12
