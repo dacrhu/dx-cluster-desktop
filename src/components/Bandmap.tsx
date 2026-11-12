@@ -371,7 +371,16 @@ function Lane({
         )}
       {outside && <div className="bandmap-oob-flag">⚠ {tr("bandmap.outOfBand")}</div>}
       <div className="bandmap-lane-body" ref={bodyRef} onScroll={onScroll}>
-        <div className="bandmap-scale" style={{ height: laneH }}>
+        <div
+          className="bandmap-scale"
+          style={
+            {
+              height: laneH,
+              "--bm-mw":
+                linear && specials.length ? "calc(26px + 22px * var(--bm-scale, 1))" : "0px",
+            } as CSSProperties
+          }
+        >
           {edgeLowY > 0 && <div className="bandmap-outside" style={{ top: 0, height: edgeLowY }} />}
           {edgeHighY < laneH && (
             <div className="bandmap-outside" style={{ top: edgeHighY, bottom: 0 }} />
@@ -402,7 +411,11 @@ function Lane({
           })}
           {emptyTicks.map((f) => {
             const mhz = f / 1000;
-            const label = Number.isInteger(mhz) ? String(mhz) : mhz.toFixed(3).replace(/0+$/, "");
+            const label = linear
+              ? mhz.toFixed(3)
+              : Number.isInteger(mhz)
+                ? String(mhz)
+                : mhz.toFixed(3).replace(/0+$/, "");
             return (
               <div key={f} className="bandmap-tick" style={{ top: yOf(f) }}>
                 <span>{label}</span>
@@ -415,7 +428,13 @@ function Lane({
               className={`bandmap-row${linear ? " linear" : ""}`}
               style={
                 linear
-                  ? { top: specialY(f.khz), height: specialRowH, left: "var(--bm-lg)" }
+                  ? {
+                      top: specialY(f.khz),
+                      height: specialRowH,
+                      left: "calc(100% - var(--bm-mw))",
+                      width: "calc(var(--bm-mw) - 2px)",
+                      right: "auto",
+                    }
                   : { top: specialY(f.khz), height: specialRowH }
               }
             >
@@ -457,8 +476,8 @@ function Lane({
                       : {
                           top: linearPos.tops[i],
                           height: rowH,
-                          left: `calc(var(--bm-lg) + (100% - var(--bm-lg) - 6px) * ${linearPos.cols[i].col} / ${linearPos.cols[i].cols})`,
-                          width: `calc((100% - var(--bm-lg) - 6px) / ${linearPos.cols[i].cols})`,
+                          left: `calc(var(--bm-lg) + (100% - var(--bm-lg) - var(--bm-mw) - 6px) * ${linearPos.cols[i].col} / ${linearPos.cols[i].cols})`,
+                          width: `calc((100% - var(--bm-lg) - var(--bm-mw) - 6px) / ${linearPos.cols[i].cols})`,
                           right: "auto",
                         }
                     : { top: rowTop[i], height: rowH }
@@ -487,8 +506,8 @@ function Lane({
               style={{
                 top: c.top,
                 height: Math.max(rowH, c.bottom - c.top),
-                left: `calc(var(--bm-lg) + (100% - var(--bm-lg) - 6px) * ${c.cols - 1} / ${c.cols})`,
-                width: `calc((100% - var(--bm-lg) - 6px) / ${c.cols})`,
+                left: `calc(var(--bm-lg) + (100% - var(--bm-lg) - var(--bm-mw) - 6px) * ${c.cols - 1} / ${c.cols})`,
+                width: `calc((100% - var(--bm-lg) - var(--bm-mw) - 6px) / ${c.cols})`,
                 right: "auto",
               }}
             >

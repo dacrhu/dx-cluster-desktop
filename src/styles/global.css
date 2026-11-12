@@ -3388,3 +3388,20 @@ button.chip.active {
 .bandmap-lane.linear .bandmap-scale {
   --bm-gutter: var(--bm-lg);
 }
+
+/* Linear scale: markers live in their own right-hand column, apart from the spots. */
+.bandmap-lane.linear .bandmap-scale::after {
+  content: "";
+  position: absolute;
+  right: var(--bm-mw);
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--border);
+  pointer-events: none;
+}
+.bandmap-row.linear .bandmap-spot-special {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  justify-content: center;
+}

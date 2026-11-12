@@ -32,7 +32,8 @@ higher scales lane height and marker font. The setting is remembered.
 row, so empty stretches of the band are skipped. With _Linear scale_ on, the lane
 is a proportional frequency axis with a kHz ruler — gaps stay visible — and
 stations that would overlap are placed side by side (up to three columns; where
-more would not fit, a **+N** chip opens a list of every station there). The setting is remembered.
+more would not fit, a **+N** chip opens a list of every station there). Reference markers (SOS, IBP, FT8 …) get their own
+column on the right, so spots never cover them. The setting is remembered.
 
 ## Special reference markers
 

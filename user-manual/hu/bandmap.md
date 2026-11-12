@@ -34,7 +34,8 @@ beállítás megjegyződik.
 kap, így a sáv üres szakaszai kimaradnak. Bekapcsolt _Lineáris skála_ esetén a sáv
 arányos frekvenciatengely kHz-vonalzóval — az üres részek látszanak —, az egymást
 fedő állomások pedig egymás mellé kerülnek (legfeljebb három oszlop; ahol több
-nem fér el, egy **+N** jelölő kattintásra felsorolja az ott lévő összes állomást). A beállítás megjegyződik.
+nem fér el, egy **+N** jelölő kattintásra felsorolja az ott lévő összes állomást). A referenciajelölők (SOS, IBP, FT8 …)
+saját oszlopot kapnak jobbra, így a spotok nem takarják el őket. A beállítás megjegyződik.
 
 ## Speciális referenciajelölők
 

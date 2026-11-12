@@ -35,7 +35,8 @@ gemerkt.
 Station eine eigene Zeile, leere Bandabschnitte fallen also weg. Mit _Lineare Skala_
 ist die Bahn eine proportionale Frequenzachse mit kHz-Lineal — Lücken bleiben
 sichtbar —, und sich überdeckende Stationen stehen nebeneinander (bis zu drei
-Spalten; wo mehr nicht passen, öffnet ein **+N**-Chip eine Liste aller Stationen dort). Die
+Spalten; wo mehr nicht passen, öffnet ein **+N**-Chip eine Liste aller Stationen dort). Referenzmarker (SOS, IBP, FT8 …)
+bekommen rechts eine eigene Spalte, so dass Spots sie nie verdecken. Die
 Einstellung wird gemerkt.
 
 ## Spezielle Referenzmarker
