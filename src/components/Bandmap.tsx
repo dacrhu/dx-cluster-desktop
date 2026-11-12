@@ -186,6 +186,12 @@ function Lane({
 
   // Linear mode: spots sit at their true frequency; those that would overlap
   // are spread over side-by-side columns (max 3, the rest collapse into a clickable +N chip).
+  // Marker column width: fits the longest label, but never more than 45% of the lane.
+  const longestMarker = specials.reduce((m, f) => Math.max(m, specialLabel(f).length), 0);
+  const markerColW =
+    linear && specials.length
+      ? `min(45%, calc(16px + ${Math.max(longestMarker, 3)} * 6.5px * var(--bm-scale, 1)))`
+      : "0px";
   const linearPos = useMemo(() => {
     if (!linear) return null;
     const tops = groups.map((g) =>
@@ -376,8 +382,7 @@ function Lane({
           style={
             {
               height: laneH,
-              "--bm-mw":
-                linear && specials.length ? "calc(26px + 22px * var(--bm-scale, 1))" : "0px",
+              "--bm-mw": markerColW,
             } as CSSProperties
           }
         >
