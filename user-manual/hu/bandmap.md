@@ -31,7 +31,7 @@ illeszt; a magasabb érték a sáv magasságát és a jelölő betűméretét sk
 beállítás megjegyződik.
 
 **Lineáris skála** (jelölőnégyzet az eszköztáron): alapból minden állomás külön sort
-kap, így a sáv üres szakaszai kimaradnak. Bekapcsolt *Lineáris skála* esetén a sáv
+kap, így a sáv üres szakaszai kimaradnak. Bekapcsolt _Lineáris skála_ esetén a sáv
 arányos frekvenciatengely kHz-vonalzóval — az üres részek látszanak —, az egymást
 fedő állomások pedig egymás mellé kerülnek (legfeljebb négy oszlop; a többit a sáv
 fejlécében számolja, nagyítással láthatóvá válnak). A beállítás megjegyződik.

@@ -32,7 +32,7 @@ Viewport; höher skaliert Bahnhöhe und Marker-Schrift. Die Einstellung wird
 gemerkt.
 
 **Lineare Skala** (Kontrollkästchen in der Werkzeugleiste): Standardmäßig bekommt jede
-Station eine eigene Zeile, leere Bandabschnitte fallen also weg. Mit *Lineare Skala*
+Station eine eigene Zeile, leere Bandabschnitte fallen also weg. Mit _Lineare Skala_
 ist die Bahn eine proportionale Frequenzachse mit kHz-Lineal — Lücken bleiben
 sichtbar —, und sich überdeckende Stationen stehen nebeneinander (bis zu vier
 Spalten; weitere werden im Bahnkopf gezählt, hineinzoomen zeigt sie). Die

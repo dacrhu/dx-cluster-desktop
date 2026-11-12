@@ -29,7 +29,7 @@ present in the filtered spots.
 higher scales lane height and marker font. The setting is remembered.
 
 **Linear scale** (checkbox in the toolbar): by default each station gets its own
-row, so empty stretches of the band are skipped. With *Linear scale* on, the lane
+row, so empty stretches of the band are skipped. With _Linear scale_ on, the lane
 is a proportional frequency axis with a kHz ruler — gaps stay visible — and
 stations that would overlap are placed side by side (up to four columns; extra
 ones are counted in the lane header, zoom in to see them). The setting is remembered.
