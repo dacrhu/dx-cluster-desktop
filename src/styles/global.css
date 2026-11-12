@@ -3405,3 +3405,8 @@ button.chip.active {
   white-space: nowrap;
   justify-content: flex-start;
 }
+
+/* Linear scale needs the room: spots, ruler and marker column side by side. */
+.bandmap-lane.linear {
+  max-width: 460px;
+}
