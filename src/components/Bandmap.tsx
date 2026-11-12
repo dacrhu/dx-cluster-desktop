@@ -14,10 +14,10 @@ import {
   BANDMAP_BANDS,
   bandSegments,
   specialFreqsInBand,
+  specialLabel,
   tickStepKhz,
   type BandmapBand,
   type SpecialFreq,
-  type SpecialFreqKind,
 } from "@/lib/bands";
 import { useCluster } from "@/store/useCluster";
 import { useT } from "@/i18n";
@@ -32,6 +32,13 @@ function ageClass(unix: number): string {
   if (min < 15) return " age1";
   if (min < 45) return " age2";
   return " age3";
+}
+
+function markerHint(tr: ReturnType<typeof useT>, f: SpecialFreq): string {
+  const freq = (f.khz / 1000).toFixed(3);
+  return f.kind === "sos" || f.kind === "ibp"
+    ? tr(`bandmap.${f.kind}Hint`, { freq })
+    : tr("bandmap.markerHint", { name: specialLabel(f), freq });
 }
 
 function Lane({
@@ -96,7 +103,12 @@ function Lane({
   const n = groups.length;
   const s = Math.min(zoom, 2);
   const rowH = n > 0 ? Math.max(14 * s, Math.min(34 * s, (availH / n) * zoom)) : 34 * s;
-  const specials = useMemo(() => specialFreqsInBand(band), [band]);
+  const enabledMarkers = useCluster((st) => st.bandmapMarkers);
+  const customMarkers = useCluster((st) => st.customMarkers);
+  const specials = useMemo(
+    () => specialFreqsInBand(band, enabledMarkers, customMarkers),
+    [band, enabledMarkers, customMarkers],
+  );
   // SOS/IBP markers render as their own half-height row, just like a spot
   // row. When there are real spots they're merged into one frequency-ordered
   // list together with the spot groups — rather than positioned by a
@@ -108,7 +120,12 @@ function Lane({
     const rows = [
       ...groups.map((g, idx) => ({ freqKhz: g.rep.freq_khz, h: rowH, kind: "spot" as const, idx })),
       ...specials.map((f) => ({ freqKhz: f.khz, h: specialRowH, kind: "special" as const, f })),
-    ].sort((a, b) => a.freqKhz - b.freqKhz);
+    ].sort(
+      // A marker is a header for the spots above its frequency: on an exact tie
+      // (a spot right on the dial freq) the marker row comes first.
+      (a, b) =>
+        a.freqKhz - b.freqKhz || (a.kind === "special" ? -1 : 0) - (b.kind === "special" ? -1 : 0),
+    );
     const rowTop: number[] = new Array(groups.length);
     const specialTop = new Map<number, number>();
     let y = 0;
@@ -286,11 +303,12 @@ function Lane({
               <span className="bandmap-rowfreq mono">{f.khz.toFixed(1)}</span>
               <button
                 className={`bandmap-spot bandmap-spot-special special-${f.kind}`}
-                title={tr(`bandmap.${f.kind}Hint`, { freq: (f.khz / 1000).toFixed(3) })}
+                style={f.color ? ({ "--marker-color": f.color } as CSSProperties) : undefined}
+                title={markerHint(tr, f)}
                 onClick={(e) => onSpecialSelect(e, f)}
                 onContextMenu={(e) => e.preventDefault()}
               >
-                {f.kind.toUpperCase()}
+                {specialLabel(f)}
               </button>
             </div>
           ))}
@@ -342,21 +360,20 @@ function Lane({
  * button (hidden when CAT is off, like `SpotPopover`'s own).
  */
 function SpecialPopover({
-  freqKhz,
-  kind,
+  marker,
   x,
   y,
   catEnabled,
   onClose,
 }: {
-  freqKhz: number;
-  kind: SpecialFreqKind;
+  marker: SpecialFreq;
   x: number;
   y: number;
   catEnabled: boolean;
   onClose: () => void;
 }) {
   const tr = useT();
+  const { khz: freqKhz, kind } = marker;
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -389,14 +406,17 @@ function SpecialPopover({
   return createPortal(
     <div className="spot-pop special-pop" ref={ref} style={{ left: pos.left, top: pos.top }}>
       <div className="spot-pop-head">
-        <span className={`spot-pop-call special-${kind}`}>{kind.toUpperCase()}</span>
+        <span
+          className={`spot-pop-call special-${kind}`}
+          style={marker.color ? ({ "--marker-color": marker.color } as CSSProperties) : undefined}
+        >
+          {specialLabel(marker)}
+        </span>
         <button className="spot-pop-x" onClick={onClose} aria-label={tr("common.close")}>
           ×
         </button>
       </div>
-      <p className="spot-pop-comment">
-        {tr(`bandmap.${kind}Hint`, { freq: (freqKhz / 1000).toFixed(3) })}
-      </p>
+      <p className="spot-pop-comment">{markerHint(tr, marker)}</p>
       {catEnabled && (
         <div className="spot-pop-engage">
           <button
@@ -441,8 +461,7 @@ export const Bandmap = memo(function Bandmap({
   const [specialPop, setSpecialPop] = useState<{
     x: number;
     y: number;
-    freqKhz: number;
-    kind: SpecialFreqKind;
+    marker: SpecialFreq;
   } | null>(null);
 
   // Track the available height so quiet lanes fill the viewport at zoom 1.
@@ -522,7 +541,7 @@ export const Bandmap = memo(function Bandmap({
           onSpecialSelect={(e, f) => {
             setMenu(null);
             setPop(null);
-            setSpecialPop({ x: e.clientX, y: e.clientY, freqKhz: f.khz, kind: f.kind });
+            setSpecialPop({ x: e.clientX, y: e.clientY, marker: f });
           }}
           radioKhz={radioKhz}
           active={b.label === activeBand}
@@ -552,8 +571,7 @@ export const Bandmap = memo(function Bandmap({
       )}
       {specialPop && (
         <SpecialPopover
-          freqKhz={specialPop.freqKhz}
-          kind={specialPop.kind}
+          marker={specialPop.marker}
           x={specialPop.x}
           y={specialPop.y}
           catEnabled={catEnabled}

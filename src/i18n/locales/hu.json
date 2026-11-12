@@ -607,5 +607,17 @@
   "about.loading": "betöltés…",
   "about.loadError": "Az oldal nem tölthető be. Ellenőrizd az internetkapcsolatot, vagy olvasd az útmutatót a GitHubon.",
   "about.backToIndex": "← Az útmutató tartalma",
-  "about.langFallback": "Ez az oldal még nincs lefordítva – az angol változat látható."
+  "about.langFallback": "Ez az oldal még nincs lefordítva – az angol változat látható.",
+  "bandmap.markers": "Markerek",
+  "bandmap.markersHint": "Üzemmód-frekvencia markerek (FT8, SSTV, …) és saját frekvenciák megjelenítése a sávokban",
+  "bandmap.markersAlways": "Az SOS és IBP markerek mindig látszanak.",
+  "bandmap.markerHint": "{name} — {freq} MHz (marker)",
+  "bandmap.customTitle": "Egyéni frekvenciák",
+  "bandmap.customNone": "Még nincs — vegyél fel egy általad használt frekvenciát, pl. a haverokkal közöset.",
+  "bandmap.customUnnamed": "(névtelen)",
+  "bandmap.customName": "Név",
+  "bandmap.customColor": "Szín",
+  "bandmap.customAdd": "Hozzáad",
+  "bandmap.customDelete": "Törlés",
+  "bandmap.customOutOfBand": "Ez a frekvencia egyik sávtérkép-sávba sem esik, ezért nem fog látszani."
 }

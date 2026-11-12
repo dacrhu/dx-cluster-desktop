@@ -37,7 +37,8 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
   mode colour-coding with real sub-modes (FT8, RTTY, SSTV…).
 - **A real bandmap.** One lane per band, stations laid out by frequency, band-plan
   shading, many-skimmer spots collapsed into one row, SOS and beacon-project
-  reference markers.
+  reference markers, plus optional FT8 / FT4 / FT2 / JS8 / RTTY / SSTV / FreeDV
+  frequency markers and your own custom ones (e.g. your net frequency).
 - **A world map that shows propagation.** Grey-line, aurora, a measured-MUF layer
   blending a solar model with live ionosonde data (stations drawn as dots), a
   **"is the band open from my QTH?"** layer for any band (it follows your radio's band via CAT), band openings, a bearing

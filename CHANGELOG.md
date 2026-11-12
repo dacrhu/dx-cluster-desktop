@@ -12,6 +12,11 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+- Bandmap: new **Markers ▾** menu — optionally show the calling frequencies of FT8,
+  FT4, FT2, JS8, RTTY, SSTV and FreeDV in the lanes (off by default; SOS and IBP stay
+  always on), and add your own named, coloured frequencies (e.g. the one you use with
+  friends).
+
 ## [1.10.1] - 2026-10-30
 
 - Map: the **View on QRZ.com** button on a "reports of me" marker (RBN / PSK Reporter)

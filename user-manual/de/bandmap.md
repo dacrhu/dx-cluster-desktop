@@ -43,6 +43,18 @@ halbhohe Zeilen eingezeichnet:
 - **IBP** (blau) — die fünf Frequenzen des NCDXF/IARU International Beacon
   Project (14100 / 18110 / 21150 / 24930 / 28200 kHz).
 
+### Optionale Marker und eigene Frequenzen
+
+Die Schaltfläche **Marker ▾** in der Schnellleiste fügt weitere Zeilen hinzu,
+standardmäßig alle aus: die üblichen Anruf-/Dial-Frequenzen von **FT8, FT4, FT2,
+JS8, RTTY, SSTV** und **FreeDV** (hake an, was du willst). SOS und IBP sind fest und
+nicht abschaltbar. Unter den Kontrollkästchen kannst du **eigene Frequenzen**
+anlegen — Name, kHz-Wert und Farbe, z. B. die Frequenz, auf der du dich mit
+Freunden triffst. Sie werden mit den Einstellungen gespeichert und in dem Band
+angezeigt, in das sie fallen. Marker auf derselben Frequenz (z. B. FT4 und JS8 auf
+18104 kHz) werden zu einer Zeile zusammengefasst. Das sind gängige Konventionen,
+keine Zuweisungen.
+
 Klicke auf einen für ein minimales Popover mit einer Schaltfläche **Funkgerät
 abstimmen** (ausgeblendet, wenn CAT aus ist). Oben im Panel gibt es eine
 Legendenleiste.

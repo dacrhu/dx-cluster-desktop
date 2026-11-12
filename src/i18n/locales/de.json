@@ -607,5 +607,17 @@
   "about.loading": "wird geladen…",
   "about.loadError": "Diese Seite konnte nicht geladen werden. Prüfe deine Internetverbindung oder lies das Handbuch auf GitHub.",
   "about.backToIndex": "← Inhalt des Handbuchs",
-  "about.langFallback": "Diese Seite ist noch nicht übersetzt – die englische Fassung wird angezeigt."
+  "about.langFallback": "Diese Seite ist noch nicht übersetzt – die englische Fassung wird angezeigt.",
+  "bandmap.markers": "Marker",
+  "bandmap.markersHint": "Betriebsart-Frequenzmarker (FT8, SSTV, …) und eigene Frequenzen in den Bändern anzeigen",
+  "bandmap.markersAlways": "SOS- und IBP-Marker werden immer angezeigt.",
+  "bandmap.markerHint": "{name} — {freq} MHz (Marker)",
+  "bandmap.customTitle": "Eigene Frequenzen",
+  "bandmap.customNone": "Noch keine — füge eine Frequenz hinzu, die du nutzt, z. B. mit Freunden.",
+  "bandmap.customUnnamed": "(unbenannt)",
+  "bandmap.customName": "Name",
+  "bandmap.customColor": "Farbe",
+  "bandmap.customAdd": "Hinzufügen",
+  "bandmap.customDelete": "Entfernen",
+  "bandmap.customOutOfBand": "Diese Frequenz liegt in keinem Bandmap-Band und wird daher nicht angezeigt."
 }

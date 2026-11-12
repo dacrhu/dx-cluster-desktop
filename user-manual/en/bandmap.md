@@ -40,6 +40,17 @@ rows:
 - **IBP** (blue) — the five NCDXF/IARU International Beacon Project frequencies
   (14100 / 18110 / 21150 / 24930 / 28200 kHz).
 
+### Optional markers and your own frequencies
+
+The **Markers ▾** button in the quickbar adds more rows, all off by default:
+the usual calling/dial frequencies of **FT8, FT4, FT2, JS8, RTTY, SSTV** and
+**FreeDV** (tick the ones you want). SOS and IBP are fixed and can't be turned
+off. Below the checkboxes you can add **custom frequencies** — a name, a kHz
+value and a colour, e.g. the frequency you and your friends meet on. They're
+saved with your settings and drawn in the lane that contains them. Markers that
+share a frequency (e.g. FT4 and JS8 on 18104 kHz) merge into one row. These are
+common conventions, not allocations.
+
 Click one for a minimal popover with a **Tune radio** button (hidden when CAT is
 off). There is a legend strip at the top of the panel.
 

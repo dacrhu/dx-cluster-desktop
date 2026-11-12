@@ -1262,6 +1262,95 @@ button.chip.active {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, var(--bg-elevated));
 }
+
+/* Optional / custom Bandmap markers: digi kinds share the DIGI hue, SSTV +
+   FreeDV the phone hue, custom rows their own --marker-color. */
+.special-ft8 {
+  --mk: var(--mode-digi);
+}
+.special-ft4 {
+  --mk: var(--mode-digi);
+}
+.special-ft2 {
+  --mk: var(--mode-digi);
+}
+.special-js8 {
+  --mk: var(--mode-digi);
+}
+.special-rtty {
+  --mk: var(--mode-digi);
+}
+.special-sstv {
+  --mk: var(--mode-ssb);
+}
+.special-freedv {
+  --mk: var(--mode-ssb);
+}
+.special-custom {
+  --mk: var(--marker-color, var(--accent));
+}
+.bandmap-spot-special.special-ft8,
+.bandmap-spot-special.special-ft4,
+.bandmap-spot-special.special-ft2,
+.bandmap-spot-special.special-js8,
+.bandmap-spot-special.special-rtty,
+.bandmap-spot-special.special-sstv,
+.bandmap-spot-special.special-freedv,
+.bandmap-spot-special.special-custom {
+  color: var(--mk);
+  border-color: var(--mk);
+  background: color-mix(in srgb, var(--mk) 12%, var(--bg-elevated));
+}
+.spot-pop-call.special-ft8,
+.spot-pop-call.special-ft4,
+.spot-pop-call.special-ft2,
+.spot-pop-call.special-js8,
+.spot-pop-call.special-rtty,
+.spot-pop-call.special-sstv,
+.spot-pop-call.special-freedv,
+.spot-pop-call.special-custom {
+  color: var(--mk);
+}
+.bm-swatch.swatch-marker {
+  display: inline-block;
+  width: 11px;
+  height: 3px;
+  margin: 0 4px;
+  border-radius: 1px;
+  background: var(--mk, var(--accent));
+}
+.bm-markers-always {
+  margin: 0 0 6px;
+  font-size: 11px;
+}
+.bm-custom-list {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+}
+.bm-custom-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.bm-custom-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bm-custom-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.bm-custom-add input:not([type="color"]) {
+  min-width: 0;
+  flex: 1 1 80px;
+}
 /* "×N" badge when several skimmers reported the same signal. */
 .bandmap-spot-n {
   flex: none;

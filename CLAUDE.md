@@ -408,7 +408,14 @@ into each lane via `specialFreqsInBand(band)`: SOS = the IARU Region 1 "global
 emergency" simplex frequencies (3760/7110/14300/18160/21360/24960/28360 kHz —
 a courtesy calling/coordination point for disaster traffic, not an official
 distress frequency), IBP = the NCDXF/IARU International Beacon Project's 5
-frequencies (14100/18110/21150/24930/28200 kHz). Both are static reference
+frequencies (14100/18110/21150/24930/28200 kHz). Both are always on. On top of
+those, the Bandmap quickbar's `BandmapMarkers` popover ("Markers ▾") toggles
+opt-in FT8/FT4/FT2/JS8/RTTY/SSTV/FreeDV dial-frequency rows (`OPTIONAL_MARKERS`
+in `bands.ts`; `store.bandmapMarkers`, default none) and manages user-defined
+`store.customMarkers` (`{id,name,khz,color}`); both persisted in settings.
+`specialFreqsInBand(band, enabled, custom)` merges markers on the same kHz into
+one row (primary kind wins colour; the Lane keys rows by kHz). SOS/IBP below are
+static reference
 constants, no backend/store involvement. Each renders as its own half-height
 row (`.bandmap-spot-special`, `special-sos`/`special-ibp` — red/blue,
 theme-aware `--danger`/`--accent`) showing the frequency + "SOS"/"IBP",

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import type { AlertHit, AlertRule } from "@/lib/alerts";
 import type { AnnMute } from "@/lib/announceFilter";
+import type { CustomMarker } from "@/lib/bands";
 import type { AlertSound } from "@/lib/notify";
 import type { LangPref } from "@/i18n";
 import type { CtyStatus, LastQso, LogFormat, PresetsStatus, RigVfo, UpdateInfo } from "@/lib/types";
@@ -91,6 +92,10 @@ interface ClusterStore {
   spotShowSkimmer: boolean;
   /** Bandmap vertical zoom factor (1 = fit the viewport). */
   bandmapZoom: number;
+  /** Enabled optional Bandmap marker kinds (SOS/IBP always on). */
+  bandmapMarkers: string[];
+  /** User-defined Bandmap marker frequencies. */
+  customMarkers: CustomMarker[];
   /** Band Activity panel: which spotters' continent the trend is scoped to.
    *  "" = auto (derive from the QTH), "*" = anywhere, else a continent code. */
   bandActivityFrom: string;
@@ -249,6 +254,8 @@ interface ClusterStore {
   setSpotModes: (m: Mode[]) => void;
   setSpotShowSkimmer: (on: boolean) => void;
   setBandmapZoom: (z: number) => void;
+  setBandmapMarkers: (m: string[]) => void;
+  setCustomMarkers: (m: CustomMarker[]) => void;
   setBandActivityFrom: (v: string) => void;
   setForecastTarget: (v: string) => void;
   setMapProjection: (p: "azimuthal" | "rect") => void;
@@ -350,6 +357,8 @@ export const useCluster = create<ClusterStore>((set) => ({
   spotModes: [],
   spotShowSkimmer: true,
   bandmapZoom: 1,
+  bandmapMarkers: [],
+  customMarkers: [],
   bandActivityFrom: "",
   forecastTarget: "",
   mapProjection: "rect",
@@ -513,6 +522,8 @@ export const useCluster = create<ClusterStore>((set) => ({
   setSpotBands: (spotBands) => set({ spotBands }),
   setSpotModes: (spotModes) => set({ spotModes }),
   setSpotShowSkimmer: (spotShowSkimmer) => set({ spotShowSkimmer }),
+  setBandmapMarkers: (bandmapMarkers) => set({ bandmapMarkers }),
+  setCustomMarkers: (customMarkers) => set({ customMarkers }),
   setBandmapZoom: (bandmapZoom) => set({ bandmapZoom: Math.min(5, Math.max(1, bandmapZoom)) }),
   setBandActivityFrom: (bandActivityFrom) => set({ bandActivityFrom }),
   setForecastTarget: (forecastTarget) => set({ forecastTarget }),

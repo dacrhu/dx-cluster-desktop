@@ -6,6 +6,7 @@ import { useVisibleSpots } from "@/lib/visibleSpots";
 import { useSpotActions } from "@/lib/spotActions";
 import { BANDMAP_BANDS } from "@/lib/bands";
 import { Bandmap } from "@/components/Bandmap";
+import { BandmapMarkers } from "@/components/BandmapMarkers";
 import { QuickFilters } from "@/components/QuickFilters";
 import { QueryHelp } from "@/components/QueryHelp";
 import { WsjtxToggle } from "@/components/WsjtxToggle";
@@ -113,6 +114,8 @@ export const BandmapPanel = memo(function BandmapPanel({
           </label>
           <button onClick={onGoToFilters}>{tr("spots.editFilters")}</button>
         </div>
+
+        <BandmapMarkers />
 
         <label className="inline bandmap-zoom" title={tr("bandmap.zoomHint")}>
           {tr("bandmap.zoom")}

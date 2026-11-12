@@ -46,11 +46,25 @@ export function bandSegments(b: BandmapBand): BandSegment[] {
   return segs;
 }
 
-export type SpecialFreqKind = "sos" | "ibp";
+export type OptionalMarkerKind = "sstv" | "ft8" | "ft4" | "ft2" | "js8" | "rtty" | "freedv";
+export type SpecialFreqKind = "sos" | "ibp" | OptionalMarkerKind | "custom";
 
 export interface SpecialFreq {
   khz: number;
+  /** Primary kind (drives colour + hint); several markers on one kHz merge into one row. */
   kind: SpecialFreqKind;
+  /** Row text. Defaults to the upper-cased kind; merged / custom rows carry their own. */
+  label?: string;
+  /** Custom-marker colour (CSS colour). */
+  color?: string;
+}
+
+/** A user-defined marker frequency (e.g. the one a local net uses). */
+export interface CustomMarker {
+  id: string;
+  name: string;
+  khz: number;
+  color?: string;
 }
 
 // IARU Region 1 HF band-plan "global emergency" simplex frequencies: the
@@ -64,14 +78,84 @@ const SOS_KHZ = [3760, 7110, 14300, 18160, 21360, 24960, 28360];
 // frequency — a quick propagation check across bands.
 const IBP_KHZ = [14100, 18110, 21150, 24930, 28200];
 
+/**
+ * Opt-in operating-frequency markers (dial / calling frequencies, kHz). Common
+ * conventions, not allocations — a band-plan hint like SOS/IBP. The display
+ * order here is the order in the Markers menu.
+ */
+export const OPTIONAL_MARKERS: Record<OptionalMarkerKind, number[]> = {
+  ft8: [1840, 3573, 5357, 7074, 10136, 14074, 18100, 21074, 24915, 28074, 50313],
+  ft4: [3575, 7047.5, 10140, 14080, 18104, 21140, 24919, 28180, 50318],
+  // FT2 (IU8LMC): published calling freqs; 40m moved 7052 -> 7062.
+  ft2: [1843, 3578, 5360, 7062, 10144, 14084, 18108, 21144, 24923, 28184],
+  js8: [1842, 3578, 7078, 10130, 14078, 18104, 21078, 24922, 28078],
+  rtty: [3590, 7040, 10140, 14083, 18105, 21083, 24920, 28083],
+  sstv: [3730, 3845, 7033, 7165, 14230, 18160, 21340, 24975, 28680],
+  freedv: [1997, 3625, 7177, 14236, 21313, 24931, 28330],
+};
+export const OPTIONAL_MARKER_KINDS = Object.keys(OPTIONAL_MARKERS) as OptionalMarkerKind[];
+
 export const SPECIAL_FREQS: SpecialFreq[] = [
   ...SOS_KHZ.map((khz) => ({ khz, kind: "sos" as const })),
   ...IBP_KHZ.map((khz) => ({ khz, kind: "ibp" as const })),
 ];
 
-/** The SOS / IBP marker frequencies that fall inside one band's lane. */
-export function specialFreqsInBand(b: BandmapBand): SpecialFreq[] {
-  return SPECIAL_FREQS.filter((f) => f.khz >= b.lowKhz && f.khz <= b.highKhz);
+const KIND_RANK: Record<SpecialFreqKind, number> = {
+  sos: 0,
+  ibp: 1,
+  custom: 2,
+  ft8: 3,
+  ft4: 4,
+  ft2: 5,
+  js8: 6,
+  rtty: 7,
+  sstv: 8,
+  freedv: 9,
+};
+
+const kindLabel = (k: SpecialFreqKind) => (k === "freedv" ? "FreeDV" : k.toUpperCase());
+
+/**
+ * The marker rows for one band's lane: SOS + IBP always, plus the enabled
+ * optional kinds and the user's custom frequencies. Markers on the same kHz
+ * merge into a single row (primary kind wins the colour, labels are joined),
+ * so the Lane can key rows by frequency.
+ */
+export function specialFreqsInBand(
+  b: BandmapBand,
+  enabled: readonly string[] = [],
+  custom: readonly CustomMarker[] = [],
+): SpecialFreq[] {
+  const all: SpecialFreq[] = [...SPECIAL_FREQS];
+  for (const k of OPTIONAL_MARKER_KINDS) {
+    if (enabled.includes(k)) for (const khz of OPTIONAL_MARKERS[k]) all.push({ khz, kind: k });
+  }
+  for (const c of custom) {
+    all.push({ khz: c.khz, kind: "custom", label: c.name || undefined, color: c.color });
+  }
+  const byKhz = new Map<number, SpecialFreq[]>();
+  for (const f of all) {
+    if (f.khz < b.lowKhz || f.khz > b.highKhz) continue;
+    const l = byKhz.get(f.khz);
+    if (l) l.push(f);
+    else byKhz.set(f.khz, [f]);
+  }
+  const out: SpecialFreq[] = [];
+  for (const group of byKhz.values()) {
+    group.sort((x, y) => KIND_RANK[x.kind] - KIND_RANK[y.kind]);
+    const head = group[0];
+    out.push(
+      group.length === 1
+        ? head
+        : { ...head, label: group.map((g) => g.label ?? kindLabel(g.kind)).join(" · ") },
+    );
+  }
+  return out.sort((x, y) => x.khz - y.khz);
+}
+
+/** Row text for a marker. */
+export function specialLabel(f: SpecialFreq): string {
+  return f.label ?? kindLabel(f.kind);
 }
 
 /** Nice tick spacing (kHz) for a lane spanning `spanKhz`. */

@@ -1,6 +1,7 @@
 import { load, type Store } from "@tauri-apps/plugin-store";
 import type { AlertHit, AlertRule } from "./alerts";
 import type { AnnMute } from "./announceFilter";
+import type { CustomMarker } from "./bands";
 import type { AlertSound } from "./notify";
 import type { LogFormat, NodeProfile, SpotFilter } from "./types";
 
@@ -41,6 +42,10 @@ export interface AppSettings {
   annMuted: AnnMute[];
   /** Bandmap vertical zoom factor. */
   bandmapZoom: number;
+  /** Bandmap: enabled optional marker kinds (SOS/IBP are always on). */
+  bandmapMarkers: string[];
+  /** Bandmap: user-defined marker frequencies. */
+  customMarkers: CustomMarker[];
   /** Band Activity panel: spotter-continent scope ("" = auto from QTH, "*" =
    *  anywhere, else a continent code). */
   bandActivityFrom: string;
@@ -129,6 +134,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   annCollapseRepeats: true,
   annMuted: [],
   bandmapZoom: 1,
+  bandmapMarkers: [],
+  customMarkers: [],
   bandActivityFrom: "",
   forecastTarget: "",
   mapProjection: "rect",

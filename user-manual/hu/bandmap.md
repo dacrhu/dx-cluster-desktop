@@ -42,6 +42,17 @@ félmagasságú sorokként:
 - **IBP** (kék) — az NCDXF/IARU International Beacon Project öt frekvenciája
   (14100 / 18110 / 21150 / 24930 / 28200 kHz).
 
+### Opcionális markerek és saját frekvenciák
+
+A gyorssáv **Markerek ▾** gombja további sorokat ad hozzá, mind alapból kikapcsolva:
+az **FT8, FT4, FT2, JS8, RTTY, SSTV** és **FreeDV** szokásos hívó-/dial-frekvenciái
+(jelöld be, amelyiket akarod). Az SOS és az IBP fix, nem kapcsolható ki. A
+jelölőnégyzetek alatt felvehetsz **egyéni frekvenciákat** — név, kHz-érték és szín,
+pl. az a frekvencia, amelyen a haverokkal találkoztok. A beállításokkal együtt
+mentődnek, és abban a sávban jelennek meg, amelyikbe esnek. Az azonos frekvenciára
+eső markerek (pl. FT4 és JS8 a 18104 kHz-en) egy sorba olvadnak. Ezek bevett
+szokások, nem hivatalos kiosztások.
+
 Kattints egyikre egy minimális felbukkanóért egy **Rádió hangolása** gombbal
 (elrejtve, ha a CAT ki van kapcsolva). A panel tetején van egy jelmagyarázat-sáv.
 

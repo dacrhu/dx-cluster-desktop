@@ -607,5 +607,17 @@
   "about.loading": "loading…",
   "about.loadError": "Could not load this page. Check your internet connection, or read the manual on GitHub.",
   "about.backToIndex": "← Manual contents",
-  "about.langFallback": "This page isn't translated yet — showing the English version."
+  "about.langFallback": "This page isn't translated yet — showing the English version.",
+  "bandmap.markers": "Markers",
+  "bandmap.markersHint": "Show operating-frequency markers (FT8, SSTV, …) and your own in the lanes",
+  "bandmap.markersAlways": "SOS and IBP markers are always shown.",
+  "bandmap.markerHint": "{name} — {freq} MHz (marker)",
+  "bandmap.customTitle": "Custom frequencies",
+  "bandmap.customNone": "None yet — add a frequency you use, e.g. with your friends.",
+  "bandmap.customUnnamed": "(unnamed)",
+  "bandmap.customName": "Name",
+  "bandmap.customColor": "Colour",
+  "bandmap.customAdd": "Add",
+  "bandmap.customDelete": "Remove",
+  "bandmap.customOutOfBand": "That frequency is outside every Bandmap lane, so it won't be shown."
 }

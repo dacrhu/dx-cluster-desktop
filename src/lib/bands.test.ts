@@ -46,3 +46,36 @@ describe("specialFreqsInBand", () => {
     expect(specialFreqsInBand(b60)).toEqual([]);
   });
 });
+
+describe("optional + custom markers", () => {
+  const b20 = BANDMAP_BANDS.find((b) => b.label === "20m")!;
+  const b17 = BANDMAP_BANDS.find((b) => b.label === "17m")!;
+
+  it("shows nothing optional by default, SOS/IBP always", () => {
+    const found = specialFreqsInBand(b20);
+    expect(found.map((f) => f.kind).sort()).toEqual(["ibp", "sos"]);
+  });
+
+  it("adds an enabled kind only", () => {
+    const found = specialFreqsInBand(b20, ["ft8"]);
+    expect(found).toContainEqual({ khz: 14074, kind: "ft8" });
+    expect(found.some((f) => f.kind === "ft4")).toBe(false);
+  });
+
+  it("adds custom markers inside the band, ignores those outside", () => {
+    const c = [
+      { id: "a", name: "Net", khz: 14222.5 },
+      { id: "b", name: "Far", khz: 7123 },
+    ];
+    const found = specialFreqsInBand(b20, [], c);
+    expect(found).toContainEqual({ khz: 14222.5, kind: "custom", label: "Net", color: undefined });
+    expect(found.some((f) => f.khz === 7123)).toBe(false);
+  });
+
+  it("merges markers on the same kHz into one row, primary kind wins", () => {
+    const found = specialFreqsInBand(b17, ["ft4", "js8"]).filter((f) => f.khz === 18104);
+    expect(found).toHaveLength(1);
+    expect(found[0].kind).toBe("ft4");
+    expect(found[0].label).toBe("FT4 · JS8");
+  });
+});
