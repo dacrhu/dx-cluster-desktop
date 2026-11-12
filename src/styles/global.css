@@ -3360,7 +3360,7 @@ button.chip.active {
   text-overflow: ellipsis;
 }
 .bandmap-lane {
-  --bm-lg: calc(14px + 22px * var(--bm-scale, 1));
+  --bm-lg: calc(10px + 32px * var(--bm-scale, 1));
 }
 .bandmap-chip {
   justify-content: center;
@@ -3383,4 +3383,8 @@ button.chip.active {
 .bandmap-row.linear .bandmap-spot {
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.bandmap-lane.linear .bandmap-scale {
+  --bm-gutter: var(--bm-lg);
 }

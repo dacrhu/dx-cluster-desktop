@@ -310,7 +310,7 @@ function Lane({
 
   return (
     <div
-      className={`bandmap-lane${active ? " radio-active" : ""}${dimmed ? " dimmed" : ""}${
+      className={`bandmap-lane${linear ? " linear" : ""}${active ? " radio-active" : ""}${dimmed ? " dimmed" : ""}${
         outside ? " out-of-band" : ""
       }`}
     >
