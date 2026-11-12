@@ -12,6 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+- Bandmap: new **Linear scale** option — the band is drawn as a true proportional frequency
+  axis with a kHz ruler, so empty stretches stay visible; overlapping stations sit side by side.
 - Bandmap: every lane now marks its **band start and end** for your **IARU region** (auto from
   your QTH, or pick one — 40 m ends at 7200 kHz in Regions 1/3, 7300 in Region 2), and if the radio (CAT) goes
   **out of the band** a flashing red banner and red edge marker make it impossible to miss.

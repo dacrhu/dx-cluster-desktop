@@ -92,6 +92,9 @@ interface ClusterStore {
   spotShowSkimmer: boolean;
   /** Bandmap vertical zoom factor (1 = fit the viewport). */
   bandmapZoom: number;
+  /** Bandmap linear (proportional) frequency scale. */
+  bandmapLinear: boolean;
+  setBandmapLinear: (v: boolean) => void;
   /** Enabled optional Bandmap marker kinds (SOS/IBP always on). */
   bandmapMarkers: string[];
   /** User-defined Bandmap marker frequencies. */
@@ -360,6 +363,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   spotModes: [],
   spotShowSkimmer: true,
   bandmapZoom: 1,
+  bandmapLinear: false,
   bandmapMarkers: [],
   customMarkers: [],
   bandActivityFrom: "",
@@ -528,6 +532,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   setSpotShowSkimmer: (spotShowSkimmer) => set({ spotShowSkimmer }),
   setBandmapMarkers: (bandmapMarkers) => set({ bandmapMarkers }),
   setCustomMarkers: (customMarkers) => set({ customMarkers }),
+  setBandmapLinear: (bandmapLinear) => set({ bandmapLinear }),
   setBandmapZoom: (bandmapZoom) => set({ bandmapZoom: Math.min(5, Math.max(1, bandmapZoom)) }),
   setBandActivityFrom: (bandActivityFrom) => set({ bandActivityFrom }),
   setIaruRegion: (iaruRegion) => set({ iaruRegion }),

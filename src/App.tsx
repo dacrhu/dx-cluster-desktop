@@ -297,6 +297,7 @@ export function App() {
       c().setCtyAutoUpdate(settings.ctyAutoUpdate ?? true);
       c().setLang(settings.lang ?? "system");
       c().setBandmapZoom(settings.bandmapZoom ?? 1);
+      c().setBandmapLinear(settings.bandmapLinear ?? false);
       c().setBandmapMarkers(settings.bandmapMarkers ?? []);
       c().setCustomMarkers(settings.customMarkers ?? []);
       c().setBandActivityFrom(settings.bandActivityFrom ?? "");

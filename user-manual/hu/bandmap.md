@@ -30,6 +30,12 @@ spotokban jelen lévő sávok.
 illeszt; a magasabb érték a sáv magasságát és a jelölő betűméretét skálázza. A
 beállítás megjegyződik.
 
+**Lineáris skála** (jelölőnégyzet az eszköztáron): alapból minden állomás külön sort
+kap, így a sáv üres szakaszai kimaradnak. Bekapcsolt *Lineáris skála* esetén a sáv
+arányos frekvenciatengely kHz-vonalzóval — az üres részek látszanak —, az egymást
+fedő állomások pedig egymás mellé kerülnek (legfeljebb négy oszlop; a többit a sáv
+fejlécében számolja, nagyítással láthatóvá válnak). A beállítás megjegyződik.
+
 ## Speciális referenciajelölők
 
 Két statikus, csak frontendes jelölőkészlet van berajzolva minden sávba

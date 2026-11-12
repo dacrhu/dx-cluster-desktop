@@ -35,6 +35,8 @@ export const BandmapPanel = memo(function BandmapPanel({
     setZoom,
     iaruRegion,
     setIaruRegion,
+    linear,
+    setLinear,
   } = useCluster(
     useShallow((s) => ({
       spotQuery: s.spotQuery,
@@ -47,6 +49,8 @@ export const BandmapPanel = memo(function BandmapPanel({
       setZoom: s.setBandmapZoom,
       iaruRegion: s.iaruRegion,
       setIaruRegion: s.setIaruRegion,
+      linear: s.bandmapLinear,
+      setLinear: s.setBandmapLinear,
     })),
   );
   // `active` freezes the `store.spots` scan inside the hook while this tab is
@@ -135,6 +139,18 @@ export const BandmapPanel = memo(function BandmapPanel({
             <option value="2">{tr("bandmap.regionN", { n: "2" })}</option>
             <option value="3">{tr("bandmap.regionN", { n: "3" })}</option>
           </select>
+        </label>
+
+        <label className="inline" title={tr("bandmap.linearHint")}>
+          <input
+            type="checkbox"
+            checked={linear}
+            onChange={(e) => {
+              setLinear(e.target.checked);
+              void patchSettings({ bandmapLinear: e.target.checked });
+            }}
+          />
+          {tr("bandmap.linear")}
         </label>
 
         <label className="inline bandmap-zoom" title={tr("bandmap.zoomHint")}>

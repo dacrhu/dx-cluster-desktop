@@ -42,6 +42,8 @@ export interface AppSettings {
   annMuted: AnnMute[];
   /** Bandmap vertical zoom factor. */
   bandmapZoom: number;
+  /** Bandmap: proportional (linear) frequency scale instead of one row per station. */
+  bandmapLinear: boolean;
   /** Bandmap: enabled optional marker kinds (SOS/IBP are always on). */
   bandmapMarkers: string[];
   /** Bandmap: user-defined marker frequencies. */
@@ -135,6 +137,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   annCollapseRepeats: true,
   annMuted: [],
   bandmapZoom: 1,
+  bandmapLinear: false,
   bandmapMarkers: [],
   customMarkers: [],
   bandActivityFrom: "",

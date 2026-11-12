@@ -28,6 +28,12 @@ present in the filtered spots.
 **Vertical zoom**: `Ctrl` + mouse wheel, or the slider. `1` fits the viewport;
 higher scales lane height and marker font. The setting is remembered.
 
+**Linear scale** (checkbox in the toolbar): by default each station gets its own
+row, so empty stretches of the band are skipped. With *Linear scale* on, the lane
+is a proportional frequency axis with a kHz ruler — gaps stay visible — and
+stations that would overlap are placed side by side (up to four columns; extra
+ones are counted in the lane header, zoom in to see them). The setting is remembered.
+
 ## Special reference markers
 
 Two static, frontend-only marker sets are drawn into each lane as half-height

@@ -3350,3 +3350,12 @@ button.chip.active {
   border-color: transparent;
   color: #fff;
 }
+
+/* Bandmap linear scale: spots are placed at their true frequency, side by side. */
+.bandmap-row.linear .bandmap-spot {
+  margin-left: 1px;
+}
+.bandmap-row.linear .bandmap-spot-call {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

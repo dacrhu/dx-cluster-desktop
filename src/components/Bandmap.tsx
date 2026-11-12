@@ -8,6 +8,7 @@ import {
   type CSSProperties,
   type MouseEvent,
 } from "react";
+import { linearTickStep, packColumns } from "@/lib/bandLayout";
 import { matchingAlert, type AlertRule } from "@/lib/alerts";
 import { modeClass, modeLabel } from "@/lib/mode";
 import {
@@ -113,7 +114,16 @@ function Lane({
   }, [spots, band]);
   const n = groups.length;
   const s = Math.min(zoom, 2);
-  const rowH = n > 0 ? Math.max(14 * s, Math.min(34 * s, (availH / n) * zoom)) : 34 * s;
+  const linear = useCluster((st) => st.bandmapLinear);
+  const span = band.highKhz - band.lowKhz;
+  // Linear mode: a fixed, proportional px/kHz (never less than ~10 px/kHz so a
+  // narrow band like 20 m CW is still readable), scaled by the zoom.
+  const pxPerKhz = Math.max(availH / span, 10) * zoom;
+  const rowH = linear
+    ? 16 * s
+    : n > 0
+      ? Math.max(14 * s, Math.min(34 * s, (availH / n) * zoom))
+      : 34 * s;
   const enabledMarkers = useCluster((st) => st.bandmapMarkers);
   const customMarkers = useCluster((st) => st.customMarkers);
   const specials = useMemo(
@@ -147,28 +157,45 @@ function Lane({
     }
     return { rowsSorted: rows, rowTop, specialTop, contentH: y };
   }, [groups, specials, rowH, specialRowH]);
-  const laneH = n === 0 ? availH : Math.max(availH, contentH);
-
-  const span = band.highKhz - band.lowKhz;
+  const laneH = linear ? span * pxPerKhz : n === 0 ? availH : Math.max(availH, contentH);
+  const proportional = linear || n === 0;
   // The frequency axis is non-linear once there's at least one spot: it walks
   // the same row layout as above (spot rows *and* SOS/IBP marker rows, so a
   // marker's height is accounted for too), and it stretches to follow the
   // actual density. An empty lane falls back to a plain proportional scale
   // (also used to place the SOS/IBP markers there).
-  const yOf =
-    n === 0
-      ? (khz: number) => ((khz - band.lowKhz) / span) * laneH
-      : (khz: number) => {
-          let y = 0;
-          for (const r of rowsSorted) {
-            if (r.freqKhz >= khz) break;
-            y += r.h;
-          }
-          return y;
-        };
+  const yOf = proportional
+    ? (khz: number) => ((khz - band.lowKhz) / span) * laneH
+    : (khz: number) => {
+        let y = 0;
+        for (const r of rowsSorted) {
+          if (r.freqKhz >= khz) break;
+          y += r.h;
+        }
+        return y;
+      };
   // A row's own top is a plain lookup — exact and O(1), unlike the O(n) walk
   // above needed for an arbitrary boundary (segment edges, the radio cursor).
-  const specialY = (khz: number) => (n === 0 ? yOf(khz) : (specialTop.get(khz) ?? yOf(khz)));
+  const specialY = (khz: number) =>
+    linear
+      ? Math.max(0, yOf(khz) - specialRowH / 2)
+      : n === 0
+        ? yOf(khz)
+        : (specialTop.get(khz) ?? yOf(khz));
+
+  // Linear mode: spots sit at their true frequency; those that would overlap
+  // are spread over side-by-side columns (max 4, the rest are counted, not drawn).
+  const linearPos = useMemo(() => {
+    if (!linear) return null;
+    const tops = groups.map((g) =>
+      Math.max(0, ((g.rep.freq_khz - band.lowKhz) / span) * laneH - rowH / 2),
+    );
+    const cols = packColumns(
+      tops.map((y) => ({ y, h: rowH })),
+      4,
+    );
+    return { tops, cols, hidden: cols.filter((c) => c.col < 0).length };
+  }, [linear, groups, band, span, laneH, rowH]);
 
   // The station the radio is sitting on (VFO exactly on its frequency, ±0.05 kHz), if any.
   const nearKey = useMemo(() => {
@@ -223,6 +250,7 @@ function Lane({
     if (!el) return;
     // The VFO-follow effect above owns the scroll position of a tracked lane.
     if (active && follow && radioKhz != null) return;
+    if (linear) return; // positions are frequency-true, nothing shifts on new spots
     const a = anchor.current;
     if (a) {
       const idx = groups.findIndex((g) => g.key === a.key);
@@ -239,7 +267,7 @@ function Lane({
     }
     captureAnchor(el);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groups, rowTop, laneH]);
+  }, [groups, rowTop, laneH, linear]);
 
   function onScroll() {
     if (programmatic.current) {
@@ -255,8 +283,8 @@ function Lane({
   const edgeHighY = edgeHigh < band.highKhz ? yOf(edgeHigh) : laneH;
 
   const emptyTicks: number[] = [];
-  if (n === 0) {
-    const step = tickStepKhz(span);
+  if (proportional) {
+    const step = linear ? linearTickStep(pxPerKhz) : tickStepKhz(span);
     for (let f = Math.ceil(band.lowKhz / step) * step; f < band.highKhz; f += step)
       emptyTicks.push(f);
   }
@@ -290,7 +318,15 @@ function Lane({
             ⌖
           </button>
         )}
-        <span className="muted">{n}</span>
+        <span
+          className="muted"
+          title={
+            linearPos?.hidden ? tr("bandmap.linearHidden", { n: linearPos.hidden }) : undefined
+          }
+        >
+          {n}
+          {linearPos?.hidden ? ` (+${linearPos.hidden})` : ""}
+        </span>
       </div>
       {outside && <div className="bandmap-oob-flag">⚠ {tr("bandmap.outOfBand")}</div>}
       <div className="bandmap-lane-body" ref={bodyRef} onScroll={onScroll}>
@@ -366,10 +402,24 @@ function Lane({
             return (
               <div
                 key={key}
-                className={`bandmap-row${key === nearKey ? " radio-near" : ""}`}
-                style={{ top: rowTop[i], height: rowH }}
+                className={`bandmap-row${key === nearKey ? " radio-near" : ""}${
+                  linear ? " linear" : ""
+                }`}
+                style={
+                  linearPos
+                    ? linearPos.cols[i].col < 0
+                      ? { display: "none" }
+                      : {
+                          top: linearPos.tops[i],
+                          height: rowH,
+                          left: `calc(30px + (100% - 30px) * ${linearPos.cols[i].col} / ${linearPos.cols[i].cols})`,
+                          width: `calc((100% - 30px) / ${linearPos.cols[i].cols})`,
+                          right: "auto",
+                        }
+                    : { top: rowTop[i], height: rowH }
+                }
               >
-                <span className="bandmap-rowfreq mono">{rep.freq_khz.toFixed(1)}</span>
+                {!linear && <span className="bandmap-rowfreq mono">{rep.freq_khz.toFixed(1)}</span>}
                 <button
                   className={`bandmap-spot${hit ? " alert-hit" : ""}${
                     rep.is_skimmer ? " skimmer" : ""
