@@ -3379,3 +3379,8 @@ button.chip.active {
   inset: 0;
   z-index: 1000;
 }
+
+.bandmap-row.linear .bandmap-spot {
+  overflow: hidden;
+  box-sizing: border-box;
+}

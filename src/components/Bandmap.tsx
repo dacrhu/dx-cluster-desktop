@@ -457,8 +457,8 @@ function Lane({
                       : {
                           top: linearPos.tops[i],
                           height: rowH,
-                          left: `calc(var(--bm-lg) + (100% - var(--bm-lg)) * ${linearPos.cols[i].col} / ${linearPos.cols[i].cols})`,
-                          width: `calc((100% - var(--bm-lg)) / ${linearPos.cols[i].cols})`,
+                          left: `calc(var(--bm-lg) + (100% - var(--bm-lg) - 6px) * ${linearPos.cols[i].col} / ${linearPos.cols[i].cols})`,
+                          width: `calc((100% - var(--bm-lg) - 6px) / ${linearPos.cols[i].cols})`,
                           right: "auto",
                         }
                     : { top: rowTop[i], height: rowH }
@@ -487,8 +487,8 @@ function Lane({
               style={{
                 top: c.top,
                 height: Math.max(rowH, c.bottom - c.top),
-                left: `calc(var(--bm-lg) + (100% - var(--bm-lg)) * ${c.cols - 1} / ${c.cols})`,
-                width: `calc((100% - var(--bm-lg)) / ${c.cols})`,
+                left: `calc(var(--bm-lg) + (100% - var(--bm-lg) - 6px) * ${c.cols - 1} / ${c.cols})`,
+                width: `calc((100% - var(--bm-lg) - 6px) / ${c.cols})`,
                 right: "auto",
               }}
             >
