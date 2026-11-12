@@ -150,7 +150,15 @@ async fn multicast_shared_with_another_listener() {
     );
 
     let sender = UdpSocket::bind("0.0.0.0:0").await.unwrap();
-    sender.send_to(&status(21_074_000), grp_addr).await.unwrap();
+    // CI runners (e.g. GitHub's macOS) can lack a multicast route entirely.
+    if let Err(e) = sender.send_to(&status(21_074_000), grp_addr).await {
+        if e.kind() == std::io::ErrorKind::HostUnreachable {
+            eprintln!("skipping: no multicast route on this host ({e})");
+            feed.abort();
+            return;
+        }
+        panic!("multicast send failed: {e}");
+    }
     sender
         .send_to(&decode(900, "CQ EA1XYZ IN52"), grp_addr)
         .await
