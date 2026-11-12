@@ -26,9 +26,9 @@ jobs:
           # Both macOS builds run on Apple-Silicon runners (plentiful; the Intel
           # `macos-13` queue is unreliable and being retired). The Intel slice is
           # a cross-compile to x86_64-apple-darwin.
-          - platform: macos-14 # macOS Apple Silicon — .dmg
+          - platform: macos-15 # macOS Apple Silicon — .dmg
             args: "--target aarch64-apple-darwin"
-          - platform: macos-14 # macOS Intel — .dmg (cross-compiled)
+          - platform: macos-15 # macOS Intel — .dmg (cross-compiled)
             args: "--target x86_64-apple-darwin"
 
     runs-on: ${{ matrix.platform }}
