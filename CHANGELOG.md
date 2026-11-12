@@ -12,6 +12,9 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+- Bandmap: every lane now marks its **band start and end**, and if the radio (CAT) goes
+  **out of the band** a flashing red banner and red edge marker make it impossible to miss.
+
 - Bandmap: new **Markers ▾** menu — optionally show the calling frequencies of FT8,
   FT4, FT2, JS8, RTTY, SSTV and FreeDV in the lanes (off by default; SOS and IBP stay
   always on), and add your own named, coloured frequencies (e.g. the one you use with

@@ -66,6 +66,8 @@ Legendenleiste.
 - **Rechtsklick** auf eine Station → das Aktionsmenü.
 - Siehe [Die Spot-Tabelle](spots.md), was diese tun.
 
+- Jede Bahn zeigt **Bandanfang und -ende** (Frequenz in MHz) als markierten Rand oben und unten.
+
 ## Mit Funkgerätesteuerung
 
 Wenn [CAT](rig-and-logging.md) verbunden ist, ergänzt die Bandmap:
@@ -73,6 +75,9 @@ Wenn [CAT](rig-and-logging.md) verbunden ist, ergänzt die Bandmap:
 - eine **Cursorlinie** an deiner VFO; die enthaltende Bahn wird hervorgehoben und
   die anderen verblassen,
 - der Spot innerhalb von ~0,5 kHz der VFO wird umringt,
+- verlässt das Funkgerät die **Amateurbänder**, erscheint ein rot blinkendes
+  „Außerhalb des Bandes“-Banner, und die Randmarkierung (sowie der Kopf) des
+  nächsten Bandes blinkt rot,
 - die aktive Bahn **scrollt automatisch, um die VFO zentriert zu halten**. Ein
   manuelles Scrollen pausiert das (und friert die Bahn ein); die Schaltfläche
   **⌖** in der Bahn-Kopfzeile oder ein Bandwechsel setzt es fort,

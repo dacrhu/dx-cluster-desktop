@@ -62,6 +62,8 @@ Kattints egyikre egy minimális felbukkanóért egy **Rádió hangolása** gombb
 - **Jobb klikk** egy állomáson → a műveleti menü.
 - Lásd [A spot-táblázat](spots.md), hogy ezek mit csinálnak.
 
+- Minden sáv a **kezdő és záró frekvenciáját** (MHz) jelölt éllel mutatja felül és alul.
+
 ## Rádióvezérléssel
 
 Amikor a [CAT](rig-and-logging.md) csatlakoztatva van, a Sávtérkép ezt adja hozzá:
@@ -69,6 +71,8 @@ Amikor a [CAT](rig-and-logging.md) csatlakoztatva van, a Sávtérkép ezt adja h
 - egy **kurzorvonal** a VFO-dnál; az azt tartalmazó sáv kiemelve, a többi
   elhalványul,
 - a VFO-tól ~0,5 kHz-en belüli spot bekarikázva,
+- ha a rádió **kimegy az amatőrsávokból**, villogó piros „sávon kívül” felirat jelenik
+  meg, és a legközelebbi sáv szélének jelzője (és fejléce) pirosan villog,
 - az aktív sáv **automatikusan görget, hogy a VFO-t középen tartsa**. Egy kézi
   görgetés ezt szünetelteti (és lefagyasztja a sávot); a sáv fejlécében lévő
   **⌖** gomb, vagy a sávváltás folytatja,

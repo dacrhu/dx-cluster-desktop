@@ -39,6 +39,7 @@ Runs on **Windows, macOS and Linux**. Free and open source (MIT).
   shading, many-skimmer spots collapsed into one row, SOS and beacon-project
   reference markers, plus optional FT8 / FT4 / FT2 / JS8 / RTTY / SSTV / FreeDV
   frequency markers and your own custom ones (e.g. your net frequency).
+  Band edges are marked, and a flashing red warning shows if your radio leaves the band.
 - **A world map that shows propagation.** Grey-line, aurora, a measured-MUF layer
   blending a solar model with live ionosonde data (stations drawn as dots), a
   **"is the band open from my QTH?"** layer for any band (it follows your radio's band via CAT), band openings, a bearing

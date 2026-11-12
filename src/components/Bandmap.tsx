@@ -57,6 +57,7 @@ function Lane({
   onManualScroll,
   onRecenter,
   onBandSelect,
+  outside,
 }: {
   band: BandmapBand;
   spots: EnrichedSpot[];
@@ -74,6 +75,8 @@ function Lane({
   onRecenter: () => void;
   /** QSY the rig to this band (null = CAT off, header not clickable). */
   onBandSelect: ((freqKhz: number) => void) | null;
+  /** The VFO is just past this lane's low ("below") or high ("above") edge. */
+  outside: "below" | "above" | null;
 }) {
   const tr = useT();
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -252,7 +255,11 @@ function Lane({
   const headerClickable = onBandSelect != null && !active;
 
   return (
-    <div className={`bandmap-lane${active ? " radio-active" : ""}${dimmed ? " dimmed" : ""}`}>
+    <div
+      className={`bandmap-lane${active ? " radio-active" : ""}${dimmed ? " dimmed" : ""}${
+        outside ? " out-of-band" : ""
+      }`}
+    >
       <div
         className={`bandmap-lane-head${headerClickable ? " qsy" : ""}`}
         title={headerClickable ? tr("bandmap.qsyBand", { band: band.label }) : undefined}
@@ -273,8 +280,21 @@ function Lane({
         )}
         <span className="muted">{n}</span>
       </div>
+      {outside && <div className="bandmap-oob-flag">⚠ {tr("bandmap.outOfBand")}</div>}
       <div className="bandmap-lane-body" ref={bodyRef} onScroll={onScroll}>
         <div className="bandmap-scale" style={{ height: laneH }}>
+          <div
+            className={`bandmap-edge edge-low${outside === "below" ? " hot" : ""}`}
+            title={tr("bandmap.bandStart", { freq: (band.lowKhz / 1000).toFixed(3) })}
+          >
+            <span>▲ {(band.lowKhz / 1000).toFixed(3)}</span>
+          </div>
+          <div
+            className={`bandmap-edge edge-high${outside === "above" ? " hot" : ""}`}
+            title={tr("bandmap.bandEnd", { freq: (band.highKhz / 1000).toFixed(3) })}
+          >
+            <span>▼ {(band.highKhz / 1000).toFixed(3)}</span>
+          </div>
           {bandSegments(band).map((seg) => {
             const top = yOf(seg.fromKhz);
             return (
@@ -453,6 +473,7 @@ export const Bandmap = memo(function Bandmap({
   zoom?: number;
   onZoomBy?: (factor: number) => void;
 }) {
+  const tr = useT();
   const rules = useCluster((s) => s.alerts);
   const alertsEnabled = useCluster((s) => s.alertsEnabled);
   const activeRules = alertsEnabled ? rules : [];
@@ -501,6 +522,24 @@ export const Bandmap = memo(function Bandmap({
       ? (lanes.find((b) => radioKhz >= b.lowKhz && radioKhz <= b.highKhz)?.label ?? null)
       : null;
 
+  // VFO outside every amateur band (CAT wandered off): flag it loudly, and mark
+  // the nearest band's edge it fell off.
+  const oob = useMemo(() => {
+    if (radioKhz == null) return null;
+    if (BANDMAP_BANDS.some((b) => radioKhz >= b.lowKhz && radioKhz <= b.highKhz)) return null;
+    let best: { label: string; side: "below" | "above"; d: number } | null = null;
+    for (const b of BANDMAP_BANDS) {
+      const below = radioKhz < b.lowKhz;
+      const d = below ? b.lowKhz - radioKhz : radioKhz - b.highKhz;
+      if (!best || d < best.d) best = { label: b.label, side: below ? "below" : "above", d };
+    }
+    // Only blame a band if the VFO is reasonably close to it.
+    const nb = best && BANDMAP_BANDS.find((b) => b.label === best!.label)!;
+    return best && nb && best.d <= Math.max(150, (nb.highKhz - nb.lowKhz) * 0.5)
+      ? best
+      : { ...best!, label: "" };
+  }, [radioKhz]);
+
   // The active lane tracks the VFO by default; a manual scroll pauses that (the
   // lane keeps its scroll anchor, see `Lane`, while spots keep arriving live).
   // A new band (or the ⌖ button) resumes tracking.
@@ -525,6 +564,11 @@ export const Bandmap = memo(function Bandmap({
       style={{ "--bm-scale": fontScale } as CSSProperties}
       onClick={() => setMenu(null)}
     >
+      {oob && radioKhz != null && (
+        <div className="bandmap-oob-banner" role="alert">
+          ⚠ {tr("bandmap.oobBanner", { freq: (radioKhz / 1000).toFixed(3) })}
+        </div>
+      )}
       {lanes.map((b) => (
         <Lane
           key={b.label}
@@ -551,6 +595,7 @@ export const Bandmap = memo(function Bandmap({
           active={b.label === activeBand}
           dimmed={activeBand != null && b.label !== activeBand}
           follow={follow}
+          outside={oob && oob.label === b.label ? oob.side : null}
           onManualScroll={() => {
             if (follow) setFollow(false);
           }}

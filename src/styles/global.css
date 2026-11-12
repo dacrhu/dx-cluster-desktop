@@ -1104,6 +1104,81 @@ button.chip.active {
   border-top: 1px dashed var(--row-alt);
   pointer-events: none;
 }
+/* Band start / end markers, pinned to the lane's first / last edge. */
+.bandmap-edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.bandmap-edge.edge-low {
+  top: 0;
+  border-top: 2px solid var(--text-muted);
+}
+.bandmap-edge.edge-high {
+  bottom: 0;
+  border-bottom: 2px solid var(--text-muted);
+}
+.bandmap-edge span {
+  position: absolute;
+  right: 2px;
+  font-size: calc(9px * var(--bm-scale, 1));
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-sunken);
+  padding: 0 3px;
+  border-radius: 2px;
+}
+.bandmap-edge.edge-low span {
+  top: 1px;
+}
+.bandmap-edge.edge-high span {
+  bottom: 1px;
+}
+.bandmap-edge.hot {
+  border-color: var(--danger);
+  border-width: 4px;
+  animation: bm-oob-pulse 0.9s ease-in-out infinite;
+}
+.bandmap-edge.hot span {
+  color: #fff;
+  background: var(--danger);
+}
+.bandmap-lane.out-of-band {
+  border-color: var(--danger);
+  opacity: 1;
+}
+.bandmap-oob-flag {
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  padding: 2px 4px;
+  animation: bm-oob-pulse 0.9s ease-in-out infinite;
+}
+.bandmap-oob-banner {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  background: var(--danger);
+  color: #fff;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  animation: bm-oob-pulse 0.9s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes bm-oob-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
 .bandmap-radio-cursor {
   position: absolute;
   left: 0;

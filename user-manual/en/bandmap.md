@@ -60,6 +60,8 @@ off). There is a legend strip at the top of the panel.
 - **Right-click** a station → the action menu.
 - See [The spot table](spots.md) for what those do.
 
+- Every lane shows its **band start and end** (frequency in MHz) as a marked edge at the top and bottom.
+
 ## With rig control
 
 When [CAT](rig-and-logging.md) is connected the Bandmap adds:
@@ -67,6 +69,8 @@ When [CAT](rig-and-logging.md) is connected the Bandmap adds:
 - a **cursor line** at your VFO; the containing lane is highlighted and the
   others fade,
 - the spot within ~0.5 kHz of the VFO is ringed,
+- if the radio **leaves the amateur bands**, a flashing red "out of band" banner
+  appears and the nearest band's edge marker (and lane header) flash red,
 - the active lane **auto-scrolls to keep the VFO centred**. A manual scroll
   pauses that (and freezes the lane); the **⌖** button in the lane header, or
   changing band, resumes it,
