@@ -49,6 +49,7 @@ export interface AppSettings {
   /** Band Activity panel: spotter-continent scope ("" = auto from QTH, "*" =
    *  anywhere, else a continent code). */
   bandActivityFrom: string;
+  iaruRegion: string;
   /** Propagation forecast grid: target DXCC primary prefix ("" = none). */
   forecastTarget: string;
   /** Map panel. */
@@ -137,6 +138,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   bandmapMarkers: [],
   customMarkers: [],
   bandActivityFrom: "",
+  iaruRegion: "",
   forecastTarget: "",
   mapProjection: "rect",
   mapGrayline: true,

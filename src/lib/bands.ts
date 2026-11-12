@@ -28,6 +28,50 @@ export const BANDMAP_BANDS: BandmapBand[] = [
   { label: "2m", lowKhz: 144000, highKhz: 148000, cwToKhz: 144150, digiToKhz: 144500 },
 ];
 
+export type IaruRegion = 1 | 2 | 3;
+
+/**
+ * Where each band actually ends per IARU region (the `BANDMAP_BANDS` limits are
+ * the widest allocation of any region, so spots anywhere still land in a lane).
+ * Only bands that differ from the widest range are listed; national allocations
+ * vary a bit within a region, these are the usual IARU band-plan limits.
+ */
+const REGION_EDGES: Record<IaruRegion, Record<string, [number, number]>> = {
+  1: {
+    "160m": [1810, 2000],
+    "80m": [3500, 3800],
+    "60m": [5351.5, 5366.5],
+    "40m": [7000, 7200],
+    "6m": [50000, 52000],
+    "2m": [144000, 146000],
+  },
+  2: { "60m": [5330, 5406] },
+  3: { "80m": [3500, 3900], "40m": [7000, 7200] },
+};
+
+/** The band's start/end in the given IARU region (null region = widest range). */
+export function regionEdges(b: BandmapBand, region: IaruRegion | null): [number, number] {
+  const e = region ? REGION_EDGES[region][b.label] : undefined;
+  return e ?? [b.lowKhz, b.highKhz];
+}
+
+/** Rough IARU region from a continent code (see `lonLatToContinent`). */
+export function regionForContinent(cont: string | null): IaruRegion | null {
+  switch (cont) {
+    case "EU":
+    case "AF":
+      return 1;
+    case "NA":
+    case "SA":
+      return 2;
+    case "AS":
+    case "OC":
+      return 3;
+    default:
+      return null;
+  }
+}
+
 export type SegMode = "CW" | "DIGI" | "SSB";
 
 export interface BandSegment {

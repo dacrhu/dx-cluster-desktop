@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { BANDMAP_BANDS, bandSegments, specialFreqsInBand, tickStepKhz } from "./bands";
+import {
+  BANDMAP_BANDS,
+  bandSegments,
+  regionEdges,
+  regionForContinent,
+  specialFreqsInBand,
+  tickStepKhz,
+} from "./bands";
 
 describe("bandSegments", () => {
   it("splits a conventional HF band into CW / DIGI / SSB", () => {
@@ -77,5 +84,21 @@ describe("optional + custom markers", () => {
     expect(found).toHaveLength(1);
     expect(found[0].kind).toBe("ft4");
     expect(found[0].label).toBe("FT4 · JS8");
+  });
+});
+
+describe("regionEdges", () => {
+  const b40 = BANDMAP_BANDS.find((b) => b.label === "40m")!;
+  it("40m ends at 7200 in Regions 1 and 3, 7300 in Region 2", () => {
+    expect(regionEdges(b40, 1)[1]).toBe(7200);
+    expect(regionEdges(b40, 3)[1]).toBe(7200);
+    expect(regionEdges(b40, 2)[1]).toBe(7300);
+    expect(regionEdges(b40, null)[1]).toBe(7300);
+  });
+  it("maps continents to regions", () => {
+    expect(regionForContinent("EU")).toBe(1);
+    expect(regionForContinent("NA")).toBe(2);
+    expect(regionForContinent("OC")).toBe(3);
+    expect(regionForContinent(null)).toBeNull();
   });
 });

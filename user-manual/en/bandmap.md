@@ -60,7 +60,10 @@ off). There is a legend strip at the top of the panel.
 - **Right-click** a station → the action menu.
 - See [The spot table](spots.md) for what those do.
 
-- Every lane shows its **band start and end** (frequency in MHz) as a marked edge at the top and bottom.
+- Every lane shows its **band start and end** (frequency in MHz) as a marked edge. Band limits differ
+  between IARU regions (e.g. 40 m ends at 7200 kHz in Regions 1 and 3, 7300 in Region 2), so the
+  quick bar has an **IARU region** select — _Auto_ takes it from your QTH locator. The part of a
+  lane beyond your region's limit is hatched; spots there are still shown.
 
 ## With rig control
 

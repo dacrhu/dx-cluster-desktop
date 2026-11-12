@@ -1105,6 +1105,19 @@ button.chip.active {
   pointer-events: none;
 }
 /* Band start / end markers, pinned to the lane's first / last edge. */
+/* Part of the lane's range that lies outside the operator's IARU region. */
+.bandmap-outside {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--danger) 16%, transparent) 0 4px,
+    transparent 4px 8px
+  );
+}
 .bandmap-edge {
   position: absolute;
   left: 0;
@@ -1114,12 +1127,10 @@ button.chip.active {
   pointer-events: none;
 }
 .bandmap-edge.edge-low {
-  top: 0;
   border-top: 2px solid var(--text-muted);
 }
 .bandmap-edge.edge-high {
-  bottom: 0;
-  border-bottom: 2px solid var(--text-muted);
+  border-top: 2px solid var(--text-muted);
 }
 .bandmap-edge span {
   position: absolute;

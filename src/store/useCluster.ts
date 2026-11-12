@@ -99,6 +99,8 @@ interface ClusterStore {
   /** Band Activity panel: which spotters' continent the trend is scoped to.
    *  "" = auto (derive from the QTH), "*" = anywhere, else a continent code. */
   bandActivityFrom: string;
+  /** IARU region for band edges: "" = auto (from the QTH), else "1" | "2" | "3". */
+  iaruRegion: string;
   forecastTarget: string;
   /** Map projection: azimuthal-equidistant from the QTH, or flat world. */
   mapProjection: "azimuthal" | "rect";
@@ -257,6 +259,7 @@ interface ClusterStore {
   setBandmapMarkers: (m: string[]) => void;
   setCustomMarkers: (m: CustomMarker[]) => void;
   setBandActivityFrom: (v: string) => void;
+  setIaruRegion: (v: string) => void;
   setForecastTarget: (v: string) => void;
   setMapProjection: (p: "azimuthal" | "rect") => void;
   setMapGrayline: (on: boolean) => void;
@@ -360,6 +363,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   bandmapMarkers: [],
   customMarkers: [],
   bandActivityFrom: "",
+  iaruRegion: "",
   forecastTarget: "",
   mapProjection: "rect",
   mapGrayline: true,
@@ -526,6 +530,7 @@ export const useCluster = create<ClusterStore>((set) => ({
   setCustomMarkers: (customMarkers) => set({ customMarkers }),
   setBandmapZoom: (bandmapZoom) => set({ bandmapZoom: Math.min(5, Math.max(1, bandmapZoom)) }),
   setBandActivityFrom: (bandActivityFrom) => set({ bandActivityFrom }),
+  setIaruRegion: (iaruRegion) => set({ iaruRegion }),
   setForecastTarget: (forecastTarget) => set({ forecastTarget }),
   setMapProjection: (mapProjection) => set({ mapProjection }),
   setMapGrayline: (mapGrayline) => set({ mapGrayline }),

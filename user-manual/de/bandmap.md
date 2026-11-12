@@ -66,7 +66,11 @@ Legendenleiste.
 - **Rechtsklick** auf eine Station → das Aktionsmenü.
 - Siehe [Die Spot-Tabelle](spots.md), was diese tun.
 
-- Jede Bahn zeigt **Bandanfang und -ende** (Frequenz in MHz) als markierten Rand oben und unten.
+- Jede Bahn zeigt **Bandanfang und -ende** (Frequenz in MHz) als markierten Rand. Die Bandgrenzen
+  unterscheiden sich je IARU-Region (z. B. endet 40 m in Region 1 und 3 bei 7200 kHz, in Region 2 bei
+  7300), daher gibt es in der Kopfleiste eine **IARU-Region**-Auswahl — _Auto_ nimmt sie aus deinem
+  QTH-Locator. Der Teil einer Bahn jenseits der Grenze deiner Region ist schraffiert; Spots dort
+  werden weiterhin angezeigt.
 
 ## Mit Funkgerätesteuerung
 

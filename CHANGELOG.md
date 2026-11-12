@@ -12,7 +12,8 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
-- Bandmap: every lane now marks its **band start and end**, and if the radio (CAT) goes
+- Bandmap: every lane now marks its **band start and end** for your **IARU region** (auto from
+  your QTH, or pick one — 40 m ends at 7200 kHz in Regions 1/3, 7300 in Region 2), and if the radio (CAT) goes
   **out of the band** a flashing red banner and red edge marker make it impossible to miss.
 
 - Bandmap: new **Markers ▾** menu — optionally show the calling frequencies of FT8,

@@ -62,7 +62,10 @@ Kattints egyikre egy minimális felbukkanóért egy **Rádió hangolása** gombb
 - **Jobb klikk** egy állomáson → a műveleti menü.
 - Lásd [A spot-táblázat](spots.md), hogy ezek mit csinálnak.
 
-- Minden sáv a **kezdő és záró frekvenciáját** (MHz) jelölt éllel mutatja felül és alul.
+- Minden sáv a **kezdő és záró frekvenciáját** (MHz) jelölt éllel mutatja. A sávhatárok IARU
+  régiónként eltérnek (pl. a 40 m az 1. és 3. régióban 7200 kHz-ig tart, a 2.-ban 7300-ig), ezért az
+  eszköztáron van egy **IARU régió** választó — az _Auto_ a QTH-locatorodból veszi. A sáv régiód
+  határán túli része csíkozott; az ottani spotok továbbra is látszanak.
 
 ## Rádióvezérléssel
 

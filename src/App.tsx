@@ -300,6 +300,7 @@ export function App() {
       c().setBandmapMarkers(settings.bandmapMarkers ?? []);
       c().setCustomMarkers(settings.customMarkers ?? []);
       c().setBandActivityFrom(settings.bandActivityFrom ?? "");
+      c().setIaruRegion(settings.iaruRegion ?? "");
       c().setForecastTarget(settings.forecastTarget ?? "");
       c().setMapProjection(settings.mapProjection ?? "rect");
       c().setMapGrayline(settings.mapGrayline ?? true);

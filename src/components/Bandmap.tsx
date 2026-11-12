@@ -13,6 +13,9 @@ import { modeClass, modeLabel } from "@/lib/mode";
 import {
   BANDMAP_BANDS,
   bandSegments,
+  regionEdges,
+  regionForContinent,
+  type IaruRegion,
   specialFreqsInBand,
   specialLabel,
   tickStepKhz,
@@ -20,6 +23,8 @@ import {
   type SpecialFreq,
 } from "@/lib/bands";
 import { useCluster } from "@/store/useCluster";
+import { locatorToLonLat } from "@/lib/grid";
+import { lonLatToContinent } from "@/lib/continents";
 import { useT } from "@/i18n";
 import * as ipc from "@/lib/ipc";
 import { createPortal } from "react-dom";
@@ -58,6 +63,7 @@ function Lane({
   onRecenter,
   onBandSelect,
   outside,
+  region,
 }: {
   band: BandmapBand;
   spots: EnrichedSpot[];
@@ -77,6 +83,8 @@ function Lane({
   onBandSelect: ((freqKhz: number) => void) | null;
   /** The VFO is just past this lane's low ("below") or high ("above") edge. */
   outside: "below" | "above" | null;
+  /** IARU region whose band limits to mark (null = unknown → full range). */
+  region: IaruRegion | null;
 }) {
   const tr = useT();
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -242,6 +250,10 @@ function Lane({
     if (active) onManualScroll();
   }
 
+  const [edgeLow, edgeHigh] = regionEdges(band, region);
+  const edgeLowY = edgeLow > band.lowKhz ? yOf(edgeLow) : 0;
+  const edgeHighY = edgeHigh < band.highKhz ? yOf(edgeHigh) : laneH;
+
   const emptyTicks: number[] = [];
   if (n === 0) {
     const step = tickStepKhz(span);
@@ -283,17 +295,23 @@ function Lane({
       {outside && <div className="bandmap-oob-flag">⚠ {tr("bandmap.outOfBand")}</div>}
       <div className="bandmap-lane-body" ref={bodyRef} onScroll={onScroll}>
         <div className="bandmap-scale" style={{ height: laneH }}>
+          {edgeLowY > 0 && <div className="bandmap-outside" style={{ top: 0, height: edgeLowY }} />}
+          {edgeHighY < laneH && (
+            <div className="bandmap-outside" style={{ top: edgeHighY, bottom: 0 }} />
+          )}
           <div
             className={`bandmap-edge edge-low${outside === "below" ? " hot" : ""}`}
-            title={tr("bandmap.bandStart", { freq: (band.lowKhz / 1000).toFixed(3) })}
+            style={{ top: edgeLowY }}
+            title={tr("bandmap.bandStart", { freq: (edgeLow / 1000).toFixed(3) })}
           >
-            <span>▲ {(band.lowKhz / 1000).toFixed(3)}</span>
+            <span>▲ {(edgeLow / 1000).toFixed(3)}</span>
           </div>
           <div
             className={`bandmap-edge edge-high${outside === "above" ? " hot" : ""}`}
-            title={tr("bandmap.bandEnd", { freq: (band.highKhz / 1000).toFixed(3) })}
+            style={{ top: edgeHighY }}
+            title={tr("bandmap.bandEnd", { freq: (edgeHigh / 1000).toFixed(3) })}
           >
-            <span>▼ {(band.highKhz / 1000).toFixed(3)}</span>
+            <span>▼ {(edgeHigh / 1000).toFixed(3)}</span>
           </div>
           {bandSegments(band).map((seg) => {
             const top = yOf(seg.fromKhz);
@@ -524,21 +542,29 @@ export const Bandmap = memo(function Bandmap({
 
   // VFO outside every amateur band (CAT wandered off): flag it loudly, and mark
   // the nearest band's edge it fell off.
+  const regionSetting = useCluster((st) => st.iaruRegion);
+  const homeLocator = useCluster((st) => st.homeLocator);
+  const region: IaruRegion | null = useMemo(() => {
+    if (regionSetting === "1" || regionSetting === "2" || regionSetting === "3")
+      return Number(regionSetting) as IaruRegion;
+    return regionForContinent(lonLatToContinent(locatorToLonLat(homeLocator)));
+  }, [regionSetting, homeLocator]);
   const oob = useMemo(() => {
     if (radioKhz == null) return null;
-    if (BANDMAP_BANDS.some((b) => radioKhz >= b.lowKhz && radioKhz <= b.highKhz)) return null;
     let best: { label: string; side: "below" | "above"; d: number } | null = null;
     for (const b of BANDMAP_BANDS) {
-      const below = radioKhz < b.lowKhz;
-      const d = below ? b.lowKhz - radioKhz : radioKhz - b.highKhz;
+      const [lo, hi] = regionEdges(b, region);
+      if (radioKhz >= lo && radioKhz <= hi) return null;
+      const below = radioKhz < lo;
+      const d = below ? lo - radioKhz : radioKhz - hi;
       if (!best || d < best.d) best = { label: b.label, side: below ? "below" : "above", d };
     }
+    if (!best) return null;
     // Only blame a band if the VFO is reasonably close to it.
-    const nb = best && BANDMAP_BANDS.find((b) => b.label === best!.label)!;
-    return best && nb && best.d <= Math.max(150, (nb.highKhz - nb.lowKhz) * 0.5)
-      ? best
-      : { ...best!, label: "" };
-  }, [radioKhz]);
+    const nb = BANDMAP_BANDS.find((b) => b.label === best!.label)!;
+    const [lo, hi] = regionEdges(nb, region);
+    return best.d <= Math.max(150, (hi - lo) * 0.5) ? best : { ...best, label: "" };
+  }, [radioKhz, region]);
 
   // The active lane tracks the VFO by default; a manual scroll pauses that (the
   // lane keeps its scroll anchor, see `Lane`, while spots keep arriving live).
@@ -596,6 +622,7 @@ export const Bandmap = memo(function Bandmap({
           dimmed={activeBand != null && b.label !== activeBand}
           follow={follow}
           outside={oob && oob.label === b.label ? oob.side : null}
+          region={region}
           onManualScroll={() => {
             if (follow) setFollow(false);
           }}
