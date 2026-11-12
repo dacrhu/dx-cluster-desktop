@@ -405,7 +405,7 @@ the `useSpotActions()` hook (Spots panel appends its "prepare a post" action). "
 to the Talk tab and `TalkPanel` adopts the call. Band edges / sub-bands in
 `src/lib/bands.ts`. That file also carries two frontend-only marker sets drawn
 into each lane via `specialFreqsInBand(band)`: SOS = the IARU Region 1 "global
-emergency" simplex frequencies (3760/7060/14300/18160/21360/24960/28560 kHz —
+emergency" simplex frequencies (3760/7110/14300/18160/21360/24960/28360 kHz —
 a courtesy calling/coordination point for disaster traffic, not an official
 distress frequency), IBP = the NCDXF/IARU International Beacon Project's 5
 frequencies (14100/18110/21150/24930/28200 kHz). Both are static reference

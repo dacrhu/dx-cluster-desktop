@@ -57,7 +57,7 @@ export interface SpecialFreq {
 // de-facto calling/coordination points for disaster and emergency traffic.
 // Not an official distress frequency (there is no such thing in the amateur
 // bands) — a courtesy marker so operators think twice before parking on one.
-const SOS_KHZ = [3760, 7060, 14300, 18160, 21360, 24960, 28560];
+const SOS_KHZ = [3760, 7110, 14300, 18160, 21360, 24960, 28360];
 
 // NCDXF/IARU International Beacon Project: 18 beacons world-wide, round-robin
 // every 10s in an endless 3-minute cycle, one transmitter at a time per

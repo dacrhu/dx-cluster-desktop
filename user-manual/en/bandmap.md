@@ -34,7 +34,7 @@ Two static, frontend-only marker sets are drawn into each lane as half-height
 rows:
 
 - **SOS** (red) — the IARU Region 1 "global emergency" simplex frequencies
-  (3760 / 7060 / 14300 / 18160 / 21360 / 24960 / 28560 kHz). These are a
+  (3760 / 7110 / 14300 / 18160 / 21360 / 24960 / 28360 kHz). These are a
   courtesy calling/coordination point for disaster traffic, **not** an official
   distress frequency.
 - **IBP** (blue) — the five NCDXF/IARU International Beacon Project frequencies

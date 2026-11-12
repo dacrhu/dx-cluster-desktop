@@ -36,7 +36,7 @@ Két statikus, csak frontendes jelölőkészlet van berajzolva minden sávba
 félmagasságú sorokként:
 
 - **SOS** (piros) — az IARU 1. körzet „globális vészhelyzeti” szimplex
-  frekvenciái (3760 / 7060 / 14300 / 18160 / 21360 / 24960 / 28560 kHz). Ezek egy
+  frekvenciái (3760 / 7110 / 14300 / 18160 / 21360 / 24960 / 28360 kHz). Ezek egy
   udvariassági hívó-/koordinációs pont a katasztrófa-forgalomhoz, **nem**
   hivatalos vészfrekvencia.
 - **IBP** (kék) — az NCDXF/IARU International Beacon Project öt frekvenciája

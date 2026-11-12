@@ -37,7 +37,7 @@ Zwei statische, nur im Frontend gezeichnete Markersätze werden in jede Bahn als
 halbhohe Zeilen eingezeichnet:
 
 - **SOS** (rot) — die „globalen Notfall“-Simplexfrequenzen der IARU-Region 1
-  (3760 / 7060 / 14300 / 18160 / 21360 / 24960 / 28560 kHz). Diese sind ein
+  (3760 / 7110 / 14300 / 18160 / 21360 / 24960 / 28360 kHz). Diese sind ein
   Höflichkeits-Anruf-/Koordinationspunkt für Katastrophenverkehr, **keine**
   offizielle Notfrequenz.
 - **IBP** (blau) — die fünf Frequenzen des NCDXF/IARU International Beacon
