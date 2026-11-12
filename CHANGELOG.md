@@ -12,6 +12,11 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-11-12
+
+- Fixed the macOS builds (the release pipeline now uses a supported macOS runner), so the
+  macOS `.dmg` packages are published again.
+
 ## [1.11.0] - 2026-11-12
 
 - Bandmap: new **Linear scale** option — the band is drawn as a true proportional frequency
