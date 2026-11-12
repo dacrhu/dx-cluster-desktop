@@ -1216,11 +1216,26 @@ button.chip.active {
   background: var(--alert-hit-bg);
   border-color: var(--alert-hit-border);
 }
-/* The spot the radio is currently sitting on (VFO within ~0.5 kHz). */
+/* The spot the radio is currently sitting on (VFO within ~0.5 kHz): the whole
+   entry lights up — solid accent fill, glow, and a highlighted freq label. */
 .bandmap-spot.radio-near {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent);
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-elevated));
+  background: var(--accent);
+  color: #fff;
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 10px 2px var(--accent);
+  font-weight: 700;
+  opacity: 1;
+  z-index: 4;
+}
+.bandmap-spot.radio-near .bandmap-spot-call,
+.bandmap-spot.radio-near .bandmap-spot-n {
+  color: #fff;
+}
+.bandmap-row.radio-near .bandmap-rowfreq {
+  color: var(--accent);
+  font-weight: 700;
   opacity: 1;
 }
 .spot-row.radio-near,

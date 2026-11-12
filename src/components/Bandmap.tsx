@@ -159,11 +159,11 @@ function Lane({
   // above needed for an arbitrary boundary (segment edges, the radio cursor).
   const specialY = (khz: number) => (n === 0 ? yOf(khz) : (specialTop.get(khz) ?? yOf(khz)));
 
-  // The station the radio is sitting on (VFO within ~0.5 kHz), if any.
+  // The station the radio is sitting on (VFO exactly on its frequency, ±0.05 kHz), if any.
   const nearKey = useMemo(() => {
     if (radioKhz == null) return null;
     let best: string | null = null;
-    let bestD = 0.5;
+    let bestD = 0.05;
     for (const g of groups) {
       const d = Math.abs(g.rep.freq_khz - radioKhz);
       if (d <= bestD) {
@@ -326,7 +326,11 @@ function Lane({
               .filter(Boolean)
               .join(" · ");
             return (
-              <div key={key} className="bandmap-row" style={{ top: rowTop[i], height: rowH }}>
+              <div
+                key={key}
+                className={`bandmap-row${key === nearKey ? " radio-near" : ""}`}
+                style={{ top: rowTop[i], height: rowH }}
+              >
                 <span className="bandmap-rowfreq mono">{rep.freq_khz.toFixed(1)}</span>
                 <button
                   className={`bandmap-spot${hit ? " alert-hit" : ""}${
