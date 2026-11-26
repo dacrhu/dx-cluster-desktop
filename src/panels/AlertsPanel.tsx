@@ -8,12 +8,13 @@ import { beep, notify, ALERT_SOUNDS, type AlertSound } from "@/lib/notify";
 import { ALL_BANDS, ALL_CONTINENTS, ALL_MODES, type Mode } from "@/lib/types";
 import { Chips, CsvInput } from "@/components/fields";
 import { QueryHelp } from "@/components/QueryHelp";
-import { toggleIn } from "@/lib/util";
+import { useNowTick, toggleIn } from "@/lib/util";
 import { memo, useState } from "react";
 import { useT } from "@/i18n";
 
 export const AlertsPanel = memo(function AlertsPanel({ onGoToSpots }: { onGoToSpots: () => void }) {
   const tr = useT();
+  useNowTick();
   const {
     alerts,
     setAlerts,

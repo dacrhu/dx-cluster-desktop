@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /** Toggle a value's membership in an array (returns a new array). */
 export function toggleIn<T>(arr: T[], v: T): T[] {
@@ -105,4 +105,22 @@ export function useClampPopover(open: boolean) {
   }, [open]);
 
   return { ref, style: shift ? { transform: `translateX(${shift}px)` } : undefined };
+}
+
+/** Re-render the caller every `ms` (default 5 s) so relative ages ("12s", "3m")
+ *  keep ticking. Skips the re-render while the component is hidden
+ *  (panels stay mounted with `hidden`, so `offsetParent` is null). Pass the
+ *  element ref's `current` via `el` for the visibility check. */
+export function useNowTick(el?: () => HTMLElement | null, ms = 5000): void {
+  const [, setN] = useState(0);
+  const elRef = useRef(el);
+  elRef.current = el;
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const e = elRef.current?.();
+      if (e && e.offsetParent === null) return;
+      setN((n) => n + 1);
+    }, ms);
+    return () => window.clearInterval(id);
+  }, [ms]);
 }

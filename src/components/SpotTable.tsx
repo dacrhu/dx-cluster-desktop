@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useT } from "@/i18n";
+import { useNowTick } from "@/lib/util";
 import { useCluster } from "@/store/useCluster";
 import { matchingAlert } from "@/lib/alerts";
 import { modeClass, modeLabel } from "@/lib/mode";
@@ -33,6 +34,7 @@ export function SpotTable({ spots, actions }: { spots: EnrichedSpot[]; actions: 
   const alertMaxKm = useCluster((s) => s.alertMaxKm);
   const activeRules = alertsEnabled ? alerts : [];
   const parentRef = useRef<HTMLDivElement>(null);
+  useNowTick(() => parentRef.current);
   const [menu, setMenu] = useState<{ x: number; y: number; spot: EnrichedSpot } | null>(null);
   const [pop, setPop] = useState<{ x: number; y: number; spot: EnrichedSpot } | null>(null);
   const followFreqKhz = useCluster((s) => s.followFreqKhz);

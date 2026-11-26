@@ -2,7 +2,7 @@ import { memo, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useCluster, useOnlineId } from "@/store/useCluster";
 import { fmtAge, fmtUtc } from "@/lib/format";
-import { matchTerms } from "@/lib/util";
+import { useNowTick, matchTerms } from "@/lib/util";
 import { annMuteKey, useVisibleAnnouncements, type AnnMute } from "@/lib/announceFilter";
 import { patchSettings } from "@/lib/persist";
 import type { StoredAnnounce } from "@/lib/types";
@@ -12,6 +12,7 @@ import { runQuery } from "@/lib/ipc";
 
 export const AnnouncementsPanel = memo(function AnnouncementsPanel() {
   const tr = useT();
+  useNowTick();
   const loadAnnouncements = useCluster((s) => s.loadAnnouncements);
   const spam = useCluster(
     useShallow((s) => ({
