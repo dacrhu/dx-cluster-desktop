@@ -12,6 +12,10 @@ every entry should already read the way it will appear there.
 
 ## [Unreleased]
 
+## [1.11.3] - 2026-11-26
+
+- The "Age" column in the Spots table, the alert hits and the announcements now keeps counting up live instead of sitting at `0s` until you switch tabs.
+
 ## [1.11.2] - 2026-11-12
 
 - The map's "reports of me" layer (RBN / PSK Reporter / WSJT-X) now shows only the band your radio is on when CAT is connected; without CAT it shows everything.
